@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://boss_sheriff_01"]
+
+[ext_resource type="Script" path="res://scripts/enemies/boss_variant.gd" id="1"]
+
+[node name="Sheriff" type="CharacterBody2D"]
+script = ExtResource("1")
+enemy_id = "sheriff"
+max_hp = 700.0
+damage = 30.0
+move_speed = 58.0
+score_value = 1800
+body_color = Color(0.72, 0.55, 0.22, 1)
+accent_color = Color(0.92, 0.78, 0.20, 1)
+body_size = 33.0
+minion_path = "res://scenes/entities/enemies/enemy_cowboy.tscn"
+hat_style = 3
+speed_phase2 = 92.0

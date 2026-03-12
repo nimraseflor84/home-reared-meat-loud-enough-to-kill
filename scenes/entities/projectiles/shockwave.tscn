@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://shockwave001"]
+
+[ext_resource type="Script" path="res://scripts/systems/shockwave.gd" id="1"]
+
+[node name="Shockwave" type="Node2D"]
+script = ExtResource("1")

@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3 uid="uid://gamescene001"]
+
+[ext_resource type="Script" path="res://scripts/ui/game_scene.gd" id="1"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1")
+
+[node name="ArenaWalls" type="Node2D" parent="."]
+
+[node name="RhythmSystem" type="Node" parent="."]
+
+[node name="CrowdMeter" type="Node2D" parent="."]
+
+[node name="WaveManager" type="Node" parent="."]
+
+[node name="UpgradeManager" type="Node" parent="."]
+
+[node name="PlayerSpawnPoint" type="Marker2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="HUDRoot" type="Control" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0

@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://loc_waert_001"]
+
+[ext_resource type="Script" path="res://scripts/enemies/waerter.gd" id="1"]
+
+[sub_resource type="CapsuleShape2D" id="1"]
+radius = 16.0
+height = 46.0
+
+[node name="EnemyWaerter" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1")
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("1")

@@ -1,0 +1,38 @@
+# Godot 4 – generierte Dateien (nicht ins Repo)
+.godot/
+*.translation
+
+# Import-Metadaten werden MIT eingecheckt (Godot braucht sie)
+# *.import  <-- NICHT ignorieren
+
+# Godot-Export-Binaries
+*.exe
+*.x86_64
+*.app
+*.apk
+*.aab
+*.pck
+*.zip
+
+# Export-Templates (lokal, nicht im Repo)
+export_templates/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX/
+*.command
+
+# Claude Code
+.claude/
+
+# Editor-Kram
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
