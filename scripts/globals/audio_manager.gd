@@ -134,16 +134,10 @@ func next_song() -> void:
 	_play_current()
 
 func _load_mp3(path: String) -> AudioStreamMP3:
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return null
-	var bytes = file.get_buffer(file.get_length())
-	file.close()
-	if bytes.size() == 0:
-		return null
-	var stream = AudioStreamMP3.new()
-	stream.data = bytes
-	return stream
+	var stream = ResourceLoader.load(path, "AudioStreamMP3")
+	if stream is AudioStreamMP3:
+		return stream
+	return null
 
 func _play_current() -> void:
 	if _playlist.is_empty():
