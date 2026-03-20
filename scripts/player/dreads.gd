@@ -4,7 +4,7 @@ extends PlayerBase
 # Passive: Kann Gegner greifen & schleudern
 # Ultimate: Rasta Rampage (Wirbel-AOE)
 
-var whip_angle: float = 0.0
+var whip_angles: Array[float] = []
 var _whip_anim: float = 0.0
 var _whip_active: bool = false
 
@@ -98,9 +98,10 @@ func _draw() -> void:
 
 	# Peitsch-Animation
 	if _whip_active:
-		var whip_end = Vector2(cos(whip_angle), sin(whip_angle)) * (90.0 * _whip_anim)
-		draw_line(Vector2.ZERO, whip_end, dread_col, 4.0)
-		draw_circle(whip_end, 5.0, Color(1.0, 0.8, 0.2))
+		for wa in whip_angles:
+			var whip_end = Vector2(cos(wa), sin(wa)) * (180.0 * _whip_anim)
+			draw_line(Vector2.ZERO, whip_end, dread_col, 4.0)
+			draw_circle(whip_end, 5.0, Color(1.0, 0.8, 0.2))
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
@@ -111,19 +112,19 @@ func _physics_process(delta: float) -> void:
 			_whip_anim = 0.0
 
 func _auto_attack() -> void:
-	var target = get_nearest_enemy()
-	if target:
-		whip_angle = (target.global_position - global_position).angle()
+	whip_angles.clear()
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	for e in enemies:
+		if is_instance_valid(e):
+			var to_e = e.global_position - global_position
+			if to_e.length() < 320.0:
+				e.take_damage(get_total_damage(), self)
+				whip_angles.append(to_e.angle())
+				if randf() < 0.3:
+					e.apply_knockback(to_e.normalized().rotated(PI / 2.0) * 300.0)
+	if not whip_angles.is_empty():
 		_whip_active = true
 		_whip_anim = 0.0
-		var enemies = get_tree().get_nodes_in_group("enemies")
-		for e in enemies:
-			if is_instance_valid(e):
-				var to_e = e.global_position - global_position
-				if to_e.length() < 160.0 and abs(to_e.angle() - whip_angle) < 0.6:
-					e.take_damage(get_total_damage(), self)
-					if randf() < 0.3:
-						e.apply_knockback(to_e.normalized().rotated(PI / 2.0) * 300.0)
 	if randf() < double_strike_chance:
 		spawn_projectile(get_direction_to_nearest_enemy())
 	emit_signal("attacked")

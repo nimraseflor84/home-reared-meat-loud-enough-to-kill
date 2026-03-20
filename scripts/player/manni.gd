@@ -11,7 +11,7 @@ var passive_stacks: int = 0
 func _ready() -> void:
 	character_id = "manni"
 	max_hp = 110
-	move_speed = 180.0
+	move_speed = 185.0
 	base_damage = 22.0
 	attack_speed = 1.2
 	ultimate_cooldown = 12.0

@@ -35,6 +35,13 @@ const _TRACTOR_DUR    = 3.8          # Sekunden für eine komplette Überfahrt
 const _TRACTOR_HALF_W = 36.0        # Halbe Breite der Kollisionsbox
 const _TRACTOR_HALF_H = 28.0
 
+# Meppen – Autos / Kreisverkehr
+var _meppen_roundabout_cars: Array = []
+var _meppen_street_cars: Array    = []
+var _meppen_car_hit_cd: float     = 0.0
+var _meppen_next_car: float       = 1.5
+const _MEPPEN_ROUNDABOUT_RADIUS   = 80.0
+
 # Proberaum – Lichtflackern
 var _probe_flicker: float      = 1.0
 var _probe_flicker_timer: float = 0.0
@@ -427,6 +434,8 @@ func _process(delta: float) -> void:
 
 	if _current_map == "farm":
 		_update_tractor(delta)
+	if _current_map == "meppen":
+		_update_meppen(delta)
 	if _current_map == "proberaum":
 		_update_probe_flicker(delta)
 
@@ -2108,31 +2117,24 @@ func _draw_meppen(vp: Rect2) -> void:
 	for i in range(9):
 		draw_rect(Rect2(w * 0.493, i * (h / 8.0) + 8, 10, 38), Color(0.85, 0.80, 0.25, 0.72))
 		draw_rect(Rect2(i * (w / 8.0) + 8, h * 0.493, 38, 10), Color(0.85, 0.80, 0.25, 0.72))
-	# Crosswalk (Zebrastreifen) at intersection
-	for zi in range(6):
-		draw_rect(Rect2(w * 0.46, h * 0.48 + zi * 8, w * 0.08, 4), Color(0.85, 0.84, 0.82, 0.65))
-		draw_rect(Rect2(w * 0.48 + zi * 8, h * 0.46, 4, h * 0.08), Color(0.85, 0.84, 0.82, 0.65))
-
-	# === MARKET FOUNTAIN ===
-	var fc = Vector2(w * 0.5, h * 0.5)
-	draw_circle(fc, 58, Color(0.68, 0.66, 0.64))       # outer rim
-	draw_circle(fc, 50, Color(0.26, 0.40, 0.55))       # water
-	draw_circle(fc, 46, Color(0.28, 0.42, 0.58, 0.9))  # water inner
-	draw_circle(fc, 14, Color(0.65, 0.62, 0.58))       # central column
-	draw_circle(fc,  9, Color(0.55, 0.52, 0.48))
-	# Animated water ripples
-	for wri in range(3):
-		var wr_phase = fmod(t * 0.6 + wri * 0.33, 1.0)
-		var wr_rad = wr_phase * 44.0
-		if wr_rad > 2.0:
-			draw_arc(fc, wr_rad, 0, TAU, 18, Color(0.55, 0.70, 0.88, (1.0 - wr_phase) * 0.40), 1.2)
-	# Fountain spray (animated dots)
-	for fsi in range(8):
-		var fsa = float(fsi) / 8.0 * TAU + t * 0.5
-		var fsph = fmod(t * 1.8 + float(fsi) * 0.4, 1.0)
-		var fsr = 4.0 + fsph * 18.0
-		draw_circle(Vector2(fc.x + cos(fsa) * fsr, fc.y + sin(fsa) * fsr * 0.6 - fsph * 8),
-			1.5 + (1.0 - fsph) * 2, Color(0.55, 0.75, 0.95, (1.0 - fsph) * 0.6))
+	# === KREISVERKEHR – nur Asphalt-Ring (Mittelinsel wird NACH den Autos gezeichnet) ===
+	var rc = Vector2(w * 0.5, h * 0.5)
+	draw_circle(rc, 96.0, Color(0.34, 0.32, 0.30))
+	# Gestrichelte Spurlinie
+	for lmi in range(20):
+		var lma     = float(lmi) / 20.0 * TAU
+		var lm_next = float(lmi + 0.40) / 20.0 * TAU
+		draw_arc(rc, 82.0, lma, lm_next, 4, Color(0.85, 0.80, 0.25, 0.55), 2.0)
+	# Vorfahrt-gewähren-Dreiecke an den Einfahrten
+	for yi in range(4):
+		var ya   = float(yi) / 4.0 * TAU
+		var ydir = Vector2(cos(ya), sin(ya))
+		var ymid = rc + ydir * 97.0
+		for yti in range(4):
+			var yta = ya + (float(yti) - 1.5) * 0.16
+			draw_line(ymid + Vector2(cos(yta), sin(yta)) * 7.0,
+				ymid + Vector2(cos(yta + 0.16), sin(yta + 0.16)) * 7.0,
+				Color(0.85, 0.84, 0.82, 0.60), 2.0)
 
 	# === CHURCH / STEEPLE (top-down, detailed) ===
 	var ch_x = w * 0.06; var ch_y = h * 0.06
@@ -2197,51 +2199,54 @@ func _draw_meppen(vp: Rect2) -> void:
 			draw_circle(Vector2(stx - 20 + gi2 * 6, sty + sti * 0.5),
 				2.5, Color(0.90, 0.60, 0.22, 0.75))
 
-	# === BEER GARDEN TABLES ===
-	var bg_rng = RandomNumberGenerator.new()
-	bg_rng.seed = 11122
-	for bgi in range(5):
-		var bgx = w * 0.20 + bgi * (w * 0.60 / 4.0) + bg_rng.randf_range(-12, 12)
-		var bgy = h * 0.82 + bg_rng.randf_range(-8, 8)
-		# Table top
-		draw_ellipse_approx(Vector2(bgx, bgy), Vector2(22, 14), Color(0.52, 0.38, 0.18))
-		draw_ellipse_approx(Vector2(bgx, bgy), Vector2(18, 10), Color(0.62, 0.48, 0.24))
-		# Beer glasses (tiny circles)
-		for bci in range(4):
-			var bca = float(bci) / 4.0 * TAU
-			draw_circle(Vector2(bgx + cos(bca) * 12, bgy + sin(bca) * 7), 3,
-				Color(0.88, 0.78, 0.22, 0.8))
-			draw_circle(Vector2(bgx + cos(bca) * 12, bgy + sin(bca) * 7), 2,
-				Color(0.95, 0.88, 0.55, 0.7))
-		# Bench seats
-		draw_rect(Rect2(bgx - 26, bgy - 22, 52, 7), Color(0.44, 0.30, 0.14))
-		draw_rect(Rect2(bgx - 26, bgy + 16, 52, 7), Color(0.44, 0.30, 0.14))
 
 	# === NIEDERSACHSEN FLAGS / BANNERS on lamp posts ===
 	var lamp_positions = [w * 0.30, w * 0.50, w * 0.70]
 	for lpi in range(3):
 		var lpx = lamp_positions[lpi]; var lpy = h * 0.32
-		draw_circle(Vector2(lpx, lpy), 5, Color(0.42, 0.40, 0.36))  # post top
-		draw_rect(Rect2(lpx - 3, lpy, 6, 36), Color(0.38, 0.36, 0.32))  # pole
-		# Niedersachsen-Flagge: oben schwarz, unten gold
-		var wave_a = sin(t * 1.8 + lpi * 0.7) * 2.0
-		var fwave  = sin(t * 1.8 + lpi * 0.7 + 0.4) * 1.0
-		draw_rect(Rect2(lpx + 3, lpy + 4,  26, 9), Color(0.10, 0.10, 0.10))  # schwarz
-		draw_rect(Rect2(lpx + 3, lpy + 13, 26, 9), Color(0.90, 0.78, 0.08))  # gold
-		# Sachsenross (stilisiertes weißes Pferd auf schwarzem Streifen)
-		var hx = lpx + 3; var hy = lpy + 4
-		draw_circle(Vector2(hx + 10, hy + 5), 3.5, Color(0.94, 0.94, 0.94))   # Rumpf
-		draw_circle(Vector2(hx + 14, hy + 3), 2.2, Color(0.94, 0.94, 0.94))   # Hals
-		draw_circle(Vector2(hx + 17, hy + 2), 2.0, Color(0.94, 0.94, 0.94))   # Kopf
-		draw_line(Vector2(hx + 8,  hy + 8), Vector2(hx + 7,  hy + 13), Color(0.94, 0.94, 0.94), 1.5)  # Hinterbein
-		draw_line(Vector2(hx + 11, hy + 8), Vector2(hx + 12, hy + 13), Color(0.94, 0.94, 0.94), 1.5)  # Hinterbein 2
-		draw_line(Vector2(hx + 13, hy + 7), Vector2(hx + 11, hy + 3),  Color(0.94, 0.94, 0.94), 1.5)  # Vorderbein erhoben
-		draw_line(Vector2(hx + 10, hy + 8), Vector2(hx + 9,  hy + 13), Color(0.94, 0.94, 0.94), 1.2)  # Vorderbein
-		# Flatterndes Flaggenkanten-Detail
-		draw_line(Vector2(lpx + 29, lpy + 6  + fwave), Vector2(lpx + 34 + wave_a, lpy + 4),
-			Color(0.10, 0.10, 0.10, 0.55), 1.5)
-		draw_line(Vector2(lpx + 29, lpy + 19 + fwave), Vector2(lpx + 34 + wave_a, lpy + 22),
-			Color(0.90, 0.78, 0.08, 0.55), 1.5)
+		# Mast
+		draw_circle(Vector2(lpx, lpy), 5, Color(0.42, 0.40, 0.36))
+		draw_rect(Rect2(lpx - 3, lpy, 6, 38), Color(0.38, 0.36, 0.32))
+		draw_line(Vector2(lpx, lpy + 5), Vector2(lpx + 5, lpy + 5), Color(0.38, 0.36, 0.32), 2)
+		# Flagge mit Welleneffekt (Niedersachsen: schwarz oben, gold unten)
+		var sw  = sin(t * 2.2 + lpi * 0.8)
+		var fw  = 34.0; var fh = 22.0
+		var fx  = lpx + 5.0; var fy = lpy + 5.0
+		# Schwarzer Streifen (obere Hälfte)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(fx,       fy),
+			Vector2(fx + fw * 0.5, fy + sw * 1.5),
+			Vector2(fx + fw,  fy + sw * 2.5),
+			Vector2(fx + fw,  fy + fh * 0.5 + sw),
+			Vector2(fx + fw * 0.5, fy + fh * 0.5 + sw * 0.5),
+			Vector2(fx,       fy + fh * 0.5),
+		]), Color(0.06, 0.06, 0.06))
+		# Goldener Streifen (untere Hälfte)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(fx,       fy + fh * 0.5),
+			Vector2(fx + fw * 0.5, fy + fh * 0.5 + sw * 0.5),
+			Vector2(fx + fw,  fy + fh * 0.5 + sw),
+			Vector2(fx + fw,  fy + fh + sw * 1.5),
+			Vector2(fx + fw * 0.5, fy + fh + sw * 2.0),
+			Vector2(fx,       fy + fh),
+		]), Color(0.90, 0.76, 0.06))
+		# Roter Schild (Wappen) in der Flaggenmitte
+		var scx = fx + fw * 0.5 + sw * 1.0
+		var scy = fy + fh * 0.5
+		draw_circle(Vector2(scx, scy), 8.0, Color(0.70, 0.08, 0.08))
+		# Sachsenross: weißes Pferd nach links gerichtet
+		var hc = Color(0.95, 0.95, 0.95)
+		# Rumpf
+		draw_rect(Rect2(scx - 5, scy - 2, 9, 3), hc)
+		# Hals + Kopf (oben links)
+		draw_line(Vector2(scx - 4, scy - 2), Vector2(scx - 6, scy - 5), hc, 2.0)
+		draw_circle(Vector2(scx - 7, scy - 5), 1.8, hc)
+		# Beine (4 Striche nach unten)
+		for li in range(4):
+			draw_line(Vector2(scx - 4 + li * 2, scy + 1),
+				Vector2(scx - 4 + li * 2, scy + 6), hc, 1.5)
+		# Schweif (nach rechts oben)
+		draw_line(Vector2(scx + 4, scy - 1), Vector2(scx + 7, scy - 3), hc, 1.5)
 
 	# === BÄUME (Allee entlang beider Straßen) ===
 	var tc_out = Color(0.20, 0.36, 0.14)
@@ -2251,7 +2256,7 @@ func _draw_meppen(vp: Rect2) -> void:
 	var hallee_xs = [w*0.08, w*0.20, w*0.32, w*0.64, w*0.76, w*0.88]
 	for axi in range(hallee_xs.size()):
 		var atx = hallee_xs[axi]
-		for aty in [h * 0.455, h * 0.545]:
+		for aty in [h * 0.41, h * 0.59]:
 			draw_ellipse_approx(Vector2(atx + 5, aty + 5), Vector2(20, 9), Color(0, 0, 0, 0.16))
 			draw_circle(Vector2(atx, aty), 22, tc_out)
 			draw_circle(Vector2(atx, aty), 14, tc_mid)
@@ -2260,7 +2265,7 @@ func _draw_meppen(vp: Rect2) -> void:
 	var vallee_ys = [h*0.08, h*0.20, h*0.32, h*0.64, h*0.76, h*0.88]
 	for ayi in range(vallee_ys.size()):
 		var aty2 = vallee_ys[ayi]
-		for atx2 in [w * 0.455, w * 0.545]:
+		for atx2 in [w * 0.41, w * 0.59]:
 			draw_ellipse_approx(Vector2(atx2 + 5, aty2 + 5), Vector2(20, 9), Color(0, 0, 0, 0.16))
 			draw_circle(Vector2(atx2, aty2), 22, tc_out)
 			draw_circle(Vector2(atx2, aty2), 14, tc_mid)
@@ -2272,33 +2277,171 @@ func _draw_meppen(vp: Rect2) -> void:
 		draw_line(Vector2(w * 0.20 + pli * 50, h * 0.88),
 			Vector2(w * 0.20 + pli * 50, h * 0.96), Color(0.70, 0.68, 0.65, 0.45), 1.0)
 
-	# === DYNAMISCHES EVENT: Polizeiauto fährt durch (alle 16 s) ─────────────
-	var et_mep = fmod(_anim_time, 16.0)
-	if et_mep < 5.0:
-		var ep_mep = et_mep / 5.0
-		var mepx = -80.0 + ep_mep * (w + 160.0)
-		var mepy = h * 0.50
-		draw_rect(Rect2(mepx - 22, mepy - 14, 44, 28), Color(0.88, 0.90, 0.96))  # white body
-		draw_rect(Rect2(mepx - 22, mepy - 5, 44, 10), Color(0.14, 0.16, 0.62))    # stripe
-		draw_rect(Rect2(mepx - 10, mepy - 14, 20, 12), Color(0.80, 0.84, 0.90, 0.85))  # windshield
-		var blink_mep = int(_anim_time * 8.0) % 2
-		draw_circle(Vector2(mepx - 8, mepy - 20), 6,
-			Color(0.1, 0.3, 1.0, 0.95) if blink_mep == 0 else Color(1.0, 0.15, 0.15, 0.95))
-		draw_circle(Vector2(mepx + 8, mepy - 20), 6,
-			Color(1.0, 0.15, 0.15, 0.95) if blink_mep == 0 else Color(0.1, 0.3, 1.0, 0.95))
-		# Light glow on road
-		var glow_c = Color(0.1, 0.3, 1.0, 0.18) if blink_mep == 0 else Color(1.0, 0.15, 0.15, 0.18)
-		draw_ellipse_approx(Vector2(mepx, mepy - 8), Vector2(38, 18), glow_c)
-		# Headlight cones
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(mepx + 20, mepy - 10), Vector2(mepx + 20, mepy + 10),
-			Vector2(mepx + 58, mepy + 18), Vector2(mepx + 58, mepy - 18)
-		]), Color(1.0, 0.95, 0.6, 0.25))
-		# Wheels
-		for wli in range(4):
-			var wlx = mepx - 18 + (wli % 2) * 36; var wly = mepy - 14 + (wli / 2) * 28
-			draw_circle(Vector2(wlx, wly), 5, Color(0.12, 0.10, 0.14))
-			draw_circle(Vector2(wlx, wly), 3, Color(0.30, 0.28, 0.32))
+	# === AUTOS ===
+	for car in _meppen_street_cars:
+		var state = _get_meppen_car_state(car)
+		_draw_meppen_car(state["pos"], state["angle"], car["type"], car["color"], car["blood"])
+
+	# === KREISVERKEHR – Mittelinsel + Brunnen (NACH Autos → überdeckt Clipping) ===
+	var rc2 = Vector2(w * 0.5, h * 0.5)
+	draw_circle(rc2, 68.0, Color(0.30, 0.52, 0.22))
+	draw_circle(rc2, 56.0, Color(0.26, 0.46, 0.18))
+	# Brunnen (Marktbrunnen – original)
+	draw_circle(rc2, 52.0, Color(0.68, 0.66, 0.64))       # äußerer Steinrand
+	draw_circle(rc2, 44.0, Color(0.26, 0.40, 0.55))       # Wasser
+	draw_circle(rc2, 40.0, Color(0.28, 0.42, 0.58, 0.9))  # Wasser innen
+	draw_circle(rc2, 13.0, Color(0.65, 0.62, 0.58))       # Mittelsäule
+	draw_circle(rc2,  8.0, Color(0.55, 0.52, 0.48))
+	# Animierte Wasserringe
+	for wri in range(3):
+		var wr_phase = fmod(t * 0.6 + wri * 0.33, 1.0)
+		var wr_rad = wr_phase * 38.0
+		if wr_rad > 2.0:
+			draw_arc(rc2, wr_rad, 0, TAU, 18, Color(0.55, 0.70, 0.88, (1.0 - wr_phase) * 0.40), 1.2)
+	# Wasserstrahl-Punkte
+	for fsi in range(8):
+		var fsa  = float(fsi) / 8.0 * TAU + t * 0.5
+		var fsph = fmod(t * 1.8 + float(fsi) * 0.4, 1.0)
+		var fsr  = 3.0 + fsph * 14.0
+		draw_circle(Vector2(rc2.x + cos(fsa) * fsr, rc2.y + sin(fsa) * fsr * 0.6 - fsph * 6),
+			1.5 + (1.0 - fsph) * 1.5, Color(0.55, 0.75, 0.95, (1.0 - fsph) * 0.6))
+
+# ── Meppen – Auto-Logik ───────────────────────────────────────────────────────
+func _get_meppen_car_state(car: Dictionary) -> Dictionary:
+	var wpts: Array = car["waypoints"]
+	var angs: Array = car["draw_angles"]
+	var p = clamp(car["progress"], 0.0, 1.0)
+	var total_segs = wpts.size() - 1
+	if total_segs <= 0:
+		return {"pos": Vector2.ZERO, "angle": 0.0}
+	var seg_p = p * float(total_segs)
+	var seg   = mini(int(seg_p), total_segs - 1)
+	var t     = seg_p - float(seg)
+	return {
+		"pos":   wpts[seg].lerp(wpts[seg + 1], t),
+		"angle": lerp_angle(angs[seg], angs[seg + 1], t),
+	}
+
+func _spawn_meppen_car() -> void:
+	var vp  = get_viewport_rect()
+	var cx  = vp.size.x * 0.5
+	var cy  = vp.size.y * 0.5
+	var w   = vp.size.x
+	var h   = vp.size.y
+	var r   = 96.0
+	var dir = randi() % 4
+	var car_type    = randi() % 4
+	var body_colors = [Color(0.80, 0.22, 0.18), Color(0.85, 0.82, 0.78),
+		Color(0.22, 0.36, 0.78), Color(0.12, 0.52, 0.20)]
+	var car_col = Color(0.88, 0.90, 0.96) if car_type == 2 else body_colors[randi() % 4]
+	# Wegpunkte: Anfahrt → Kreisverkehr-Bogen (90°, im Uhrzeigersinn) → Abfahrt
+	var waypoints:   Array = []
+	var draw_angles: Array = []
+	match dir:
+		0:  # von LINKS → Kreisverkehr → nach OBEN raus
+			waypoints   = [Vector2(-60, cy), Vector2(cx - r, cy)]
+			draw_angles = [0.0, 0.0]
+			for i in range(9):
+				var a = PI + float(i) / 8.0 * (PI * 0.5)
+				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
+				draw_angles.append(atan2(cos(a), -sin(a)))
+			waypoints.append(Vector2(cx, -60));   draw_angles.append(-PI * 0.5)
+		1:  # von RECHTS → Kreisverkehr → nach UNTEN raus
+			waypoints   = [Vector2(w + 60, cy), Vector2(cx + r, cy)]
+			draw_angles = [PI, PI]
+			for i in range(9):
+				var a = 0.0 + float(i) / 8.0 * (PI * 0.5)
+				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
+				draw_angles.append(atan2(cos(a), -sin(a)))
+			waypoints.append(Vector2(cx, h + 60)); draw_angles.append(PI * 0.5)
+		2:  # von OBEN → Kreisverkehr → nach RECHTS raus
+			waypoints   = [Vector2(cx, -60), Vector2(cx, cy - r)]
+			draw_angles = [PI * 0.5, PI * 0.5]
+			for i in range(9):
+				var a = -PI * 0.5 + float(i) / 8.0 * (PI * 0.5)
+				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
+				draw_angles.append(atan2(cos(a), -sin(a)))
+			waypoints.append(Vector2(w + 60, cy)); draw_angles.append(0.0)
+		_:  # von UNTEN → Kreisverkehr → nach LINKS raus
+			waypoints   = [Vector2(cx, h + 60), Vector2(cx, cy + r)]
+			draw_angles = [-PI * 0.5, -PI * 0.5]
+			for i in range(9):
+				var a = PI * 0.5 + float(i) / 8.0 * (PI * 0.5)
+				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
+				draw_angles.append(atan2(cos(a), -sin(a)))
+			waypoints.append(Vector2(-60, cy)); draw_angles.append(PI)
+	_meppen_street_cars.append({
+		"waypoints":   waypoints,
+		"draw_angles": draw_angles,
+		"progress":    0.0,
+		"type":        car_type,
+		"color":       car_col,
+		"screen_time": randf_range(5.0, 8.0),
+		"blood":       [],
+	})
+
+func _draw_meppen_car(center: Vector2, angle: float, car_type: int, car_color: Color, blood: Array) -> void:
+	draw_set_transform(center, angle)
+	var bw = 44.0 if car_type == 1 else 38.0  # Van etwas länger
+	var bh = 15.0 if car_type == 1 else 13.0
+	# Karosserie
+	draw_rect(Rect2(-bw * 0.5, -bh, bw, bh * 2.0), car_color)
+	# Windschutzscheibe (vorne = +x)
+	draw_rect(Rect2(bw * 0.5 - 13, -bh + 2, 12, (bh - 2) * 2), Color(0.68, 0.82, 0.92, 0.78))
+	match car_type:
+		2:  # Polizeiauto
+			draw_rect(Rect2(-bw * 0.5, -4, bw, 8), Color(0.10, 0.14, 0.62))
+			var blink = int(_anim_time * 8.0) % 2
+			draw_circle(Vector2(-7, -bh), 5.0,
+				Color(0.1, 0.3, 1.0, 0.95) if blink == 0 else Color(1.0, 0.15, 0.15, 0.95))
+			draw_circle(Vector2(7, -bh), 5.0,
+				Color(1.0, 0.15, 0.15, 0.95) if blink == 0 else Color(0.1, 0.3, 1.0, 0.95))
+		3:  # Taxi
+			draw_rect(Rect2(-7, -bh - 5, 14, 4), Color(0.88, 0.80, 0.10))
+		1:  # Van – dunkle Seitenlinie
+			draw_line(Vector2(-bw * 0.5, 0), Vector2(bw * 0.5 - 13, 0), Color(0, 0, 0, 0.25), 2)
+	# Räder (4 Ecken)
+	for wxs in [-bw * 0.5 + 5, bw * 0.5 - 5]:
+		for wys in [-bh, bh]:
+			draw_circle(Vector2(wxs, wys), 4.5, Color(0.10, 0.10, 0.12))
+			draw_circle(Vector2(wxs, wys), 2.8, Color(0.28, 0.28, 0.32))
+	# Blutflecken
+	for bd in blood:
+		draw_circle(Vector2(bd["ox"], bd["oy"]), bd["r"], Color(0.70, 0.04, 0.04, 0.80))
+	draw_set_transform(Vector2.ZERO, 0.0)
+
+func _update_meppen(delta: float) -> void:
+	if _meppen_car_hit_cd > 0.0:
+		_meppen_car_hit_cd -= delta
+
+	# Autos bewegen + abgelaufene entfernen
+	var i = _meppen_street_cars.size() - 1
+	while i >= 0:
+		var car = _meppen_street_cars[i]
+		car["progress"] += delta / car["screen_time"]
+		if car["progress"] >= 1.0:
+			_meppen_street_cars.remove_at(i)
+		i -= 1
+
+	# Neues Auto spawnen
+	_meppen_next_car -= delta
+	if _meppen_next_car <= 0.0:
+		_spawn_meppen_car()
+		_meppen_next_car = randf_range(3.5, 6.5)
+
+	# Kollisionsprüfung
+	if _meppen_car_hit_cd > 0.0 or _in_transition or _between_waves or _game_over:
+		return
+
+	for car in _meppen_street_cars:
+		var state = _get_meppen_car_state(car)
+		for p in _players:
+			if is_instance_valid(p) and p.is_alive and p.global_position.distance_to(state["pos"]) < 38.0:
+				var dmg: float = (p.max_hp + p.max_hp_bonus) * 0.10
+				p.take_damage(dmg)
+				car["blood"].append({"ox": randf_range(-10.0, 10.0), "oy": randf_range(-8.0, 8.0), "r": randf_range(3.0, 7.0)})
+				_meppen_car_hit_cd = 1.2
+				return
 
 # ── Death Feast Bühne ─────────────────────────────────────────────────────────
 func _draw_death_feast(vp: Rect2) -> void:
@@ -2362,6 +2505,24 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_line(Vector2(skull_cx + cos(sa3) * spike_inner, skull_cy + sin(sa3) * spike_inner),
 			Vector2(skull_cx + cos(sa3) * spike_outer, skull_cy + sin(sa3) * spike_outer),
 			Color(0.65, 0.08, 0.06, 0.45), 2.5)
+
+	# === BAND NAME above skull ===
+	var font = ThemeDB.fallback_font
+	var font_size = 40
+	var band_text = "HOME REARED MEAT"
+	var text_y = skull_cy - 105.0
+	var text_x = w * 0.05
+	var text_w = w * 0.90
+	# Shadow
+	draw_string(font, Vector2(text_x + 2, text_y + 3), band_text,
+		HORIZONTAL_ALIGNMENT_CENTER, text_w, font_size, Color(0.0, 0.0, 0.0, 0.85))
+	# Dark red glow layer
+	draw_string(font, Vector2(text_x, text_y), band_text,
+		HORIZONTAL_ALIGNMENT_CENTER, text_w, font_size, Color(0.55, 0.04, 0.02, 0.55))
+	# Main: animated fire red-orange
+	var letter_glow = 0.85 + abs(sin(t * 1.8)) * 0.15
+	draw_string(font, Vector2(text_x, text_y), band_text,
+		HORIZONTAL_ALIGNMENT_CENTER, text_w, font_size, Color(letter_glow, 0.20, 0.04, 1.0))
 
 	# === SPEAKER STACKS (both sides, detailed) ===
 	for side_i in range(2):

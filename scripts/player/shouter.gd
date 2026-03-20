@@ -11,7 +11,7 @@ func _ready() -> void:
 	max_hp = 90
 	move_speed = 190.0
 	base_damage = 28.0
-	attack_speed = 0.8
+	attack_speed = 0.9
 	ultimate_cooldown = 14.0
 	add_to_group("players")
 	super._ready()

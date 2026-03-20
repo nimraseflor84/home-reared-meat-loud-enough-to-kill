@@ -6,9 +6,9 @@ extends PlayerBase
 
 func _ready() -> void:
 	character_id = "bassist"
-	max_hp = 130
+	max_hp = 120
 	move_speed = 160.0
-	base_damage = 24.0
+	base_damage = 22.0
 	attack_speed = 0.9
 	ultimate_cooldown = 14.0
 	add_to_group("players")
