@@ -467,7 +467,7 @@ func _build_sound_panel(p: Control) -> void:
 	var tip = Label.new()
 	tip.position = Vector2(20, 360)
 	tip.size = Vector2(1180, 30)
-	tip.text = "Tipp: Lautstärke auch mit F1/F2 im Spiel änderbar."
+	tip.text = LocalizationManager.t("sound_tip")
 	tip.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	tip.add_theme_font_size_override("font_size", 14)
 	p.add_child(tip)
@@ -635,7 +635,7 @@ func _build_gameplay_panel(p: Control) -> void:
 		var hint_lbl = Label.new()
 		hint_lbl.position = Vector2(390, row_y + 9)
 		hint_lbl.size = Vector2(160, 20)
-		hint_lbl.text = "Knopf drücken"
+		hint_lbl.text = LocalizationManager.t("press_button")
 		hint_lbl.add_theme_color_override("font_color", Color(0.38, 0.38, 0.38))
 		hint_lbl.add_theme_font_size_override("font_size", 11)
 		right_col.add_child(hint_lbl)
@@ -665,7 +665,7 @@ func _build_gameplay_panel(p: Control) -> void:
 	var reset_joy_btn = Button.new()
 	reset_joy_btn.position = Vector2(228, reset_row_y)
 	reset_joy_btn.size = Vector2(220, 36)
-	reset_joy_btn.text = "Controller zurücksetzen"
+	reset_joy_btn.text = LocalizationManager.t("reset_controller")
 	reset_joy_btn.add_theme_font_size_override("font_size", 13)
 	reset_joy_btn.add_theme_color_override("font_color", Color.WHITE)
 	var rjoy_sty = StyleBoxFlat.new()
@@ -681,7 +681,7 @@ func _build_gameplay_panel(p: Control) -> void:
 	var hs_lbl = Label.new()
 	hs_lbl.position = Vector2(0, 434)
 	hs_lbl.size = Vector2(580, 22)
-	hs_lbl.text = "Highscore: %d  |  Beste Wave: %d" % [SaveManager.get_high_score(), SaveManager.save_data.get("best_wave", 0)]
+	hs_lbl.text = LocalizationManager.t("hs_display") % [SaveManager.get_high_score(), SaveManager.save_data.get("best_wave", 0)]
 	hs_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	hs_lbl.add_theme_font_size_override("font_size", 13)
 	left_col.add_child(hs_lbl)
@@ -689,7 +689,7 @@ func _build_gameplay_panel(p: Control) -> void:
 	var hs_btn = Button.new()
 	hs_btn.position = Vector2(0, 458)
 	hs_btn.size = Vector2(280, 36)
-	hs_btn.text = "Highscore zurücksetzen"
+	hs_btn.text = LocalizationManager.t("hs_reset_btn")
 	hs_btn.add_theme_font_size_override("font_size", 14)
 	hs_btn.add_theme_color_override("font_color", Color.WHITE)
 	var hs_sty = StyleBoxFlat.new()
@@ -709,7 +709,7 @@ func _build_gameplay_panel(p: Control) -> void:
 	hs_btn.pressed.connect(func():
 		if not hs_btn.get_meta("confirm_pending"):
 			hs_btn.set_meta("confirm_pending", true)
-			hs_btn.text = "Sicher? Nochmal klicken!"
+			hs_btn.text = LocalizationManager.t("hs_confirm")
 			var confirm_sty = StyleBoxFlat.new()
 			confirm_sty.bg_color = Color(0.7, 0.1, 0.1)
 			confirm_sty.border_color = Color(1.0, 0.3, 0.3)
@@ -719,8 +719,8 @@ func _build_gameplay_panel(p: Control) -> void:
 		else:
 			SaveManager.reset_highscore()
 			hs_btn.set_meta("confirm_pending", false)
-			hs_btn.text = "✓ Zurückgesetzt"
-			hs_lbl_ref.text = "Highscore: 0  |  Beste Wave: 0"
+			hs_btn.text = LocalizationManager.t("hs_done")
+			hs_lbl_ref.text = LocalizationManager.t("hs_display") % [0, 0]
 			var done_sty = StyleBoxFlat.new()
 			done_sty.bg_color = Color(0.45, 0.05, 0.05)
 			done_sty.border_color = Color(0.9, 0.2, 0.2)

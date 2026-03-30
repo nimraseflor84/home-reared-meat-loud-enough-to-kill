@@ -31,7 +31,7 @@ const WAVE_CONFIG = {
 	# Farm (Welle 5) – direkt nach Boss, etwas entschärft
 	5:  {"count": 13, "types": ["huhn", "wildschwein", "grossbauer"]},
 	# Schweinestall (Wellen 6-7)
-	6:  {"count": 18, "types": ["wildschwein", "headbanger"]},
+	6:  {"count": 18, "types": ["wildschwein", "headbanger", "farm_schwein"]},
 	7:  {"count": 1,  "types": ["mega_schwein"], "boss": true,
 		"boss_name": "MEGA-EBER\nBORSTE-BERND",
 		"extras": 5, "extras_type": "wildschwein"},
@@ -91,6 +91,7 @@ const ENEMY_SCENE_RESOURCES = {
 	"gerlinde":       preload("res://scenes/entities/enemies/enemy_gerlinde.tscn"),
 	# Boss
 	"mega_schwein":   preload("res://scenes/entities/enemies/enemy_mega_schwein.tscn"),
+	"farm_schwein":   preload("res://scenes/entities/enemies/enemy_farm_animal.tscn"),
 	"dirigent":       preload("res://scenes/entities/enemies/enemy_dirigent.tscn"),
 }
 
@@ -226,6 +227,8 @@ func _spawn_enemy() -> void:
 	var type = types[randi() % types.size()]
 	var enemy_scene: PackedScene = ENEMY_SCENE_RESOURCES.get(type, ENEMY_SCENE_RESOURCES["stille"])
 	var enemy = enemy_scene.instantiate()
+	if type.begins_with("farm_"):
+		enemy.animal_type = type.substr(5)
 	enemy.global_position = _get_spawn_position()
 	enemy.connect("died", _on_enemy_died)
 	_alive_enemies += 1

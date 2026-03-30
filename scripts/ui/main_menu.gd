@@ -53,7 +53,7 @@ func _build_ui() -> void:
 	hs_label.position = Vector2(20, 16)
 	hs_label.size     = Vector2(400, 28)
 	var hs = SaveManager.get_high_score()
-	hs_label.text = "Highscore: " + str(hs) if hs > 0 else ""
+	hs_label.text = LocalizationManager.t("hs_prefix") + str(hs) if hs > 0 else ""
 	hs_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 	hs_label.add_theme_font_size_override("font_size", 20)
 	add_child(hs_label)

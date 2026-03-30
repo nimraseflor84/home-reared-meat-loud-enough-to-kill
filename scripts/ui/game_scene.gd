@@ -1189,6 +1189,33 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		draw_rect(Rect2(0, by - 6, w, 3), Color(0.35, 0.22, 0.10))
 		draw_rect(Rect2(0, by + 6, w, 2), Color(0.16, 0.10, 0.04))
 
+	# === FENSTER (dreckig, mit Lichtstrahl) ===
+	var win_x = w * 0.68; var win_y = h * 0.08
+	var win_w = 60.0; var win_h = 44.0
+	# Lichtstrahl schräg auf Boden
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(win_x - 2, win_y + win_h),
+		Vector2(win_x + win_w + 2, win_y + win_h),
+		Vector2(win_x + win_w + 78, h * 0.46),
+		Vector2(win_x - 48, h * 0.46),
+	]), Color(0.90, 0.82, 0.50, 0.09))
+	# Fensterrahmen
+	draw_rect(Rect2(win_x - 5, win_y - 5, win_w + 10, win_h + 10), Color(0.25, 0.15, 0.06))
+	# Dreckige Scheibe
+	draw_rect(Rect2(win_x, win_y, win_w, win_h), Color(0.56, 0.52, 0.32, 0.48))
+	# Dreck-Flecken auf der Scheibe
+	var win_rng = RandomNumberGenerator.new()
+	win_rng.seed = 4242
+	for _wdi in range(9):
+		var wdx = win_rng.randf_range(win_x + 4, win_x + win_w - 4)
+		var wdy = win_rng.randf_range(win_y + 4, win_y + win_h - 4)
+		draw_circle(Vector2(wdx, wdy), win_rng.randf_range(2, 7), Color(0.18, 0.11, 0.04, 0.52))
+	# Kreuz-Sprosse
+	draw_line(Vector2(win_x + win_w * 0.5, win_y), Vector2(win_x + win_w * 0.5, win_y + win_h),
+		Color(0.20, 0.12, 0.05), 4)
+	draw_line(Vector2(win_x, win_y + win_h * 0.5), Vector2(win_x + win_w, win_y + win_h * 0.5),
+		Color(0.20, 0.12, 0.05), 4)
+
 	# === HÄNGENDE LATERNEN (warm glühend) ===
 	var lantern_xs = [w * 0.15, w * 0.38, w * 0.62, w * 0.85]
 	for li in range(4):
@@ -1241,6 +1268,17 @@ func _draw_schweinestall(vp: Rect2) -> void:
 				var wa2 = float(wpi) / 12.0 * TAU
 				wpts2.append(Vector2(px2 + cos(wa2) * wave_r2, py2 + sin(wa2) * wave_r2 * 0.4))
 			draw_polyline(wpts2 + wpts2.slice(0, 1), Color(0.30, 0.20, 0.08, (1.0 - drop_t2) * 0.50), 1.0)
+
+	# === HUFABDRÜCKE IM SCHLAMM ===
+	var hoof_rng = RandomNumberGenerator.new()
+	hoof_rng.seed = 8844
+	for _hi in range(20):
+		var hx = hoof_rng.randf_range(w * 0.06, w * 0.94)
+		var hy = h * 0.50 + hoof_rng.randf_range(0, h * 0.46)
+		var halpha = 0.38 + hoof_rng.randf() * 0.30
+		var hcol = Color(0.16, 0.09, 0.03, halpha)
+		draw_ellipse_approx(Vector2(hx - 4, hy), Vector2(4, 6), hcol)
+		draw_ellipse_approx(Vector2(hx + 4, hy), Vector2(4, 6), hcol)
 
 	# === STROH (Bodenbedeckung) ===
 	var straw_rng2 = RandomNumberGenerator.new()
@@ -1367,6 +1405,33 @@ func _draw_schweinestall(vp: Rect2) -> void:
 			draw_line(Vector2(bx2 + 31, by2 + 11), Vector2(bx2 + 37, by2 + 6), Color(0.55, 0.18, 0.22), 2)
 			draw_line(Vector2(bx2 + 31, by2 + 11), Vector2(bx2 + 37, by2 + 16), Color(0.55, 0.18, 0.22), 2)
 
+	# === FLIEGEN (animiert um Trog und Pfützen) ===
+	var fly_centers = [
+		Vector2(w * 0.35 + 105, h - 72),
+		Vector2(w * 0.12, h * 0.63),
+		Vector2(w * 0.78, h * 0.71),
+	]
+	for fi in range(3):
+		var fa = fly_centers[fi]
+		var ft = t * (1.6 + float(fi) * 0.45) + float(fi) * 2.1
+		var fpos = Vector2(
+			fa.x + cos(ft * 2.4) * 20.0 + sin(ft * 1.2) * 10.0,
+			fa.y + sin(ft * 1.9) * 10.0 - 10.0
+		)
+		var wing_flap = sin(t * 32.0 + float(fi)) * 5.0
+		draw_colored_polygon(PackedVector2Array([
+			fpos + Vector2(-1, 0),
+			fpos + Vector2(-8, -5 + wing_flap * 0.4),
+			fpos + Vector2(-11, 1),
+		]), Color(0.10, 0.12, 0.16, 0.70))
+		draw_colored_polygon(PackedVector2Array([
+			fpos + Vector2(1, 0),
+			fpos + Vector2(8, -5 + wing_flap * 0.4),
+			fpos + Vector2(11, 1),
+		]), Color(0.10, 0.12, 0.16, 0.70))
+		draw_circle(fpos, 2.5, Color(0.06, 0.06, 0.08))
+		draw_circle(fpos + Vector2(0, -3), 1.8, Color(0.10, 0.10, 0.12))
+
 # ── Amerika ──────────────────────────────────────────────────────────────────
 func _draw_amerika(vp: Rect2) -> void:
 	var w = vp.size.x
@@ -1431,6 +1496,25 @@ func _draw_amerika(vp: Rect2) -> void:
 			Vector2(mx2 + mw2, horizon)
 		]), Color(0.58 + i * 0.02, 0.34 + i * 0.01, 0.22))
 
+	# === TORNADO (Hintergrund, animiert) ===
+	var torn_x = w * 0.18
+	var torn_top = h * 0.07
+	var torn_bot = horizon - 6
+	var torn_top_r = 28.0 + sin(t * 1.4) * 4.0
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(torn_x - torn_top_r, torn_top),
+		Vector2(torn_x + torn_top_r, torn_top),
+		Vector2(torn_x + 7, torn_bot),
+		Vector2(torn_x - 7, torn_bot),
+	]), Color(0.36, 0.32, 0.42, 0.50))
+	for band in range(6):
+		var bt = fmod(t * 1.7 + float(band) / 6.0, 1.0)
+		var by = lerp(torn_top, torn_bot, bt)
+		var bw = lerp(torn_top_r, 7.0, bt) * 1.8
+		draw_line(Vector2(torn_x - bw, by), Vector2(torn_x + bw, by),
+			Color(0.26, 0.22, 0.34, (1.0 - bt) * 0.36), 2.0)
+	draw_ellipse_approx(Vector2(torn_x, torn_bot + 9), Vector2(28, 11), Color(0.58, 0.48, 0.26, 0.40))
+
 	# === DESERT GROUND ===
 	draw_rect(Rect2(0, horizon, w, h - horizon), Color(0.72, 0.55, 0.28))
 	# Sand texture with random dots / ripples
@@ -1451,6 +1535,30 @@ func _draw_amerika(vp: Rect2) -> void:
 		var rlen = ripple_rng.randf_range(30, 110)
 		draw_line(Vector2(rx2, ry2), Vector2(rx2 + rlen, ry2 + ripple_rng.randf_range(-2, 2)),
 			Color(0.60, 0.44, 0.20, 0.28), 1.0)
+
+	# === GEISTERSTADT (Silhouette am Horizont) ===
+	var gt_x = w * 0.60
+	var gt_y = horizon - 2
+	# Hauptgebäude
+	draw_rect(Rect2(gt_x, gt_y - 38, 68, 40), Color(0.28, 0.20, 0.12))
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(gt_x - 4, gt_y - 38),
+		Vector2(gt_x + 34, gt_y - 60),
+		Vector2(gt_x + 72, gt_y - 38),
+	]), Color(0.22, 0.16, 0.09))
+	# Eingeschlagene Fenster
+	draw_rect(Rect2(gt_x + 8, gt_y - 28, 14, 14), Color(0.12, 0.09, 0.05))
+	draw_line(Vector2(gt_x + 8, gt_y - 28), Vector2(gt_x + 22, gt_y - 14), Color(0.20, 0.14, 0.08), 1)
+	draw_rect(Rect2(gt_x + 46, gt_y - 28, 14, 14), Color(0.12, 0.09, 0.05))
+	# Kleines Nebengebäude links
+	draw_rect(Rect2(gt_x - 50, gt_y - 20, 38, 22), Color(0.25, 0.18, 0.10))
+	draw_rect(Rect2(gt_x - 54, gt_y - 20, 46, 4), Color(0.20, 0.14, 0.08))
+	# Wasserturm rechts
+	draw_rect(Rect2(gt_x + 82, gt_y - 48, 4, 50), Color(0.36, 0.26, 0.12))
+	draw_rect(Rect2(gt_x + 92, gt_y - 48, 4, 50), Color(0.36, 0.26, 0.12))
+	draw_line(Vector2(gt_x + 82, gt_y - 30), Vector2(gt_x + 96, gt_y - 30), Color(0.36, 0.26, 0.12), 2)
+	draw_ellipse_approx(Vector2(gt_x + 89, gt_y - 48), Vector2(16, 9), Color(0.38, 0.28, 0.14))
+	draw_rect(Rect2(gt_x + 76, gt_y - 40, 26, 18), Color(0.40, 0.30, 0.15))
 
 	# === ROAD (perspective) ===
 	var road_left_bot  = w * 0.08
@@ -1527,6 +1635,28 @@ func _draw_amerika(vp: Rect2) -> void:
 			var spy = cy2 + spi * 14 * cs
 			draw_line(Vector2(cx2 - 7 * cs, spy), Vector2(cx2 - 12 * cs, spy - 3 * cs), Color(0.88, 0.86, 0.72, 0.7), 1.0)
 			draw_line(Vector2(cx2 + 7 * cs, spy), Vector2(cx2 + 12 * cs, spy - 3 * cs), Color(0.88, 0.86, 0.72, 0.7), 1.0)
+
+	# === BILLBOARD (links der Straße, nah) ===
+	var bb_x = w * 0.28; var bb_y = horizon + 6
+	# Pfosten
+	draw_rect(Rect2(bb_x + 5, bb_y + 28, 4, 30), Color(0.42, 0.30, 0.13))
+	draw_rect(Rect2(bb_x + 44, bb_y + 28, 4, 30), Color(0.42, 0.30, 0.13))
+	# Tafel
+	draw_rect(Rect2(bb_x, bb_y, 56, 32), Color(0.86, 0.80, 0.68))
+	draw_rect(Rect2(bb_x, bb_y, 56, 32), Color(0.38, 0.24, 0.09, 0.85), false, 2)
+	# Roter Streifen oben
+	draw_rect(Rect2(bb_x + 2, bb_y + 2, 52, 11), Color(0.76, 0.06, 0.06))
+	# Blaues Feld + Sterne
+	draw_rect(Rect2(bb_x + 2, bb_y + 15, 22, 15), Color(0.12, 0.16, 0.58))
+	for si3 in range(6):
+		draw_circle(Vector2(bb_x + 7 + (si3 % 2) * 9, bb_y + 19 + (si3 / 2) * 5), 1.4, Color(1, 1, 0.85))
+	# Rot-weiße Streifen rechts
+	for ri3 in range(3):
+		draw_rect(Rect2(bb_x + 26, bb_y + 15 + ri3 * 5, 28, 4),
+			Color(0.80, 0.06, 0.06) if ri3 % 2 == 0 else Color(0.90, 0.90, 0.86))
+	# "MAGA" Schrift (pixel bars)
+	for li3 in range(4):
+		draw_rect(Rect2(bb_x + 6 + li3 * 11, bb_y + 4, 3, 6), Color(1.0, 1.0, 0.85))
 
 	# === WANTED POSTER on fence post (left side near-ish) ===
 	var wp_x = road_left_bot - 50.0; var wp_y = h - 140.0
@@ -1611,6 +1741,22 @@ func _draw_truck(vp: Rect2) -> void:
 		var sy = fmod(i * 97.3, horizon * 0.88)
 		var streak = 12.0 + fmod(i * 31.1, 28.0)
 		draw_line(Vector2(sx, sy), Vector2(sx + streak, sy), Color(1, 1, 0.9, 0.35), 1.2)
+
+	# === MOND MIT WOLKEN ===
+	var moon_x = w * 0.72; var moon_y = h * 0.16
+	draw_circle(Vector2(moon_x, moon_y), 40, Color(0.88, 0.90, 0.75, 0.07))
+	draw_circle(Vector2(moon_x, moon_y), 26, Color(0.92, 0.92, 0.78, 0.14))
+	draw_circle(Vector2(moon_x, moon_y), 19, Color(0.92, 0.92, 0.80))
+	draw_circle(Vector2(moon_x - 5, moon_y + 4), 4, Color(0.80, 0.80, 0.68, 0.50))
+	draw_circle(Vector2(moon_x + 7, moon_y - 3), 2.5, Color(0.80, 0.80, 0.68, 0.40))
+	draw_circle(Vector2(moon_x + 3, moon_y + 8), 3, Color(0.80, 0.80, 0.68, 0.45))
+	for ci in range(3):
+		var cx2 = fmod(float(ci) * 380.0 + t * 18.0, w + 200.0) - 100.0
+		var cy2 = h * 0.10 + float(ci) * 16.0
+		var cw = 100.0 + float(ci) * 45.0
+		draw_ellipse_approx(Vector2(cx2, cy2), Vector2(cw, 17), Color(0.06, 0.08, 0.16, 0.68))
+		draw_ellipse_approx(Vector2(cx2 - 22, cy2 - 6), Vector2(cw * 0.55, 13), Color(0.06, 0.08, 0.16, 0.55))
+		draw_ellipse_approx(Vector2(cx2 + 28, cy2 - 5), Vector2(cw * 0.42, 11), Color(0.06, 0.08, 0.16, 0.50))
 
 	# === DISTANT CITYSCAPE / HILLS on horizon ===
 	# Hills (dark silhouette)
@@ -1701,6 +1847,24 @@ func _draw_truck(vp: Rect2) -> void:
 	draw_rect(Rect2(w * 0.78, h * 0.38, 52, 26), Color(0.72, 0.68, 0.20))
 	draw_rect(Rect2(w * 0.78, h * 0.38, 52, 26), Color(0, 0, 0, 0.65), false, 1.5)
 
+	# === NEON-TRUCK-STOP-SCHILD (am Horizont, flackernd) ===
+	var ns_x = w * 0.67; var ns_y = horizon + 9
+	draw_rect(Rect2(ns_x + 13, ns_y + 36, 4, 38), Color(0.28, 0.26, 0.24))
+	draw_rect(Rect2(ns_x, ns_y, 74, 42), Color(0.07, 0.05, 0.09))
+	var nflick = 0.80 + sin(t * 13.7) * 0.12 + sin(t * 7.3) * 0.08
+	draw_rect(Rect2(ns_x, ns_y, 74, 42), Color(0.20 * nflick, 0.60 * nflick, 0.90 * nflick, 0.85), false, 2)
+	# "TRUCK" oben (blau leuchtend)
+	draw_rect(Rect2(ns_x + 3, ns_y + 3, 68, 14), Color(0.10 * nflick, 0.28 * nflick, 0.70 * nflick))
+	for tli in range(5):
+		draw_rect(Rect2(ns_x + 5 + tli * 13, ns_y + 5, 4, 10), Color(0.30 * nflick, 0.78 * nflick, nflick))
+		draw_rect(Rect2(ns_x + 5 + tli * 13, ns_y + 5, 10, 3), Color(0.30 * nflick, 0.78 * nflick, nflick))
+	# "STOP" unten (gelb leuchtend)
+	for sli in range(4):
+		draw_rect(Rect2(ns_x + 8 + sli * 16, ns_y + 21, 4, 10), Color(nflick, 0.88 * nflick, 0.10 * nflick))
+		draw_rect(Rect2(ns_x + 8 + sli * 16, ns_y + 21, 10, 3), Color(nflick, 0.88 * nflick, 0.10 * nflick))
+	# Neon-Halo
+	draw_circle(Vector2(ns_x + 37, ns_y + 21), 38, Color(0.20, 0.60, 0.90, 0.04 * nflick))
+
 	# === TREES rushing past ===
 	for i in range(6):
 		# Left side
@@ -1785,6 +1949,13 @@ func _draw_truck(vp: Rect2) -> void:
 		draw_circle(Vector2(cop_x + 8, cop_y + 34), 5, Color(0.35, 0.34, 0.36))
 		draw_circle(Vector2(cop_x + 34, cop_y + 34), 5, Color(0.35, 0.34, 0.36))
 
+	# === REGEN (auf Windschutzscheibe) ===
+	for ri in range(55):
+		var rx = fmod(float(ri) * 233.7 + t * 165.0, w + 50.0) - 25.0
+		var ry = fmod(float(ri) * 97.3 + t * 410.0, h + 30.0) - 15.0
+		var rlen = 12.0 + fmod(float(ri) * 7.3, 10.0)
+		draw_line(Vector2(rx, ry), Vector2(rx + rlen * 0.22, ry + rlen), Color(0.48, 0.58, 0.76, 0.28), 1.0)
+
 # ── Tonstudio Soundlodge ─────────────────────────────────────────────────────
 func _draw_tonstudio(vp: Rect2) -> void:
 	var w = vp.size.x
@@ -1802,6 +1973,28 @@ func _draw_tonstudio(vp: Rect2) -> void:
 					Vector2(px + 19 + j * 30, 5 + k * 28),
 					Vector2(px + 12 + j * 30, 30 + k * 28)
 				]), Color(0.08, 0.06, 0.05))
+	# === AUFNAHMEKABINE-FENSTER (Blick in den Live-Raum durch Glas) ===
+	var win_cx = w * 0.50; var win_top = 58.0
+	var win_w2 = 180.0; var win_h2 = 100.0
+	draw_rect(Rect2(win_cx - win_w2 * 0.5, win_top, win_w2, win_h2), Color(0.04, 0.04, 0.06))
+	draw_rect(Rect2(win_cx - win_w2 * 0.5 + 4, win_top + 4, win_w2 - 8, win_h2 - 8), Color(0.05, 0.04, 0.07))
+	# Scheinwerfer-Fleck auf Boden der Kabine
+	draw_ellipse_approx(Vector2(win_cx, win_top + win_h2 - 18), Vector2(32, 9), Color(0.35, 0.30, 0.18, 0.38))
+	# Sänger-Silhouette (bobbing)
+	var singer_bob = sin(_anim_time * 1.8) * 2.0
+	draw_ellipse_approx(Vector2(win_cx, win_top + 64 + singer_bob), Vector2(10, 13), Color(0.08, 0.06, 0.10))
+	draw_circle(Vector2(win_cx, win_top + 48 + singer_bob), 9, Color(0.09, 0.07, 0.11))
+	# Mikrofonständer im Live-Raum
+	draw_line(Vector2(win_cx + 22, win_top + 52), Vector2(win_cx + 22, win_top + win_h2 - 5),
+		Color(0.18, 0.18, 0.20), 2)
+	draw_ellipse_approx(Vector2(win_cx + 22, win_top + 48), Vector2(5, 7), Color(0.14, 0.14, 0.16))
+	# Glas-Reflexion
+	draw_line(Vector2(win_cx - win_w2 * 0.5 + 8, win_top + 10),
+		Vector2(win_cx - win_w2 * 0.5 + 32, win_top + 52),
+		Color(0.58, 0.64, 0.72, 0.14), 9)
+	# Fensterrahmen
+	draw_rect(Rect2(win_cx - win_w2 * 0.5, win_top, win_w2, win_h2), Color(0.20, 0.16, 0.12), false, 5)
+
 	# Mixing console (center bottom)
 	draw_rect(Rect2(w * 0.2, h - 90, w * 0.6, 90), Color(0.12, 0.1, 0.08))
 	draw_rect(Rect2(w * 0.22, h - 80, w * 0.56, 70), Color(0.08, 0.07, 0.06))
@@ -1829,6 +2022,40 @@ func _draw_tonstudio(vp: Rect2) -> void:
 	draw_circle(Vector2(w - 65, h * 0.5 + 35), 22, Color(0.06, 0.06, 0.07))
 	draw_circle(Vector2(w - 65, h * 0.5 + 80), 12, Color(0.06, 0.06, 0.07))
 
+	# === REEL-TO-REEL BANDMASCHINE (animiert) ===
+	var rr_x = w * 0.08; var rr_y = h * 0.30
+	draw_rect(Rect2(rr_x, rr_y, 90, 112), Color(0.10, 0.09, 0.11))
+	draw_rect(Rect2(rr_x + 2, rr_y + 2, 86, 108), Color(0.08, 0.07, 0.09))
+	var reel_a = _anim_time * 2.2
+	var rr_lx = rr_x + 26; var rr_cy = rr_y + 34
+	draw_circle(Vector2(rr_lx, rr_cy), 22, Color(0.14, 0.13, 0.16))
+	draw_circle(Vector2(rr_lx, rr_cy), 13, Color(0.10, 0.09, 0.12))
+	for rsi in range(6):
+		var rsa = reel_a + float(rsi) / 6.0 * TAU
+		draw_line(Vector2(rr_lx, rr_cy), Vector2(rr_lx + cos(rsa) * 20, rr_cy + sin(rsa) * 20),
+			Color(0.22, 0.20, 0.25), 2)
+	draw_circle(Vector2(rr_lx, rr_cy), 5, Color(0.30, 0.28, 0.34))
+	var rr_rx = rr_x + 64
+	draw_circle(Vector2(rr_rx, rr_cy), 22, Color(0.14, 0.13, 0.16))
+	draw_circle(Vector2(rr_rx, rr_cy), 13, Color(0.10, 0.09, 0.12))
+	for rsi2 in range(6):
+		var rsa2 = -reel_a + float(rsi2) / 6.0 * TAU
+		draw_line(Vector2(rr_rx, rr_cy), Vector2(rr_rx + cos(rsa2) * 20, rr_cy + sin(rsa2) * 20),
+			Color(0.22, 0.20, 0.25), 2)
+	draw_circle(Vector2(rr_rx, rr_cy), 5, Color(0.30, 0.28, 0.34))
+	# Band zwischen den Spulen
+	draw_line(Vector2(rr_lx, rr_cy + 22), Vector2(rr_x + 34, rr_cy + 28), Color(0.26, 0.20, 0.14), 3)
+	draw_line(Vector2(rr_rx, rr_cy + 22), Vector2(rr_x + 56, rr_cy + 28), Color(0.26, 0.20, 0.14), 3)
+	draw_rect(Rect2(rr_x + 32, rr_cy + 24, 26, 10), Color(0.18, 0.16, 0.20))
+	# VU-Balken unten
+	draw_rect(Rect2(rr_x + 5, rr_y + 80, 80, 16), Color(0.06, 0.05, 0.07))
+	var rr_vu = 0.45 + sin(_anim_time * 4.1) * 0.40
+	draw_rect(Rect2(rr_x + 7, rr_y + 82, int(76.0 * rr_vu), 12),
+		Color(0.12 + rr_vu * 0.7, 0.80 - rr_vu * 0.5, 0.10))
+	# Label-Striche ("SOUNDLODGE")
+	for sli2 in range(9):
+		draw_rect(Rect2(rr_x + 8 + sli2 * 8, rr_y + 100, 3, 6), Color(0.22, 0.20, 0.26, 0.7))
+
 	# === ANIMIERTER EQUALIZER (Wanddisplay) ===
 	for eqi in range(12):
 		var eq_x = w * 0.22 + eqi * (w * 0.56 / 12.0)
@@ -1848,6 +2075,29 @@ func _draw_tonstudio(vp: Rect2) -> void:
 	# Gitter des Mikrofons
 	for gri in range(3):
 		draw_arc(Vector2(mic_x, mic_y + 28), 5 + gri * 3, 0, TAU, 10, Color(0.40, 0.40, 0.44), 1.0)
+
+	# === GITARRE AUF STÄNDER (rechts an der Wand) ===
+	var git_x = w * 0.88; var git_y = h * 0.32
+	# Ständer
+	draw_line(Vector2(git_x, git_y + 105), Vector2(git_x - 18, git_y + 124), Color(0.26, 0.24, 0.30), 2)
+	draw_line(Vector2(git_x, git_y + 105), Vector2(git_x + 18, git_y + 124), Color(0.26, 0.24, 0.30), 2)
+	draw_line(Vector2(git_x - 12, git_y + 118), Vector2(git_x + 12, git_y + 118), Color(0.26, 0.24, 0.30), 2)
+	draw_line(Vector2(git_x, git_y + 95), Vector2(git_x, git_y + 105), Color(0.26, 0.24, 0.30), 3)
+	# Hals
+	draw_rect(Rect2(git_x - 3, git_y - 55, 6, 72), Color(0.42, 0.28, 0.12))
+	draw_rect(Rect2(git_x - 5, git_y - 62, 10, 10), Color(0.36, 0.22, 0.08))
+	for twi in range(3):
+		draw_circle(Vector2(git_x - 6, git_y - 56 + twi * 9), 2, Color(0.55, 0.50, 0.38))
+		draw_circle(Vector2(git_x + 6, git_y - 56 + twi * 9), 2, Color(0.55, 0.50, 0.38))
+	# Korpus (Les-Paul-artig, dunkelrot)
+	draw_circle(Vector2(git_x, git_y + 20), 20, Color(0.44, 0.08, 0.04))
+	draw_circle(Vector2(git_x - 4, git_y + 4), 15, Color(0.44, 0.08, 0.04))
+	draw_circle(Vector2(git_x, git_y + 20), 11, Color(0.20, 0.04, 0.02))
+	# Saiten
+	for sti in range(6):
+		draw_line(Vector2(git_x - 2 + sti * 0.6, git_y - 52),
+			Vector2(git_x - 2 + sti * 0.5, git_y + 22),
+			Color(0.60, 0.58, 0.54, 0.72), 0.7)
 
 	# === KOPFHÖRER (am Tisch) ===
 	draw_arc(Vector2(w * 0.35, h - 100), 12, PI, TAU, 8, Color(0.18, 0.18, 0.20), 5)
@@ -1942,6 +2192,19 @@ func _draw_tv_studio(vp: Rect2) -> void:
 		draw_ellipse_approx(Vector2(s_lx2, h * 0.72), Vector2(35, 18),
 			Color(sc2.r, sc2.g, sc2.b, 0.06))
 
+	# === HÄNGENDES BOOM-MIKROFON (schaukelnd) ===
+	var boom_swing = sin(t * 0.9) * 0.12
+	var boom_cx = w * 0.50
+	var boom_ex = boom_cx + 75.0 + sin(boom_swing) * 28.0
+	var boom_ey = 58.0 + cos(boom_swing) * 18.0
+	draw_line(Vector2(boom_cx - 68, 56), Vector2(boom_ex, boom_ey), Color(0.22, 0.20, 0.26), 3)
+	draw_line(Vector2(boom_cx - 68, 24), Vector2(boom_cx - 68, 56), Color(0.24, 0.22, 0.28), 2)
+	var bm_x = boom_ex; var bm_y = boom_ey + 9
+	draw_rect(Rect2(bm_x - 5, bm_y, 10, 22), Color(0.18, 0.18, 0.20))
+	draw_ellipse_approx(Vector2(bm_x, bm_y + 27), Vector2(7, 9), Color(0.22, 0.22, 0.25))
+	for bgi in range(3):
+		draw_arc(Vector2(bm_x, bm_y + 27), 3.0 + bgi * 2.0, 0, TAU, 8, Color(0.32, 0.32, 0.36), 1.0)
+
 	# === CAMERA 1 on tripod (left side) ===
 	var c1x = w * 0.12; var c1y = h * 0.38
 	# Tripod legs
@@ -2000,6 +2263,24 @@ func _draw_tv_studio(vp: Rect2) -> void:
 				Vector2(ax + sin(arm_wave) * 16, ay - 22),
 				Color(0.08, 0.07, 0.11), 3.5)
 
+	# === FLOOR DIRECTOR (Silhouette mit Headset, zeigend) ===
+	var fd_x = w * 0.30; var fd_y = h * 0.57
+	draw_rect(Rect2(fd_x - 8, fd_y, 16, 22), Color(0.07, 0.06, 0.10))
+	draw_circle(Vector2(fd_x, fd_y - 8), 9, Color(0.08, 0.07, 0.11))
+	# Headset
+	draw_arc(Vector2(fd_x, fd_y - 8), 10, PI, 0, 8, Color(0.14, 0.13, 0.17), 2)
+	draw_circle(Vector2(fd_x + 10, fd_y - 8), 3, Color(0.12, 0.11, 0.15))
+	draw_line(Vector2(fd_x + 10, fd_y - 8), Vector2(fd_x + 14, fd_y - 2), Color(0.14, 0.13, 0.17), 1)
+	# Arm mit Klemmbrett
+	draw_line(Vector2(fd_x + 8, fd_y + 6), Vector2(fd_x + 25, fd_y - 3), Color(0.08, 0.07, 0.11), 4)
+	draw_rect(Rect2(fd_x + 22, fd_y - 10, 13, 15), Color(0.22, 0.20, 0.15))
+	draw_rect(Rect2(fd_x + 23, fd_y - 9, 11, 10), Color(0.88, 0.86, 0.72, 0.7))
+	# Zeigender Arm (animiert)
+	var point_a = sin(t * 1.6) * 0.28 - PI * 0.5 - 0.15
+	draw_line(Vector2(fd_x - 8, fd_y + 6),
+		Vector2(fd_x - 8 + cos(point_a) * 26, fd_y + 6 + sin(point_a) * 26),
+		Color(0.08, 0.07, 0.11), 4)
+
 	# === APPLAUSE METER (right side) ===
 	var meter_x = w - 52; var meter_y = h * 0.62
 	draw_rect(Rect2(meter_x - 2, meter_y, 28, 80), Color(0.12, 0.10, 0.16))
@@ -2032,6 +2313,24 @@ func _draw_tv_studio(vp: Rect2) -> void:
 	draw_rect(Rect2(w * 0.445, h * 0.462, 20, 14), Color(0.10, 0.28, 0.44, 0.9))
 	# Water glass
 	draw_rect(Rect2(w * 0.56, h * 0.46 + 2, 10, 16), Color(0.28, 0.44, 0.58, 0.55))
+
+	# === TV-MONITOR (Live-Feed mit Glitch-Effekt) ===
+	var tv_x = w * 0.02; var tv_y = h * 0.10
+	draw_rect(Rect2(tv_x, tv_y, 92, 70), Color(0.12, 0.10, 0.16))
+	draw_rect(Rect2(tv_x + 4, tv_y + 4, 84, 60), Color(0.10, 0.16, 0.26))
+	for sli in range(7):
+		draw_rect(Rect2(tv_x + 5, tv_y + 5 + sli * 8, 82, 2), Color(0, 0, 0, 0.22))
+	var glitch_y = fmod(t * 22.0, 56.0)
+	draw_rect(Rect2(tv_x + 4, tv_y + 4 + int(glitch_y), 84, 5), Color(0.30, 0.50, 0.68, 0.38))
+	# Tiny stage scene on screen
+	draw_rect(Rect2(tv_x + 14, tv_y + 38, 64, 20), Color(0.08, 0.07, 0.12))
+	draw_circle(Vector2(tv_x + 46, tv_y + 35), 6, Color(0.10, 0.09, 0.13))
+	# REC indicator
+	var rec_blink = int(t * 2.0) % 2
+	draw_circle(Vector2(tv_x + 82, tv_y + 8), 4, Color(0.9, 0.05, 0.05, 0.6 + rec_blink * 0.4))
+	# Monitor stand
+	draw_rect(Rect2(tv_x + 37, tv_y + 70, 18, 7), Color(0.16, 0.14, 0.20))
+	draw_rect(Rect2(tv_x + 26, tv_y + 77, 40, 4), Color(0.14, 0.12, 0.18))
 
 	# === ON AIR SIGN ===
 	var blink2 = int(t * 1.5) % 2
@@ -2276,6 +2575,77 @@ func _draw_meppen(vp: Rect2) -> void:
 		draw_rect(Rect2(w * 0.20 + pli * 50, h * 0.90, 46, 5), Color(0.85, 0.84, 0.82, 0.60))
 		draw_line(Vector2(w * 0.20 + pli * 50, h * 0.88),
 			Vector2(w * 0.20 + pli * 50, h * 0.96), Color(0.70, 0.68, 0.65, 0.45), 1.0)
+
+	# === TAUBEN (auf dem Marktplatz, fliegen periodisch auf) ===
+	var pigeon_rng = RandomNumberGenerator.new()
+	pigeon_rng.seed = 44882
+	var pigeon_base: Array = []
+	for pgi in range(9):
+		var pgx = pigeon_rng.randf_range(w * 0.18, w * 0.80)
+		var pgy = pigeon_rng.randf_range(h * 0.18, h * 0.80)
+		# Vom Kreisverkehr fernhalten
+		if Vector2(pgx, pgy).distance_to(Vector2(w * 0.5, h * 0.5)) < 108:
+			pgx = w * 0.14 + float(pgi) * w * 0.08
+			pgy = pigeon_rng.randf_range(h * 0.14, h * 0.24)
+		# Von Straßen fernhalten
+		if abs(pgx - w * 0.5) < w * 0.07 or abs(pgy - h * 0.5) < h * 0.07:
+			pgx = pigeon_rng.randf_range(w * 0.08, w * 0.20)
+			pgy = pigeon_rng.randf_range(h * 0.60, h * 0.80)
+		pigeon_base.append(Vector2(pgx, pgy))
+	# Scatter-Zyklus: alle 10s fliegen Tauben 2s lang auf
+	var scat_cycle = fmod(t, 10.0)
+	var scat_frac  = clamp(scat_cycle / 1.8, 0.0, 1.0) if scat_cycle < 1.8 else 0.0
+	var is_scat    = scat_cycle < 1.8
+	for pgi2 in range(pigeon_base.size()):
+		var pb       = pigeon_base[pgi2]
+		var pg_phase = float(pgi2) * 1.37
+		var pg_bob   = sin(t * 1.5 + pg_phase) * 2.2 * (1.0 - scat_frac)
+		var pd_off   = Vector2.ZERO
+		if is_scat:
+			var flee = Vector2(cos(pg_phase * 2.3 + 0.4), sin(pg_phase * 1.9)).normalized()
+			pd_off = flee * scat_frac * 72.0
+		var pgp = pb + pd_off + Vector2(0, pg_bob)
+		var pg_col = Color(0.52, 0.50, 0.48, 0.88)
+		# Flügel bei aufscheuchen gespreizt
+		if is_scat and scat_frac > 0.1:
+			var ws = scat_frac * 0.55 * PI
+			draw_arc(pgp, 9.0, PI * 0.5 + ws, PI * 1.5 - ws, 8, pg_col, 2.5)
+			draw_arc(pgp, 9.0, -PI * 0.5 + ws, PI * 0.5 - ws, 8, pg_col, 2.5)
+		draw_circle(pgp, 4.5, pg_col)
+		draw_circle(pgp + Vector2(3.5, -1.5), 2.8, Color(0.60, 0.57, 0.54, 0.90))
+		draw_line(pgp + Vector2(5.5, -1.5), pgp + Vector2(8.5, -1.5), Color(0.78, 0.66, 0.40, 0.85), 1.5)
+		# kleiner Schatten
+		draw_ellipse_approx(pgp + Vector2(2, 4), Vector2(6, 2), Color(0, 0, 0, 0.15))
+
+	# === FUSSGÄNGER (Passanten auf Pflaster und Bürgersteig) ===
+	var ped_rng = RandomNumberGenerator.new()
+	ped_rng.seed = 33771
+	var ped_data: Array = []
+	for pedi in range(10):
+		var pdx = ped_rng.randf_range(w * 0.08, w * 0.92)
+		var pdy = ped_rng.randf_range(h * 0.08, h * 0.92)
+		# Nur auf Pflaster/Bürgersteig, nicht auf Straße
+		if abs(pdx - w * 0.5) < w * 0.06 or abs(pdy - h * 0.5) < h * 0.06:
+			continue
+		ped_data.append({"base": Vector2(pdx, pdy), "phase": float(pedi) * 0.84})
+	for ped in ped_data:
+		var base = ped["base"] as Vector2
+		var ph   = ped["phase"] as float
+		# Fußgänger wandert in kleinem Kreis
+		var walk_r  = 18.0
+		var walk_sp = 0.25
+		var px = base.x + cos(ph + t * walk_sp) * walk_r
+		var py = base.y + sin(ph * 1.3 + t * walk_sp * 0.7) * walk_r * 0.6
+		# Körper und Kopf (dunkle Silhouette, top-down)
+		var pc = Color(0.18, 0.15, 0.12, 0.72)
+		draw_circle(Vector2(px, py - 5), 4.5, pc)
+		draw_ellipse_approx(Vector2(px, py + 2), Vector2(4, 5), pc)
+		# Beinzyklus
+		var step = sin(t * 3.8 + ph) * 3.5
+		draw_line(Vector2(px - 1, py + 6), Vector2(px - 2 + step, py + 13), pc, 1.8)
+		draw_line(Vector2(px + 1, py + 6), Vector2(px + 2 - step, py + 13), pc, 1.8)
+		# Schatten
+		draw_ellipse_approx(Vector2(px + 3, py + 8), Vector2(8, 3), Color(0, 0, 0, 0.14))
 
 	# === AUTOS ===
 	for car in _meppen_street_cars:
@@ -2565,6 +2935,14 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_line(Vector2(br_x, h * 0.55), Vector2(br_x, h * 0.72),
 			Color(0.14, 0.10, 0.06, 0.45), 1.2)
 
+	# === BÜHNENNEBEL (Dry-Ice-Fog auf dem Bühnenboden) ===
+	for fogi in range(7):
+		var fog_phase = fmod(t * 0.07 + float(fogi) * 0.143, 1.0)
+		var fog_x = w * 0.04 + float(fogi) * (w * 0.92 / 6.0) + sin(t * 0.14 + float(fogi) * 1.1) * 36.0
+		var fog_r  = 52.0 + fog_phase * 34.0
+		var fog_a  = (1.0 - fog_phase) * 0.16
+		draw_ellipse_approx(Vector2(fog_x, h * 0.56 + fog_phase * 18.0), Vector2(fog_r, fog_r * 0.30), Color(0.80, 0.78, 0.88, fog_a))
+
 	# === LIGHTING RIG on stage ===
 	draw_rect(Rect2(w * 0.04, h * 0.08, w * 0.92, 10), Color(0.18, 0.14, 0.12))
 	# Rig support trusses (diagonal lines)
@@ -2596,6 +2974,22 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_ellipse_approx(Vector2(end_x2, h * 0.56),
 			Vector2(52.0 + abs(sin(sweep2)) * 30, 11),
 			Color(lc2.r, lc2.g, lc2.b, 0.10))
+
+	# === LASER-BEAMS (kreuzende Strahlen vom Rig) ===
+	var laser_cols = [Color(1.0, 0.04, 0.04), Color(0.04, 0.50, 1.0), Color(0.10, 1.0, 0.30),
+		Color(1.0, 0.75, 0.0), Color(0.85, 0.0, 1.0)]
+	for lsi in range(5):
+		var la  = lsi * (PI * 0.18) + t * (0.22 + lsi * 0.08)
+		var lx1 = w * 0.10 + float(lsi) * (w * 0.80 / 4.0)
+		var lx2 = lx1 + sin(la) * w * 0.30
+		var lc3 = laser_cols[lsi]
+		var la2 = 0.35 + abs(sin(t * (1.4 + lsi * 0.3) + lsi)) * 0.30
+		draw_line(Vector2(lx1, h * 0.10 + 14), Vector2(lx2, h * 0.56), Color(lc3.r, lc3.g, lc3.b, la2), 1.2)
+		# Gegenläufiger Strahl vom anderen Ende
+		var lx3 = w - lx1 + sin(la + PI) * w * 0.20
+		draw_line(Vector2(w - lx1, h * 0.10 + 14), Vector2(lx3, h * 0.56), Color(lc3.r, lc3.g, lc3.b, la2 * 0.65), 1.0)
+		# Kleiner Lichtfleck am Auftreffpunkt
+		draw_circle(Vector2(lx2, h * 0.56), 5.0 + abs(sin(la)) * 4.0, Color(lc3.r, lc3.g, lc3.b, 0.22))
 
 	# === PYRO / FIRE at stage edges ===
 	for pi4 in range(7):
@@ -2939,6 +3333,40 @@ func _draw_death_feast(vp: Rect2) -> void:
 			Vector2(csx + 20, h * 0.10), Vector2(csx + 28, h * 0.10),
 			Vector2(csx + 50, csy - 14), Vector2(csx + 10, csy - 14)
 		]), Color(1.0, 0.90, 0.20, 0.10))
+
+	# === KONFETTI-KANONE (alle 15s schießen zwei Kanonen bunte Schnipsel) ===
+	var et_kf = fmod(_anim_time, 15.0)
+	if et_kf < 3.5:
+		var kf_p   = et_kf / 3.5
+		var kf_rng = RandomNumberGenerator.new()
+		kf_rng.seed = 76543
+		var kf_cols = [Color(1.0, 0.12, 0.12), Color(1.0, 0.82, 0.0), Color(0.12, 0.82, 0.22),
+			Color(0.22, 0.42, 1.0), Color(0.90, 0.12, 0.90), Color(1.0, 0.55, 0.10)]
+		for kfi in range(55):
+			# Zwei Abschuss-Punkte (linke und rechte Bühnenkante)
+			var cannon_x = w * 0.06 if kfi % 2 == 0 else w * 0.94
+			var spread   = kf_rng.randf_range(-0.5, 0.5)
+			var fall_sp  = 0.55 + kf_rng.randf() * 0.45
+			var kfx = cannon_x + spread * w * 0.65 * kf_p
+			var kfy = h * 0.55 - kf_p * (h * 0.25 + kf_rng.randf() * h * 0.15) + \
+				kf_p * kf_p * h * fall_sp * 0.55
+			var kfc = kf_cols[kfi % 6]
+			var kf_a = (1.0 - kf_p * 0.7) * 0.88
+			var kf_w = kf_rng.randf_range(4.5, 9.0)
+			var kf_h2 = kf_rng.randf_range(2.5, 5.5)
+			var kf_rot = kf_rng.randf() * TAU + kf_p * kfi * 0.4
+			# Rotiertes Rechteck als Konfetti-Schnipsel
+			var kf_half = Vector2(kf_w * 0.5, kf_h2 * 0.5)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(kfx + cos(kf_rot) * kf_half.x - sin(kf_rot) * kf_half.y,
+					kfy + sin(kf_rot) * kf_half.x + cos(kf_rot) * kf_half.y),
+				Vector2(kfx - cos(kf_rot) * kf_half.x - sin(kf_rot) * kf_half.y,
+					kfy - sin(kf_rot) * kf_half.x + cos(kf_rot) * kf_half.y),
+				Vector2(kfx - cos(kf_rot) * kf_half.x + sin(kf_rot) * kf_half.y,
+					kfy - sin(kf_rot) * kf_half.x - cos(kf_rot) * kf_half.y),
+				Vector2(kfx + cos(kf_rot) * kf_half.x + sin(kf_rot) * kf_half.y,
+					kfy + sin(kf_rot) * kf_half.x - cos(kf_rot) * kf_half.y),
+			]), Color(kfc.r, kfc.g, kfc.b, kf_a))
 
 # ── Helper: Ellipse ───────────────────────────────────────────────────────────
 func _draw_ellipse(center: Vector2, radii: Vector2, col: Color) -> void:

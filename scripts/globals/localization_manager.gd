@@ -489,6 +489,70 @@ const TRANSLATIONS: Dictionary = {
 	"lets_play": {
 		"de": "LOS GEHT'S!", "en": "LET'S PLAY!", "fr": "C'EST PARTI!", "es": "¡A JUGAR!", "uk": "ВПЕРЕД!",
 	},
+
+	# ── Endless Map Select ────────────────────────────────────────────────────
+	"endless_map_select": {
+		"de": "ENDLESS MODE – MAP WÄHLEN",
+		"en": "ENDLESS MODE – SELECT MAP",
+		"fr": "MODE INFINI – CHOISIR LA MAP",
+		"es": "MODO INFINITO – ELEGIR MAPA",
+		"uk": "НЕСКІНЧЕННО – ОБЕРІТЬ КАРТУ",
+	},
+	"charakter_lbl": {
+		"de": "CHARAKTER:", "en": "CHARACTER:", "fr": "PERSONNAGE:", "es": "PERSONAJE:", "uk": "ПЕРСОНАЖ:",
+	},
+	"schwierigkeit_lbl": {
+		"de": "SCHWIERIGKEIT:", "en": "DIFFICULTY:", "fr": "DIFFICULTÉ:", "es": "DIFICULTAD:", "uk": "СКЛАДНІСТЬ:",
+	},
+	"start_endless": {
+		"de": "START ENDLESS!", "en": "START ENDLESS!", "fr": "COMMENCER!", "es": "¡EMPEZAR!", "uk": "СТАРТ!",
+	},
+
+	# ── Options – Sound ───────────────────────────────────────────────────────
+	"sound_tip": {
+		"de": "Tipp: Lautstärke auch mit F1/F2 im Spiel änderbar.",
+		"en": "Tip: Volume can also be changed with F1/F2 in-game.",
+		"fr": "Conseil: le volume peut être changé avec F1/F2 en jeu.",
+		"es": "Consejo: el volumen también se puede cambiar con F1/F2.",
+		"uk": "Підказка: гучність також можна змінити F1/F2 у грі.",
+	},
+
+	# ── Options – Controls ────────────────────────────────────────────────────
+	"press_button": {
+		"de": "Knopf drücken", "en": "Press button", "fr": "Appuyer bouton",
+		"es": "Pulsar botón", "uk": "Натисніть кнопку",
+	},
+	"reset_controller": {
+		"de": "Controller zurücksetzen", "en": "Reset Controller",
+		"fr": "Réinitialiser manette", "es": "Restablecer mando", "uk": "Скинути ґеймпад",
+	},
+
+	# ── Options – Gameplay / Highscore ────────────────────────────────────────
+	"hs_display": {
+		"de": "Highscore: %d  |  Beste Wave: %d",
+		"en": "High Score: %d  |  Best Wave: %d",
+		"fr": "Meilleur score: %d  |  Meilleure vague: %d",
+		"es": "Mejor puntuación: %d  |  Mejor oleada: %d",
+		"uk": "Рекорд: %d  |  Краща хвиля: %d",
+	},
+	"hs_reset_btn": {
+		"de": "Highscore zurücksetzen", "en": "Reset High Score",
+		"fr": "Réinitialiser le score", "es": "Restablecer puntuación", "uk": "Скинути рекорд",
+	},
+	"hs_confirm": {
+		"de": "Sicher? Nochmal klicken!", "en": "Sure? Click again!",
+		"fr": "Sûr? Cliquez encore!", "es": "¿Seguro? ¡Clic de nuevo!", "uk": "Впевнений? Клікни ще!",
+	},
+	"hs_done": {
+		"de": "✓ Zurückgesetzt", "en": "✓ Reset",
+		"fr": "✓ Réinitialisé", "es": "✓ Restablecido", "uk": "✓ Скинуто",
+	},
+
+	# ── Main Menu ─────────────────────────────────────────────────────────────
+	"hs_prefix": {
+		"de": "Highscore: ", "en": "High Score: ",
+		"fr": "Meilleur score: ", "es": "Mejor puntuación: ", "uk": "Рекорд: ",
+	},
 }
 
 func _ready() -> void:

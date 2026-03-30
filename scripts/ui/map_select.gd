@@ -49,7 +49,7 @@ func _build_ui() -> void:
 	title.offset_bottom = 64
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.text = "ENDLESS MODE – MAP WÄHLEN"
+	title.text = LocalizationManager.t("endless_map_select")
 	title.add_theme_color_override("font_color", Color(1.0, 0.55, 0.0))
 	title.add_theme_font_size_override("font_size", 28)
 	add_child(title)
@@ -85,7 +85,7 @@ func _build_ui() -> void:
 	var char_lbl = Label.new()
 	char_lbl.position = Vector2(40, 298)
 	char_lbl.size     = Vector2(300, 26)
-	char_lbl.text     = "CHARAKTER:"
+	char_lbl.text     = LocalizationManager.t("charakter_lbl")
 	char_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	char_lbl.add_theme_font_size_override("font_size", 16)
 	add_child(char_lbl)
@@ -119,7 +119,7 @@ func _build_ui() -> void:
 	var diff_lbl = Label.new()
 	diff_lbl.position = Vector2(40, 405)
 	diff_lbl.size     = Vector2(300, 26)
-	diff_lbl.text     = "SCHWIERIGKEIT:"
+	diff_lbl.text     = LocalizationManager.t("schwierigkeit_lbl")
 	diff_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	diff_lbl.add_theme_font_size_override("font_size", 16)
 	add_child(diff_lbl)
@@ -142,7 +142,7 @@ func _build_ui() -> void:
 	# ── Bottom buttons ─────────────────────────────────────────────────────
 	var start_btn = Button.new()
 	start_btn.name = "StartBtn"
-	start_btn.text = "START ENDLESS!"
+	start_btn.text = LocalizationManager.t("start_endless")
 	start_btn.set_anchors_preset(PRESET_BOTTOM_RIGHT)
 	start_btn.anchor_left   = 1.0
 	start_btn.anchor_top    = 1.0
@@ -166,7 +166,7 @@ func _build_ui() -> void:
 	add_child(start_btn)
 
 	var back_btn = Button.new()
-	back_btn.text = "← ZURÜCK"
+	back_btn.text = LocalizationManager.t("back")
 	back_btn.set_anchors_preset(PRESET_BOTTOM_LEFT)
 	back_btn.anchor_top    = 1.0
 	back_btn.offset_left   = 30

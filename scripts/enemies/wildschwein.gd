@@ -9,7 +9,7 @@ var _charge_duration: float = 0.0
 func _ready() -> void:
 	max_hp = 85.0
 	damage = 18.0
-	move_speed = 65.0
+	move_speed = 82.0
 	score_value = 200
 	enemy_id = "wildschwein"
 	_death_anim_duration = 0.65
