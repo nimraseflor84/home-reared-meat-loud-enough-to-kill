@@ -17,6 +17,13 @@ var _p2_idx: int = 1
 var _coop_btn = null
 var _p2_panel = null
 
+# Netzwerk Co-op
+var _net_panel = null
+var _net_ip_label = null
+var _net_status_label = null
+var _net_ip_field = null
+var _peer_ready: bool = false
+
 func _ready() -> void:
 	_build_ui()
 	_update_selection(0)
@@ -104,7 +111,7 @@ func _build_ui() -> void:
 		var desc_lbl = Label.new()
 		desc_lbl.position = Vector2(110, 76)
 		desc_lbl.size = Vector2(200, 68)
-		desc_lbl.text = info.get("desc", "") if unlocked else LocalizationManager.t("char_unlock_hint") % [_unlock_wave(char_id)]
+		desc_lbl.text = GameManager.char_desc(char_id) if unlocked else LocalizationManager.t("char_unlock_hint") % [_unlock_wave(char_id)]
 		desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9) if unlocked else Color(0.4, 0.4, 0.4))
 		desc_lbl.add_theme_font_size_override("font_size", 13)
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -236,7 +243,7 @@ func _build_ui() -> void:
 	var p2_lbl = Label.new()
 	p2_lbl.position = Vector2(8, 8)
 	p2_lbl.size = Vector2(120, 34)
-	p2_lbl.text = "SPIELER 2:"
+	p2_lbl.text = LocalizationManager.t("p2_label")
 	p2_lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
 	p2_lbl.add_theme_font_size_override("font_size", 14)
 	p2_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -602,10 +609,152 @@ func _update_diff_visuals() -> void:
 			btn.add_theme_color_override("font_color", col.lightened(0.2))
 		btn.add_theme_stylebox_override("normal", sty)
 
+func _is_mobile() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+
 func _toggle_coop() -> void:
-	_coop_mode = not _coop_mode
-	_p2_panel.visible = _coop_mode
+	var enabling = not _coop_mode
+	if enabling and _is_mobile():
+		var wifi_check = load("res://scripts/globals/wifi_check.gd")
+		if not wifi_check.is_wifi_connected():
+			wifi_check.show_no_wifi_dialog(self)
+			return
+	if not _coop_mode and _is_mobile():
+		# Auf Mobilgeräten: Netzwerk-Panel statt lokalem P2-Panel
+		_coop_mode = true
+		_build_net_panel()
+		_update_coop_btn_style()
+		return
+	if not enabling:
+		GameManager.net_stop()
+		_peer_ready = false
+		if _net_panel:
+			_net_panel.queue_free()
+			_net_panel = null
+	_coop_mode = enabling
+	_p2_panel.visible = _coop_mode and not _is_mobile()
 	_update_coop_btn_style()
+
+func _build_net_panel() -> void:
+	if _net_panel:
+		_net_panel.queue_free()
+	_net_panel = Control.new()
+	_net_panel.set_anchors_preset(PRESET_FULL_RECT)
+	_net_panel.anchor_top = 0.60
+	add_child(_net_panel)
+
+	var bg = ColorRect.new()
+	bg.set_anchors_preset(PRESET_FULL_RECT)
+	bg.color = Color(0.05, 0.02, 0.13, 0.98)
+	_net_panel.add_child(bg)
+
+	# Titel
+	var title = Label.new()
+	title.position = Vector2(0, 8)
+	title.size = Vector2(1280, 40)
+	title.text = LocalizationManager.t("net_title")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color(0.6, 0.9, 1.0))
+	title.add_theme_font_size_override("font_size", 26)
+	_net_panel.add_child(title)
+
+	# HOSTEN-Button (links)
+	var host_btn = Button.new()
+	host_btn.position = Vector2(80, 56)
+	host_btn.size = Vector2(260, 60)
+	host_btn.text = LocalizationManager.t("net_host")
+	host_btn.add_theme_font_size_override("font_size", 22)
+	host_btn.pressed.connect(_on_net_host_pressed)
+	_net_panel.add_child(host_btn)
+
+	# BEITRETEN-Button (rechts)
+	var join_btn = Button.new()
+	join_btn.position = Vector2(460, 56)
+	join_btn.size = Vector2(260, 60)
+	join_btn.text = LocalizationManager.t("net_join")
+	join_btn.add_theme_font_size_override("font_size", 22)
+	join_btn.pressed.connect(_on_net_join_pressed)
+	_net_panel.add_child(join_btn)
+
+	# IP-Eingabefeld (immer sichtbar, für Beitreten)
+	_net_ip_field = LineEdit.new()
+	_net_ip_field.position = Vector2(780, 56)
+	_net_ip_field.size = Vector2(380, 60)
+	_net_ip_field.placeholder_text = "Host-IP: 192.168.x.x"
+	_net_ip_field.add_theme_font_size_override("font_size", 20)
+	_net_panel.add_child(_net_ip_field)
+
+	# Status-Label
+	_net_ip_label = Label.new()
+	_net_ip_label.position = Vector2(0, 128)
+	_net_ip_label.size = Vector2(980, 50)
+	_net_ip_label.text = "← Hosten oder IP eingeben und Beitreten"
+	_net_ip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_net_ip_label.add_theme_color_override("font_color", Color(0.7, 1.0, 0.7))
+	_net_ip_label.add_theme_font_size_override("font_size", 18)
+	_net_panel.add_child(_net_ip_label)
+
+	# SPIELEN-Button im Panel (nur für Host, erscheint nach Verbindung)
+	var net_play_btn = Button.new()
+	net_play_btn.name = "NetPlayBtn"
+	net_play_btn.position = Vector2(1000, 110)
+	net_play_btn.size = Vector2(260, 65)
+	net_play_btn.text = "▶ SPIELEN"
+	net_play_btn.add_theme_font_size_override("font_size", 24)
+	net_play_btn.visible = false
+	var ps = StyleBoxFlat.new()
+	ps.bg_color = Color(0.1, 0.6, 0.15)
+	ps.border_color = Color(0.3, 1.0, 0.4)
+	ps.set_border_width_all(2)
+	ps.set_corner_radius_all(8)
+	net_play_btn.add_theme_stylebox_override("normal", ps)
+	net_play_btn.pressed.connect(_on_play_pressed)
+	_net_panel.add_child(net_play_btn)
+
+func _on_net_host_pressed() -> void:
+	GameManager.net_stop()
+	var ip = GameManager.net_start_host()
+	_net_ip_label.text = LocalizationManager.t("net_waiting") % ip
+	_net_ip_label.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	if not GameManager.net_peer_connected.is_connected(_on_net_partner_connected):
+		GameManager.net_peer_connected.connect(_on_net_partner_connected, CONNECT_ONE_SHOT)
+
+func _on_net_join_pressed() -> void:
+	var ip = _net_ip_field.text.strip_edges()
+	if ip.is_empty():
+		_net_ip_label.text = LocalizationManager.t("net_enter_ip")
+		_net_ip_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+		return
+	GameManager.net_stop()
+	_net_ip_label.text = LocalizationManager.t("net_connecting") % ip
+	_net_ip_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+	var err = GameManager.net_join(ip)
+	if err != OK:
+		_net_ip_label.text = LocalizationManager.t("net_conn_error") % err
+		_net_ip_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		return
+	# Auf Verbindung warten (mit Timeout-Feedback)
+	if not GameManager.net_connected_to_host.is_connected(_on_net_partner_connected):
+		GameManager.net_connected_to_host.connect(_on_net_partner_connected, CONNECT_ONE_SHOT)
+	if not multiplayer.connection_failed.is_connected(_on_net_connection_failed):
+		multiplayer.connection_failed.connect(_on_net_connection_failed, CONNECT_ONE_SHOT)
+
+func _on_net_connection_failed() -> void:
+	_net_ip_label.text = LocalizationManager.t("net_conn_failed")
+	_net_ip_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	GameManager.net_stop()
+
+func _on_net_partner_connected() -> void:
+	_peer_ready = true
+	if GameManager.network_mode == 1:
+		_net_ip_label.text = LocalizationManager.t("net_p2_connected")
+		_net_ip_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
+		var btn = _net_panel.get_node_or_null("NetPlayBtn")
+		if btn:
+			btn.visible = true
+	else:
+		_net_ip_label.text = LocalizationManager.t("net_connected_wait")
+		_net_ip_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
 
 func _update_coop_btn_style() -> void:
 	if not _coop_btn:
@@ -645,7 +794,14 @@ func _update_p2_display() -> void:
 		lbl.add_theme_color_override("font_color", col)
 
 func _on_play_pressed() -> void:
-	GameManager.player_count = 2 if _coop_mode else 1
 	GameManager.selected_characters[0] = CHARACTERS[selected_index]
 	GameManager.selected_characters[1] = CHARACTERS[_p2_idx]
-	GameManager.start_game()
+	if GameManager.network_mode == 1:
+		# Netzwerk-Host: Client informieren, dann Spiel starten
+		GameManager.net_start_game_as_host()
+	elif GameManager.network_mode == 2:
+		# Client wartet – Host startet das Spiel
+		pass
+	else:
+		GameManager.player_count = 2 if _coop_mode else 1
+		GameManager.start_game()

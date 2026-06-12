@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # Willi Schrei-Stopp
 # Angriff:  Gehstock-Hieb
-# Spezial:  Signalpistole – 3 zufällige Leuchtmunition mit Effekten
+# Spezial:  Signalpistole - 3 zufaellige Leuchtmunition mit Effekten
 
 const STOCK_CD   = 1.8
 const STOCK_RNG  = 70.0
@@ -44,7 +44,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -117,7 +117,7 @@ func _physics_process(delta: float) -> void:
 
 	super._physics_process(delta)
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _do_stock_hit() -> void:
 	if not is_instance_valid(target): return
 	if global_position.distance_to(target.global_position) > STOCK_RNG: return
@@ -180,7 +180,7 @@ func _on_dying_process(_delta: float) -> void:
 	_signal_shots.clear()
 	_effects.clear()
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -239,16 +239,16 @@ func _draw_body(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: flo
 	# Wenige graue Haare (seitlich)
 	for i in range(4):
 		draw_arc(Vector2(-11+float(i)*5, -28+hb), 4, PI, 0, 5, Color(0.72,0.72,0.75), 3)
-	# Schnauzbärtchen
+	# Schnauzbaertchen
 	draw_line(Vector2(-5, -16+hb), Vector2(5, -16+hb), Color(0.62,0.62,0.64), 3)
 	# Dicke Brille
 	draw_arc(Vector2(-5, -22+hb), 5, 0, TAU, 6, Color(0.18,0.12,0.04), 2)
 	draw_arc(Vector2(5,  -22+hb), 5, 0, TAU, 6, Color(0.18,0.12,0.04), 2)
 	draw_circle(Vector2(-5, -22+hb), 3, Color(0.55,0.72,0.88))
 	draw_circle(Vector2(5,  -22+hb), 3, Color(0.55,0.72,0.88))
-	# Mürrischer Mund
+	# Muerrischer Mund
 	draw_arc(Vector2(0, -13+hb), 5, PI*0.15, PI*0.85, 5, Color(0.45,0.25,0.18), 3)
-	# Phase2: Zornige Schläfenadern
+	# Phase2: Zornige Schlaefenadern
 	if _phase2:
 		draw_line(Vector2(-13,-26+hb), Vector2(-9,-23+hb), Color(0.85,0.08,0.06), 2)
 		draw_line(Vector2(13, -26+hb), Vector2(9, -23+hb), Color(0.85,0.08,0.06), 2)
@@ -298,7 +298,7 @@ func _draw_signal_shots() -> void:
 				draw_line(lp+Vector2(2,-4), lp+Vector2(6,0), Color(1.0,0.5,0.8,0.9), 2.5)
 				draw_line(lp+Vector2(2, 4), lp+Vector2(6,0), Color(1.0,0.5,0.8,0.9), 2.5)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t      = _death_anim_time
 	var beige  = Color(0.78, 0.70, 0.52).darkened(t * 0.35)

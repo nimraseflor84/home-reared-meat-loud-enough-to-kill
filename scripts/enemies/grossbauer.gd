@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# Großbauer: Latzhose, Strohhut, Mistgabel
-# Angriff 1: Mistgabel-Stich (Nahkampf, 2.2× Schaden + Knockback)
-# Spezial:   Pfeifen → 5 zufällige Farmtiere erscheinen
+# Grossbauer: Latzhose, Strohhut, Mistgabel
+# Angriff 1: Mistgabel-Stich (Nahkampf, 2.2x Schaden + Knockback)
+# Spezial:   Pfeifen -> 5 zufaellige Farmtiere erscheinen
 
 const FARM_ANIMALS = [
 	"kuh","huhn","schwein","katze","hund","ente",
@@ -32,7 +32,7 @@ func _ready() -> void:
 	for i in range(4):
 		_note_x.append(randf_range(-18.0, 18.0))
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -72,7 +72,7 @@ func _physics_process(delta: float) -> void:
 
 	super._physics_process(delta)
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _stab_attack() -> void:
 	_stab_anim = 0.0
 	if is_instance_valid(target) and target.has_method("take_damage"):
@@ -97,7 +97,7 @@ func _do_whistle() -> void:
 func _on_dying_process(_delta: float) -> void:
 	pass  # Eigene Todesanimation in _draw()
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -137,10 +137,10 @@ func _draw_body(b: float, ll: float, lr: float, al: float, ar: float, flash: boo
 	# Shirt an Seiten sichtbar (Arme schaukeln)
 	draw_rect(Rect2(-24, -6 + al + b, 10, 18), shirt)
 	draw_rect(Rect2(14,  -6 + ar + b, 10, 18), shirt)
-	# Latzhosen-Träger
+	# Latzhosen-Traeger
 	draw_line(Vector2(-8, -12+b), Vector2(-4, -28 + b*0.4), Color(0.30, 0.46, 0.80), 3)
 	draw_line(Vector2(8,  -12+b), Vector2(4,  -28 + b*0.4), Color(0.30, 0.46, 0.80), 3)
-	# Hände
+	# Haende
 	draw_circle(Vector2(-24, 8 + al + b), 8, skin)
 	draw_circle(Vector2(24,  8 + ar + b), 8, skin)
 	# Kopf
@@ -150,7 +150,7 @@ func _draw_body(b: float, ll: float, lr: float, al: float, ar: float, flash: boo
 	draw_rect(Rect2(-12, -68 + b*0.4, 24, 24), straw)
 	draw_rect(Rect2(-14, -46 + b*0.4, 28, 5), sband)
 	draw_line(Vector2(-28, -46 + b*0.4), Vector2(28, -46 + b*0.4), straw.darkened(0.25), 2)
-	# Großer Schnauzbart
+	# Grosser Schnauzbart
 	var mpts = PackedVector2Array([
 		Vector2(-14,-22 + b*0.4), Vector2(-18,-16 + b*0.4), Vector2(-8,-14 + b*0.4), Vector2(0,-17 + b*0.4),
 		Vector2(8,-14 + b*0.4),   Vector2(18,-16 + b*0.4),  Vector2(14,-22 + b*0.4),
@@ -177,7 +177,7 @@ func _draw_pitchfork(b: float, ar: float) -> void:
 	var tine_c = Color(0.62, 0.62, 0.64)
 	var off = 0.0
 	if _stab_anim >= 0.0:
-		off = sin(_stab_anim / 0.5 * PI) * 20.0  # Herausstechen und zurück
+		off = sin(_stab_anim / 0.5 * PI) * 20.0  # Herausstechen und zurueck
 	var px = 30.0 + off
 	var py = ar + b  # folgt dem rechten Arm
 	# Stiel
@@ -209,7 +209,7 @@ func _draw_whistle(b: float, al: float) -> void:
 			draw_line(Vector2(nx+3, ny+b), Vector2(nx+3, ny-10+b), Color(1.0,1.0,0.2,na), 2)
 			draw_line(Vector2(nx+3, ny-10+b), Vector2(nx+8, ny-8+b), Color(1.0,1.0,0.2,na), 2)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t       = _death_anim_time
 	var overall = Color(0.18, 0.30, 0.58)
@@ -229,7 +229,7 @@ func _draw_death() -> void:
 	# Beine
 	draw_rect(Rect2(-18 + fall*0.25, 14+fall*0.5, 12, 16), overall)
 	draw_rect(Rect2(2   + fall*0.25, 14+fall*0.5, 12, 16), overall)
-	# Torso kippt zurück
+	# Torso kippt zurueck
 	draw_rect(Rect2(-16 + fall*0.3*lean, -12+fall*lean, 32, 28), overall)
 	# Kopf rollt weg
 	draw_circle(Vector2(fall*0.6, -28+fall*0.9), 20, skin)
@@ -237,7 +237,7 @@ func _draw_death() -> void:
 	var hx = t * 32.0;  var hy = -46.0 - t * 48.0
 	draw_rect(Rect2(-28+hx, hy, 56, 7), straw)
 	draw_rect(Rect2(-12+hx, hy-22, 24, 24), straw)
-	# Mistgabel fällt
+	# Mistgabel faellt
 	var fp = fall * 0.9
 	draw_line(Vector2(30+fp, 10+fp), Vector2(30+fp, 38+fp), fork_c, 5)
 	draw_line(Vector2(22+fp, -2+fp), Vector2(38+fp, -2+fp), tine_c, 4)

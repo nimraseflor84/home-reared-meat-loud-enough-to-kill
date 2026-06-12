@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # Mega-Eber Borste-Bernd
-# Angriff:  Borsten-Fächer (5 / 8 in Phase 2)
-# Spezial:  Quicken → 3× Highspeed-Ramme auf den Spieler
+# Angriff:  Borsten-Faecher (5 / 8 in Phase 2)
+# Spezial:  Quicken -> 3x Highspeed-Ramme auf den Spieler
 
 const BRISTLE_CD    = 2.8
 const BRISTLE_SPD   = 310.0
@@ -44,7 +44,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -135,7 +135,7 @@ func _update_charge(delta: float) -> void:
 			if _ctimer <= 0.0:
 				_begin_charge()
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _shoot_bristles() -> void:
 	if not is_instance_valid(target): return
 	var base_dir = (target.global_position - global_position).normalized()
@@ -187,7 +187,7 @@ func _on_dying_process(_delta: float) -> void:
 	_dust.clear()
 	_cphase = C_IDLE
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -195,7 +195,7 @@ func _draw() -> void:
 	if not is_alive:
 		return
 
-	# Staub (hinter Körper)
+	# Staub (hinter Koerper)
 	for d in _dust:
 		var lp = to_local(d["pos"])
 		var al = d["life"] / 0.45
@@ -227,14 +227,14 @@ func _draw_body(bob: float, flash: bool, jitter: float, leg_l: float = 0.0, leg_
 	if _phase2:
 		body_c = Color(pink.r + 0.08, pink.g - 0.06, pink.b - 0.04)
 
-	# ── Körper ──
-	# Hauptkörper (großes Oval aus mehreren Kreisen)
+	# -- Koerper --
+	# Hauptkoerper (grosses Oval aus mehreren Kreisen)
 	draw_circle(Vector2(jitter, 2+bob), 32, body_c)
 	draw_circle(Vector2(12+jitter, 0+bob), 28, body_c)
 	# Hals
 	draw_rect(Rect2(18+jitter, -14+bob, 20, 28), body_c)
 
-	# ── Beine (4 kurze Stummel, paarweise animiert) ──
+	# -- Beine (4 kurze Stummel, paarweise animiert) --
 	# Paar A (Vorne-links & Hinten-rechts): leg_l; Paar B: leg_r
 	var _leg_offsets = [leg_l, leg_r, leg_l, leg_r]
 	for li in range(4):
@@ -245,16 +245,16 @@ func _draw_body(bob: float, flash: bool, jitter: float, leg_l: float = 0.0, leg_
 		draw_rect(Rect2(lx+jitter-4, 42 + lof * 0.4 + bob, 4, 5), blk)
 		draw_rect(Rect2(lx+jitter+1, 42 + lof * 0.4 + bob, 4, 5), blk)
 
-	# ── Kopf ──
+	# -- Kopf --
 	draw_circle(Vector2(38+jitter, -2+bob), 22, body_c)
 	# Schnauze (flache Scheibe)
 	draw_circle(Vector2(58+jitter, -1+bob), 13, dpink)
 	draw_circle(Vector2(55+jitter, -1+bob), 10, Color(dpink.r-0.06, dpink.g-0.04, dpink.b-0.04))
-	# Nasenlöcher
+	# Nasenloecher
 	draw_circle(Vector2(62+jitter,  2+bob), 3, blk)
 	draw_circle(Vector2(62+jitter, -4+bob), 3, blk)
 
-	# ── Stoßzähne (Elfenbein, nach unten geschwungen) ──
+	# -- Stosszaehne (Elfenbein, nach unten geschwungen) --
 	var tusk_pts1 = PackedVector2Array([
 		Vector2(52+jitter, 8+bob),
 		Vector2(66+jitter, 8+bob),
@@ -270,43 +270,43 @@ func _draw_body(bob: float, flash: bool, jitter: float, leg_l: float = 0.0, leg_
 	])
 	draw_colored_polygon(tusk_pts2, ivory.darkened(0.08))
 
-	# ── Ohren ──
+	# -- Ohren --
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(24+jitter, -20+bob), Vector2(32+jitter, -38+bob), Vector2(42+jitter, -22+bob)
 	]), body_c)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(24+jitter, -20+bob), Vector2(32+jitter, -38+bob), Vector2(42+jitter, -22+bob)
-	]), Color(dpink.r, dpink.g, dpink.b, 0.6))  # innere Füllung
+	]), Color(dpink.r, dpink.g, dpink.b, 0.6))  # innere Fuellung
 
-	# ── Augen (klein, gemein) ──
+	# -- Augen (klein, gemein) --
 	var eye_c = red_e if (_phase2 or _cphase == C_RUNNING) else Color(0.88, 0.12, 0.04)
 	draw_circle(Vector2(32+jitter, -10+bob), 5, Color(0.95, 0.88, 0.80))
 	draw_circle(Vector2(32+jitter, -10+bob), 3, eye_c)
 	draw_circle(Vector2(32+jitter, -10+bob), 1.2, blk)
-	# Wütende Augenbraue
+	# Wuetende Augenbraue
 	draw_line(Vector2(26+jitter, -16+bob), Vector2(38+jitter, -13+bob), blk, 3)
 
-	# ── Ringelschwanz ──
+	# -- Ringelschwanz --
 	draw_arc(Vector2(-28+jitter, -2+bob), 7, -PI*0.3, PI*1.0, 10, dpink, 5)
 	draw_circle(Vector2(-35+jitter, 4+bob), 4, dpink)
 
-	# ── Borsten-Rücken (Reihe scharfer Dreiecke) ──
+	# -- Borsten-Ruecken (Reihe scharfer Dreiecke) --
 	for i in range(10):
 		var bx = -24.0 + float(i) * 6.2 + jitter
 		var by = -30.0 + sin(float(i) * 0.8) * 4.0 + bob
-		var bh = 12.0 if i % 3 != 1 else 16.0  # abwechselnde Längen
+		var bh = 12.0 if i % 3 != 1 else 16.0  # abwechselnde Laengen
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(bx-3, by),
 			Vector2(bx,   by - bh),
 			Vector2(bx+3, by),
 		]), brist)
 
-	# ── Quieken-Maul ──
+	# -- Quieken-Maul --
 	if _quieken_anim >= 0.0:
-		var qo = min(_quieken_anim / 0.3, 1.0) * 10.0  # Maul öffnet sich
+		var qo = min(_quieken_anim / 0.3, 1.0) * 10.0  # Maul oeffnet sich
 		# Weit aufgerissenes Maul
 		draw_arc(Vector2(58+jitter, -1+bob), 10+qo, 0.3, PI-0.3, 8, blk, int(qo+4))
-		# Zähne
+		# Zaehne
 		for ti in range(3):
 			var tx = 50.0 + float(ti) * 6.0 + jitter
 			draw_colored_polygon(PackedVector2Array([
@@ -322,7 +322,7 @@ func _draw_body(bob: float, flash: bool, jitter: float, leg_l: float = 0.0, leg_
 				draw_arc(Vector2(62+jitter, -1+bob), wr, -PI*0.4, PI*0.4, 8,
 					Color(1.0, 0.85, 0.2, wal), 3)
 
-	# ── Charge-Effekt: Geschwindigkeitslinien ──
+	# -- Charge-Effekt: Geschwindigkeitslinien --
 	if _cphase == C_RUNNING:
 		for li in range(6):
 			var llen  = randf_range(20, 55)
@@ -336,7 +336,7 @@ func _draw_bristles_proj() -> void:
 	for br in _bristles:
 		var lp  = to_local(br["pos"])
 		var dir = br["vel"].normalized()
-		# Borste: dünnes Dreieck in Flugrichtung
+		# Borste: duennes Dreieck in Flugrichtung
 		var right = dir.rotated(PI * 0.5)
 		draw_colored_polygon(PackedVector2Array([
 			lp + dir * 14.0,
@@ -345,7 +345,7 @@ func _draw_bristles_proj() -> void:
 		]), brist)
 		draw_circle(lp + dir * 14.0, 2.5, tip_c)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t     = _death_anim_time
 	var pink  = Color(0.70, 0.40, 0.36)
@@ -354,15 +354,15 @@ func _draw_death() -> void:
 	var blood = Color(0.70, 0.04, 0.04)
 	var brist = Color(0.38, 0.18, 0.14)
 
-	# Körper kippt auf die Seite
+	# Koerper kippt auf die Seite
 	var fall   = min(t * 45.0, 35.0)
-	var squish = 1.0 - min(t * 0.5, 0.4)  # Körper wird flacher beim Aufprall
+	var squish = 1.0 - min(t * 0.5, 0.4)  # Koerper wird flacher beim Aufprall
 
 	# Blutlache
 	if t > 0.4:
 		draw_circle(Vector2(0, 40), min((t-0.4)*42.0, 38.0), Color(blood.r,blood.g,blood.b,0.72))
 
-	# Körper auf Seite
+	# Koerper auf Seite
 	draw_circle(Vector2(fall*0.3, 6+fall*0.9), 32*squish, pink)
 	draw_circle(Vector2(16+fall*0.3, 4+fall*0.9), 26*squish, pink)
 	# Beine starr in der Luft
@@ -376,9 +376,9 @@ func _draw_death() -> void:
 	# Kopf
 	draw_circle(Vector2(38+fall*0.4, -2+fall), 22*squish, pink)
 	draw_circle(Vector2(58+fall*0.4, -1+fall), 13, dpink)
-	# Stoßzähne
+	# Stosszaehne
 	draw_line(Vector2(52+fall*0.4, 8+fall), Vector2(70+fall*0.4, 22+fall), ivory, 5)
-	# Borsten-Rücken
+	# Borsten-Ruecken
 	for i in range(8):
 		var bx = -22.0 + float(i)*7.0 + fall*0.2
 		var by = -28.0 + fall*0.8

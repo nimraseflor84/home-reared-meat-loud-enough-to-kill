@@ -2,6 +2,8 @@
 
 > **Brotato-style Roguelite Rhythm Game** · Entwickelt mit Godot 4.6 · Metal & Chaos
 
+**Deutsch:** diese Datei · **English:** [README.en.md](README.en.md)
+
 Ein Wave-Survival-Roguelite in dem du als Mitglied der Metal-Band **Home Reared Meat** gegen Wellen von Feinden kämpfst – im Takt der Musik. 15 Story-Waves, Endless Mode, 6 spielbare Charaktere und lokaler Co-op für 2 Spieler.
 
 ---
@@ -103,6 +105,20 @@ So baust du eine eigenständige Datei die ohne Godot läuft:
 
 > Für einen signierten macOS-Build (ohne Sicherheitswarnungen) wird ein Apple Developer Account benötigt. Für privaten Gebrauch ist das nicht nötig.
 
+### macOS Code-Signing & Notarisierung (für Veröffentlichung)
+
+Für die Verteilung an andere (Steam, itch.io, eigene Webseite) sollte die App signiert und notarisiert werden:
+
+1. **Apple Developer Account** anlegen (99 USD/Jahr): [developer.apple.com](https://developer.apple.com)
+2. In Xcode oder über developer.apple.com ein **„Developer ID Application"-Zertifikat** erstellen und in den Schlüsselbund importieren
+3. In Godot unter **Project → Export → macOS**:
+   - `codesign/enable` aktivieren, als Identität den Namen des Developer-ID-Zertifikats eintragen
+   - `notarization/enable` aktivieren, Apple-ID, Team-ID und ein App-spezifisches Passwort (erstellbar unter appleid.apple.com) eintragen
+4. Exportieren – Godot signiert und reicht den Build automatisch zur Notarisierung ein
+5. Status prüfen: `xcrun notarytool history --apple-id DEINE_APPLE_ID`
+
+> Für den **Mac App Store** wird stattdessen ein „Apple Distribution"-Zertifikat plus Provisioning Profile benötigt. Für Steam reicht Developer ID + Notarisierung.
+
 ### Linux-Export
 
 1. **Project → Export → Add → Linux/X11**
@@ -150,6 +166,7 @@ Falls das Spiel auf einem älteren PC nicht startet (GPU unterstützt kein Vulka
 |--------|----------|----------------------|
 | Bewegen | WASD oder Pfeiltasten | Linker Stick / D-Pad |
 | Angriff | Automatisch | Automatisch |
+| Dash | Shift oder rechte Maustaste | B |
 | Ultimate | E | X |
 | Pause | ESC | B |
 
@@ -234,7 +251,8 @@ Weitere Charaktere werden durch das Abschließen von Story-Waves freigeschaltet.
 - **Sprache:** GDScript
 - **Grafik:** Vollständig prozedural gezeichnet (keine externen Sprites)
 - **Audio:** Prozedurale WAV-Generierung + MP3-Musik
+- **Lokalisierung:** Deutsch, Englisch, Französisch, Spanisch, Ukrainisch
 
 ---
 
-*Home Reared Meat – Loud Enough to Kill © 2025 Home Reared Meat*
+*Home Reared Meat – Loud Enough to Kill © 2026 Home Reared Meat*

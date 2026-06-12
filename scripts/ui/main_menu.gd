@@ -11,6 +11,12 @@ func _ready() -> void:
 	_build_ui()
 	_add_volume_widget()
 	AudioManager.start_music()
+	# First-run: send the player straight into the tutorial.
+	if not SaveManager.is_tutorial_seen():
+		call_deferred("_auto_open_tutorial")
+
+func _auto_open_tutorial() -> void:
+	GameManager.go_to_tutorial()
 
 func _add_volume_widget() -> void:
 	var canvas = CanvasLayer.new()
@@ -52,25 +58,27 @@ func _build_ui() -> void:
 	hs_label.set_anchors_preset(PRESET_TOP_LEFT)
 	hs_label.position = Vector2(20, 16)
 	hs_label.size     = Vector2(400, 28)
-	var hs = SaveManager.get_high_score()
-	hs_label.text = LocalizationManager.t("hs_prefix") + str(hs) if hs > 0 else ""
+	var hs: int = SaveManager.get_high_score()
+	hs_label.text = (LocalizationManager.t("hs_prefix") + str(hs)) if hs > 0 else ""
 	hs_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 	hs_label.add_theme_font_size_override("font_size", 20)
 	add_child(hs_label)
 
-	# 5 Buttons nebeneinander am unteren Rand
+	# Buttons nebeneinander am unteren Rand
 	var button_configs = [
 		{"text": LocalizationManager.t("play"),        "color": Color(0.1, 0.7, 0.2),    "cb": _on_play_pressed},
 		{"text": LocalizationManager.t("endless_mode"),"color": Color(0.75, 0.30, 0.05), "cb": _on_endless_pressed},
+		{"text": "HOW TO PLAY",                        "color": Color(0.55, 0.10, 0.55), "cb": _on_tutorial_pressed},
 		{"text": LocalizationManager.t("leaderboard"), "color": Color(0.2, 0.3, 0.75),   "cb": _on_leaderboard_pressed},
 		{"text": LocalizationManager.t("options"),     "color": Color(0.1, 0.35, 0.4),   "cb": _on_options_pressed},
+		{"text": "CREDITS",                            "color": Color(0.40, 0.40, 0.10), "cb": _on_credits_pressed},
 		{"text": LocalizationManager.t("quit"),        "color": Color(0.65, 0.1, 0.1),   "cb": _on_quit_pressed},
 	]
-	var btn_w   = 216.0
+	var btn_w   = 162.0
 	var btn_h   = 60.0
-	var gap     = 10.0
+	var gap     = 8.0
 	var total_w = button_configs.size() * btn_w + (button_configs.size() - 1) * gap
-	var start_x = 80.0
+	var start_x = max(20.0, (size.x - total_w) * 0.5)
 	var _first_btn: Button = null
 	for i in range(button_configs.size()):
 		var cfg = button_configs[i]
@@ -83,7 +91,8 @@ func _build_ui() -> void:
 		btn.position = Vector2(start_x + i * (btn_w + gap), -(btn_h + 17.0))
 		btn.size     = Vector2(btn_w, btn_h)
 		btn.add_theme_color_override("font_color", Color.WHITE)
-		btn.add_theme_font_size_override("font_size", 22)
+		btn.add_theme_font_size_override("font_size", 18)
+		btn.clip_text = true
 		btn.pressed.connect(cfg["cb"])
 		var sty = StyleBoxFlat.new()
 		sty.bg_color     = cfg["color"].darkened(0.35)
@@ -112,6 +121,12 @@ func _on_leaderboard_pressed() -> void:
 
 func _on_options_pressed() -> void:
 	GameManager.go_to_options()
+
+func _on_tutorial_pressed() -> void:
+	GameManager.go_to_tutorial()
+
+func _on_credits_pressed() -> void:
+	GameManager.go_to_credits()
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

@@ -1,4 +1,4 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 var _preferred_dist: float = 200.0
 var _strafe_timer: float = 0.0
@@ -71,7 +71,7 @@ func _shoot_at_player() -> void:
 func _draw() -> void:
 	if _dying: _draw_death(); return
 	var flash     = _hit_flash > 0
-	# ── South Park Stil (Cowboy) ──
+	# -- South Park Stil (Cowboy) --
 	var shirt_col = Color(0.68, 0.32, 0.12) if not flash else Color.WHITE
 	var jean_col  = Color(0.20, 0.30, 0.60)
 	var skin_col  = Color(0.98, 0.80, 0.60) if not flash else Color.WHITE
@@ -87,28 +87,28 @@ func _draw() -> void:
 	draw_rect(Rect2(-10, 14 + leg_l * 0.3 + bob, 8, 14), jean_col)
 	draw_rect(Rect2(2,   14 + leg_r * 0.3 + bob, 8, 14), jean_col)
 
-	# Cowboy-Stiefel (breit, flach – South Park)
+	# Cowboy-Stiefel (breit, flach - South Park)
 	draw_rect(Rect2(-13, 27 + leg_l * 0.35 + bob, 13, 6), Color(0.28, 0.18, 0.08))
 	draw_rect(Rect2(-1,  27 + leg_r * 0.35 + bob, 13, 6), Color(0.28, 0.18, 0.08))
 
 	# Shirt Torso
 	draw_rect(Rect2(-12, -8 + bob, 24, 22), shirt_col)
 
-	# Gürtelschnalle (gold)
+	# Guertelschnalle (gold)
 	draw_rect(Rect2(-5, 10 + bob, 10, 6), Color(0.82, 0.68, 0.10))
 
 	# Arme (Stubs)
 	draw_rect(Rect2(-20, -3 + arm_l + bob, 8, 13), shirt_col)
 	draw_rect(Rect2(12,  -3 + arm_r + bob, 8, 13), shirt_col)
 
-	# Mitten-Hände (SP: runde Klumpen, Haut-Farbe)
+	# Mitten-Haende (SP: runde Klumpen, Haut-Farbe)
 	draw_circle(Vector2(-19, 9 + arm_l + bob), 6, skin_col)
 	draw_circle(Vector2(19,  9 + arm_r + bob), 6, skin_col)
 
 	# Kopf
 	draw_circle(Vector2(0, -22 + bob * 0.4), 15, skin_col)
 
-	# Cowboyhut (ikonisch, groß – South Park)
+	# Cowboyhut (ikonisch, gross - South Park)
 	draw_rect(Rect2(-18, -36 + bob * 0.4, 36, 10), hat_col)       # Krempe (breit)
 	draw_rect(Rect2(-10, -50 + bob * 0.4, 20, 16), hat_col)        # Krone
 	draw_line(Vector2(-10, -36 + bob * 0.4), Vector2(10, -36 + bob * 0.4), Color(0.35, 0.20, 0.05), 2)  # Hutband
@@ -123,7 +123,7 @@ func _draw() -> void:
 	draw_arc(Vector2(-3, -14 + bob * 0.4), 4, 0.1, PI - 0.1, 6, Color(0.30, 0.15, 0.04), 2.5)
 	draw_arc(Vector2(3,  -14 + bob * 0.4), 4, 0.1, PI - 0.1, 6, Color(0.30, 0.15, 0.04), 2.5)
 
-	# Augen (nach innen geneigte Ovale – authentisch South Park)
+	# Augen (nach innen geneigte Ovale - authentisch South Park)
 	var tilt = 0.25; var ew = 5.5; var eh = 3.5
 	var lepts = PackedVector2Array(); var repts = PackedVector2Array()
 	for i in range(10):
@@ -164,7 +164,7 @@ func _draw_death() -> void:
 				var ba = float(k)*TAU/5.0
 				draw_circle(Vector2(cos(ba)*bpt*8, -5+sin(ba)*bpt*6), 2.5*bpt, blood)
 	else:
-		# Phase 2: Zusammenbruch – knirscht in den Dreck
+		# Phase 2: Zusammenbruch - knirscht in den Dreck
 		var pt = (t - 0.38) / 0.62
 		var sy = pt*pt * 35.0  # sackt nach unten
 		draw_rect(Rect2(-12, -8+sy, 24, 22), shirt)
@@ -176,10 +176,10 @@ func _draw_death() -> void:
 		# Hut liegt daneben (weit weg)
 		draw_rect(Rect2(-55, -8+sy+20, 36, 10), hat_col)
 		draw_rect(Rect2(-47, -8+sy+6,  20, 16), hat_col)
-		# BLUT Fontäne aus der Brustschusswunde
+		# BLUT Fontaene aus der Brustschusswunde
 		for k in range(8):
 			var ba  = -PI*0.7 + float(k)*PI*0.2
 			var bl  = pt*(14.0 + float(k)*4.0)
 			draw_line(Vector2(2, -2+sy*0.3), Vector2(2+cos(ba)*bl, -2+sy*0.3+sin(ba)*bl), blood, 3.0)
-		# Großer Blutfleck
+		# Grosser Blutfleck
 		draw_circle(Vector2(0, 28+sy), pt*26.0, Color(0.52,0.0,0.01,0.80))

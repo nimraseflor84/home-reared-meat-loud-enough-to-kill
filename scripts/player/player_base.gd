@@ -1,5 +1,4 @@
 extends CharacterBody2D
-class_name PlayerBase
 
 const _PROJ_SCENE = preload("res://scenes/entities/projectiles/projectile.tscn")
 const _SW_SCENE   = preload("res://scenes/entities/projectiles/shockwave.tscn")
@@ -17,7 +16,7 @@ var attack_timer: float = 0.0
 var ultimate_timer: float = 0.0
 var is_alive: bool = true
 
-# Co-op: Spieler-Index und Controller-Gerät
+# Co-op: Spieler-Index und Controller-Geraet
 var player_index: int = 0    # 0=P1, 1=P2
 var _joy_device: int = -1    # -1=InputMap (P1), >=0=direkter Joypad (P2)
 var _ult_was_pressed: bool = false
@@ -37,6 +36,22 @@ var lifesteal_per_kill: int = 0
 var kill_count_this_wave: int = 0
 var kills_total: int = 0
 
+# Encore upgrade - extra ultimate charge per wave
+var _encore_charges: int = 0       # total extras from upgrades (stacks)
+var _encore_used_this_wave: int = 0  # resets each wave
+
+# -- XP / Level system --------------------------------------------------------
+# Cumulative XP thresholds for levels 2..10. Reaching threshold = ding.
+const _XP_THRESHOLDS: Array = [50, 120, 220, 360, 550, 800, 1100, 1450, 1850, 2300]
+const MAX_LEVEL: int = 10
+var xp: int = 0
+var level: int = 1
+var _levelup_flash: float = 0.0       # visual flash timer
+var _levelup_text_timer: float = 0.0  # floating text duration
+var _levelup_text_offset: float = 0.0 # floating text rises over time
+
+signal leveled_up(new_level)
+
 # Death animation
 var _death_anim: float = -1.0
 var _death_ptcls: Array = []
@@ -44,6 +59,28 @@ var _death_ptcls: Array = []
 # Rhythm bonuses
 var rhythm_damage_bonus: float = 0.0  # set by rhythm system
 var crowd_damage_bonus: float = 0.0   # set by crowd meter
+
+# Netzwerk
+var _use_network_input: bool = false   # P2 auf Host: Input kommt per RPC
+var _net_input_dir: Vector2 = Vector2.ZERO
+var _net_input_buttons: int = 0        # bit0=dash, bit1=ult
+
+var _is_remote: bool = false           # Dieser Spieler laeuft auf dem anderen Geraet
+var _remote_target_pos: Vector2 = Vector2.ZERO
+
+func _apply_net_input(dir: Vector2, buttons: int) -> void:
+	_net_input_dir     = dir
+	_net_input_buttons = buttons
+
+# Dash
+const _DASH_SPEED_MULT    := 4.5
+const _DASH_DURATION      := 0.18
+const _DASH_COOLDOWN      := 1.5
+var _dash_timer:     float = 0.0   # > 0 = gerade am Dashen
+var _dash_cooldown_timer: float = 0.0
+var _dash_dir: Vector2 = Vector2.RIGHT
+var _dash_was_pressed: bool = false
+var _dash_flash: float = 0.0
 
 # Visual
 var _anim_time: float = 0.0
@@ -55,6 +92,7 @@ signal died()
 signal hp_changed(current, maximum)
 signal attacked()
 signal ultimate_used()
+signal took_damage(amount)  # fuer Screen Shake und HUD-Feedback
 
 func _ready() -> void:
 	current_hp = max_hp
@@ -74,15 +112,54 @@ func _process(delta: float) -> void:
 	_anim_time += delta
 	if _hit_flash > 0:
 		_hit_flash -= delta
+	# Level-up flash overrides dash flash for a brief moment
+	if _levelup_flash > 0.0:
+		_levelup_flash -= delta
+		var f: float = clamp(_levelup_flash / 0.45, 0.0, 1.0)
+		modulate = Color(1.0, 0.9, 0.3, 1.0).lerp(Color.WHITE, 1.0 - f)
+	elif _dash_flash > 0:
+		_dash_flash -= delta
+		modulate = Color(0.55, 0.85, 1.0, 0.75)
+	else:
+		modulate = Color.WHITE
+	if _levelup_text_timer > 0.0:
+		_levelup_text_timer -= delta
+		_levelup_text_offset += delta * 32.0  # rises ~45 px over its lifetime
 	queue_redraw()
+
+func _draw_levelup_text() -> void:
+	# Subclasses call this from their own _draw to render the floating text.
+	if _levelup_text_timer <= 0.0:
+		return
+	var t: float = clamp(_levelup_text_timer / 1.4, 0.0, 1.0)
+	var alpha: float = t
+	var y: float = -54.0 - _levelup_text_offset
+	var col := Color(1.0, 0.85, 0.15, alpha)
+	var shadow := Color(0.10, 0.05, 0.0, alpha)
+	var font := GameManager.game_font if GameManager.game_font != null else ThemeDB.fallback_font
+	if font == null:
+		return
+	var msg: String = "+1 LEVEL UP"
+	var sz: int = 18
+	var width: float = font.get_string_size(msg, HORIZONTAL_ALIGNMENT_CENTER, -1, sz).x
+	var pos: Vector2 = Vector2(-width * 0.5, y)
+	draw_string(font, pos + Vector2(2, 2), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, shadow)
+	draw_string(font, pos, msg, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, col)
 
 func _physics_process(delta: float) -> void:
 	if not is_alive:
 		return
 
+	# Remote-Spieler: nur zur empfangenen Position interpolieren
+	if _is_remote:
+		global_position = global_position.lerp(_remote_target_pos, 0.25)
+		return
+
 	# Movement
 	var direction = Vector2.ZERO
-	if _joy_device >= 0:
+	if _use_network_input:
+		direction = _net_input_dir
+	elif _joy_device >= 0:
 		# P2: Joypad direkt auslesen (device-spezifisch)
 		var jx = Input.get_joy_axis(_joy_device, JOY_AXIS_LEFT_X)
 		var jy = Input.get_joy_axis(_joy_device, JOY_AXIS_LEFT_Y)
@@ -102,9 +179,38 @@ func _physics_process(delta: float) -> void:
 
 	if direction.length() > 0:
 		direction = direction.normalized()
+		_dash_dir = direction
 
-	var effective_speed = move_speed * (1.0 + speed_bonus)
-	if _knockback_timer > 0:
+	# Dash cooldown
+	if _dash_cooldown_timer > 0:
+		_dash_cooldown_timer -= delta
+
+	# Dash-Input (steigende Flanke)
+	var _dash_now: bool
+	if _use_network_input:
+		_dash_now = (_net_input_buttons & 1) != 0
+	elif _joy_device >= 0:
+		_dash_now = Input.is_joy_button_pressed(_joy_device, JOY_BUTTON_B)
+	else:
+		_dash_now = Input.is_action_pressed("dash")
+	if _dash_now and not _dash_was_pressed and _dash_cooldown_timer <= 0 and _dash_timer <= 0:
+		_dash_timer = _DASH_DURATION
+		_dash_cooldown_timer = _DASH_COOLDOWN
+		_dash_flash = _DASH_DURATION + 0.05
+		_on_dash_start()
+	_dash_was_pressed = _dash_now
+
+	var rage_speed: float = 0.0
+	if has_upgrade("roadie_rage"):
+		var pct = float(current_hp) / float(max_hp + max_hp_bonus)
+		if pct <= 0.25:
+			rage_speed = 0.20  # +20% Speed unter 25% HP (aus Upgrade-DB)
+	var effective_speed = move_speed * (1.0 + speed_bonus + rage_speed)
+	if _dash_timer > 0:
+		_dash_timer -= delta
+		velocity = _dash_dir * effective_speed * _DASH_SPEED_MULT
+		_on_dash_tick(delta)
+	elif _knockback_timer > 0:
 		_knockback_timer -= delta
 		velocity = _knockback_vel * (_knockback_timer / 0.3) + direction * effective_speed * 0.3
 	else:
@@ -128,22 +234,27 @@ func _physics_process(delta: float) -> void:
 		ultimate_timer -= delta
 
 	var _ult_now: bool
-	if _joy_device >= 0:
+	if _use_network_input:
+		_ult_now = (_net_input_buttons & 2) != 0
+	elif _joy_device >= 0:
 		_ult_now = Input.is_joy_button_pressed(_joy_device, JOY_BUTTON_X)
 	else:
 		_ult_now = Input.is_action_pressed("ultimate")
-	if _ult_now and not _ult_was_pressed and ultimate_timer <= 0:
+	var _encore_available := has_upgrade("encore") and _encore_used_this_wave < _encore_charges
+	if _ult_now and not _ult_was_pressed and (ultimate_timer <= 0 or _encore_available):
+		if ultimate_timer > 0 and _encore_available:
+			_encore_used_this_wave += 1  # Encore-Charge verbrauchen
 		_use_ultimate()
 		ultimate_timer = ultimate_cooldown - ultimate_cooldown_reduction
 	_ult_was_pressed = _ult_now
 
 func get_total_damage() -> float:
 	var base = base_damage * (1.0 + damage_bonus)
-	# Rage bonus
+	# Rage bonus - Damage und Speed (beide laut Upgrade-DB)
 	if has_upgrade("roadie_rage"):
 		var pct = float(current_hp) / float(max_hp + max_hp_bonus)
 		if pct <= 0.25:
-			base *= 1.30
+			base *= 1.30  # +30% Schaden unter 25% HP
 	# Kill streak
 	if has_upgrade("kill_streak"):
 		var streaks = int(kill_count_this_wave / 5)
@@ -158,10 +269,11 @@ func take_damage(amount: float) -> void:
 	var reduced = amount * (1.0 - damage_reduction)
 	current_hp -= int(reduced)
 	_hit_flash = 0.15
+	emit_signal("took_damage", reduced)
 
 	# Feedback loop upgrade
 	if has_upgrade("feedback_loop"):
-		var crowd = get_node_or_null("/root/Game/CrowdMeter/CrowdMeterSystem")
+		var crowd = get_tree().get_first_node_in_group("crowd_meter")
 		if crowd:
 			crowd.add_fill(0.03)
 
@@ -205,17 +317,67 @@ func _use_ultimate() -> void:
 	# Override in subclass
 	emit_signal("ultimate_used")
 
+# -- Dash hooks fuer Charakter-spezifische Effekte ------------------------------
+func _on_dash_start() -> void:
+	# Wird beim Start eines Dashs aufgerufen (steigende Flanke). Override fuer
+	# Spezialeffekte wie Teleport-Flash, Linien-Hits, Afterimage-Reset etc.
+	pass
+
+func _on_dash_tick(_delta: float) -> void:
+	# Wird waehrend des Dashs jeden Physics-Frame aufgerufen. Override fuer
+	# fortlaufende Effekte wie Trail-Spawn, Line-Hit-Collision oder Afterimages.
+	pass
+
+# Hilfs-Funktion: Screen-Shake triggern (wenn die current_scene das unterstuetzt)
+func _request_screen_shake(intensity: float, duration: float) -> void:
+	var scene = get_tree().current_scene
+	if scene and scene.has_method("trigger_screen_shake"):
+		scene.trigger_screen_shake(intensity, duration)
+
 func on_kill(enemy) -> void:
 	kill_count_this_wave += 1
 	kills_total += 1
 	GameManager.add_kill()
 	if lifesteal_per_kill > 0:
 		heal(lifesteal_per_kill)
+	# Award XP (defaults to 10 if missing)
+	var xp_gain: int = 10
+	if enemy != null and is_instance_valid(enemy):
+		var v = enemy.get("xp_value")
+		if v != null:
+			xp_gain = int(v)
+	add_xp(xp_gain)
 	_on_kill_passive(enemy)
+
+func add_xp(amount: int) -> void:
+	if amount <= 0 or level >= MAX_LEVEL:
+		return
+	xp += amount
+	# Loop in case the player crosses multiple level thresholds at once
+	while level < MAX_LEVEL and xp >= int(_XP_THRESHOLDS[level - 1]):
+		_level_up()
+
+func _level_up() -> void:
+	level += 1
+	# +8% max HP, +5% damage at each level
+	var hp_gain: int = int(round(float(max_hp) * 0.08))
+	max_hp_bonus += hp_gain
+	heal(hp_gain)
+	damage_bonus += 0.05
+	# Visual feedback
+	_levelup_flash = 0.45
+	_levelup_text_timer = 1.4
+	_levelup_text_offset = 0.0
+	AudioManager.play_wave_complete_sfx()  # uses an existing SFX as a stand-in
+	emit_signal("leveled_up", level)
 
 func _on_kill_passive(enemy) -> void:
 	# Override for character-specific kill passives
 	pass
+
+func reset_for_new_wave() -> void:
+	kill_count_this_wave = 0
+	_encore_used_this_wave = 0
 
 func apply_upgrade(upgrade: Dictionary) -> void:
 	var effect = upgrade.get("effect", {})
@@ -233,6 +395,7 @@ func apply_upgrade(upgrade: Dictionary) -> void:
 	if effect.has("double_strike_chance"): double_strike_chance += effect["double_strike_chance"]
 	if effect.has("ultimate_cooldown_reduction"): ultimate_cooldown_reduction += effect["ultimate_cooldown_reduction"]
 	if effect.has("lifesteal_per_kill"): lifesteal_per_kill += effect["lifesteal_per_kill"]
+	if effect.has("ultimate_extra_charge"): _encore_charges += effect["ultimate_extra_charge"]
 
 var _applied_upgrades: Array = []
 
@@ -278,11 +441,15 @@ func get_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_dist = INF
 	for e in enemies:
-		if is_instance_valid(e) and e.has_method("take_damage"):
-			var d = global_position.distance_to(e.global_position)
-			if d < nearest_dist:
-				nearest_dist = d
-				nearest = e
+		var enemy := e as Node2D
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		if enemy.get("is_alive") == false:
+			continue
+		var d = global_position.distance_to(enemy.global_position)
+		if d < nearest_dist:
+			nearest_dist = d
+			nearest = enemy
 	return nearest
 
 func get_direction_to_nearest_enemy() -> Vector2:

@@ -1,19 +1,4 @@
 extends CharacterBody2D
-class_name EnemyBase
-
-# Zeichnet feindliche Projektile unabhängig vom Subklassen-_draw()
-class _BulletRenderer extends Node2D:
-	var owner_enemy: Node = null
-	func _process(_delta: float) -> void:
-		if is_instance_valid(owner_enemy):
-			queue_redraw()
-	func _draw() -> void:
-		if not is_instance_valid(owner_enemy):
-			return
-		for b in owner_enemy._bullets:
-			var lp = to_local(b["pos"])
-			draw_circle(lp, 6.0, Color(1.0, 0.15, 0.0, 0.92))
-			draw_circle(lp, 3.0, Color(1.0, 0.85, 0.3, 0.95))
 
 @export var max_hp: float = 30.0
 @export var damage: float = 10.0
@@ -37,7 +22,7 @@ var _dying: bool = false
 var _death_anim_time: float = 0.0
 var _death_anim_duration: float = 0.35
 
-# ── Fernkampf (Hard / Very Hard) ─────────────────────────────────────────────
+# -- Fernkampf (Hard / Very Hard) ---------------------------------------------
 var _can_shoot: bool = false
 var _shoot_timer: float = 0.0
 var _shoot_interval: float = 2.5
@@ -65,11 +50,6 @@ func _scale_to_wave() -> void:
 	if shoot_chance > 0.0 and randf() < shoot_chance:
 		_can_shoot = true
 		_shoot_timer = randf_range(0.5, _shoot_interval)  # versetzter Start
-		# Bullet-Renderer als Child hinzufügen (zeichnet unabhängig von Subklassen-_draw)
-		var br = _BulletRenderer.new()
-		br.name = "_BulletRenderer"
-		br.owner_enemy = self
-		add_child(br)
 
 func _process(delta: float) -> void:
 	if _dying:
@@ -89,7 +69,7 @@ func _process(delta: float) -> void:
 		if _slow_timer <= 0:
 			_slow_factor = 1.0
 
-	# ── Bullets bewegen & Treffer prüfen ──
+	# -- Bullets bewegen & Treffer pruefen --
 	if _bullets.size() > 0:
 		for i in range(_bullets.size() - 1, -1, -1):
 			var b = _bullets[i]
@@ -113,19 +93,27 @@ func _physics_process(delta: float) -> void:
 	if not is_alive:
 		return
 
-	# Find player target
-	if not is_instance_valid(target):
-		var players = get_tree().get_nodes_in_group("players")
-		if players.size() > 0:
-			target = players[0]
+	# Find player target - naechsten lebendigen Spieler waehlen (Co-op fix)
+	var target_dead: bool = is_instance_valid(target) and target.get("is_alive") == false
+	if not is_instance_valid(target) or target_dead:
+		var players := get_tree().get_nodes_in_group("players")
+		var nearest: Node2D = null
+		var nearest_dist := INF
+		for p in players:
+			if is_instance_valid(p) and p.get("is_alive") != false:
+				var d := global_position.distance_squared_to(p.global_position)
+				if d < nearest_dist:
+					nearest_dist = d
+					nearest = p
+		target = nearest
 
-	# ── Fernkampf-Schuss ──
+	# -- Fernkampf-Schuss --
 	if _can_shoot and is_instance_valid(target):
 		_shoot_timer += delta
 		if _shoot_timer >= _shoot_interval:
 			_shoot_timer = 0.0
 			var dist = global_position.distance_to(target.global_position)
-			if dist > 60.0:   # nur schießen wenn nicht direkt daneben
+			if dist > 60.0:   # nur schiessen wenn nicht direkt daneben
 				var dir = (target.global_position - global_position).normalized()
 				_bullets.append({
 					"pos": global_position,
@@ -162,8 +150,13 @@ func _check_contact_damage(delta: float) -> void:
 func take_damage(amount: float, attacker = null) -> void:
 	if not is_alive:
 		return
+	# Effektiv getroffenen Schaden tracken (nur das was wirklich an HP abgezogen wird)
+	var applied: float = min(float(current_hp), float(amount))
 	current_hp -= amount
 	_hit_flash = 0.12
+	# Stats: nur Schaden durch einen Angreifer (z.B. Spieler) zaehlen
+	if attacker != null and applied > 0.0:
+		GameManager.add_damage_dealt(applied)
 
 	if current_hp <= 0:
 		_die(attacker)

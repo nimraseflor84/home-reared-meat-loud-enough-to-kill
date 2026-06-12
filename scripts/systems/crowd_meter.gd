@@ -1,5 +1,4 @@
 extends Node2D
-class_name CrowdMeterSystem
 
 var fill: float = 0.0  # 0.0 to 1.0
 var level: int = 0  # 0-4
@@ -15,7 +14,7 @@ const LEVEL_THRESHOLDS = [0.25, 0.50, 0.75, 1.0]
 const DAMAGE_BONUSES = [0.0, 0.10, 0.25, 0.50, 1.00]
 
 func _ready() -> void:
-	pass
+	add_to_group("crowd_meter")  # Ermöglicht Zugriff ohne hardcodierten Node-Pfad
 
 func add_fill(amount: float) -> void:
 	var effective = amount * (1.0 + _fill_bonus)

@@ -1,6 +1,6 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# Farmtier – spawnt wenn Großbauer pfeift
+# Farmtier - spawnt wenn Grossbauer pfeift
 # Typ wird vor add_child() gesetzt: animal.animal_type = "kuh"
 
 var animal_type: String = "huhn"
@@ -53,7 +53,7 @@ func _draw() -> void:
 		"esel":      _draw_esel(bob, la, lb, flash)
 		"kaninchen": _draw_kaninchen(bob, flash)
 
-# ── Kuh ──────────────────────────────────────────────────────────────────────
+# -- Kuh ----------------------------------------------------------------------
 func _draw_kuh(b: float, la: float, lb: float, f: bool) -> void:
 	var wh  = Color.WHITE if not f else Color(1,1,1,1)
 	var blk = Color(0.05, 0.05, 0.05)
@@ -75,7 +75,7 @@ func _draw_kuh(b: float, la: float, lb: float, f: bool) -> void:
 	draw_circle(Vector2(30, -5+b), 2, blk)
 	draw_circle(Vector2(20, -10+b), 2.5, blk)
 
-# ── Huhn ─────────────────────────────────────────────────────────────────────
+# -- Huhn ---------------------------------------------------------------------
 func _draw_huhn(b: float, f: bool) -> void:
 	var wh  = Color(0.95, 0.92, 0.88) if not f else Color.WHITE
 	var red = Color(0.85, 0.15, 0.1)
@@ -91,7 +91,7 @@ func _draw_huhn(b: float, f: bool) -> void:
 	draw_line(Vector2(-3, 15+b), Vector2(-5, 22+b), yel, 3)
 	draw_line(Vector2(3, 15+b), Vector2(5, 22+b), yel, 3)
 
-# ── Schwein ───────────────────────────────────────────────────────────────────
+# -- Schwein -------------------------------------------------------------------
 func _draw_schwein(b: float, la: float, lb: float, f: bool) -> void:
 	var pk  = Color(0.98, 0.75, 0.78) if not f else Color.WHITE
 	var dpk = Color(0.88, 0.55, 0.60)
@@ -109,7 +109,7 @@ func _draw_schwein(b: float, la: float, lb: float, f: bool) -> void:
 	draw_arc(Vector2(-20, 2+b), 6, -PI*0.5, PI*0.5, 8, dpk, 3)
 	draw_circle(Vector2(17, -8+b), 2, Color(0.1,0.05,0.05))
 
-# ── Katze ─────────────────────────────────────────────────────────────────────
+# -- Katze ---------------------------------------------------------------------
 func _draw_katze(b: float, f: bool) -> void:
 	var gy  = Color(0.65, 0.65, 0.68) if not f else Color.WHITE
 	var dgy = Color(0.40, 0.40, 0.44)
@@ -130,7 +130,7 @@ func _draw_katze(b: float, f: bool) -> void:
 	for sy in [-4.0, 2.0, 8.0]:
 		draw_line(Vector2(-14, sy+b), Vector2(14, sy+b), dgy, 2)
 
-# ── Hund ──────────────────────────────────────────────────────────────────────
+# -- Hund ----------------------------------------------------------------------
 func _draw_hund(b: float, la: float, lb: float, f: bool) -> void:
 	var brn = Color(0.72, 0.48, 0.22) if not f else Color.WHITE
 	var dbn = Color(0.48, 0.30, 0.10)
@@ -149,7 +149,7 @@ func _draw_hund(b: float, la: float, lb: float, f: bool) -> void:
 	var wag = sin(_anim_time * 12.0) * 0.4
 	draw_arc(Vector2(-18, -2+b), 8, -PI*0.8+wag, -PI*0.2+wag, 8, brn, 5)
 
-# ── Ente ──────────────────────────────────────────────────────────────────────
+# -- Ente ----------------------------------------------------------------------
 func _draw_ente(b: float, f: bool) -> void:
 	var wh  = Color(0.95, 0.92, 0.88) if not f else Color.WHITE
 	var org = Color(0.95, 0.55, 0.1)
@@ -161,7 +161,7 @@ func _draw_ente(b: float, f: bool) -> void:
 	draw_rect(Rect2(-6, 17+b, 8, 4), org)
 	draw_rect(Rect2(2, 17+b, 8, 4), org)
 
-# ── Küken ─────────────────────────────────────────────────────────────────────
+# -- Kueken ---------------------------------------------------------------------
 func _draw_kueken(b: float, f: bool) -> void:
 	var yel = Color(0.98, 0.9, 0.2) if not f else Color.WHITE
 	var org = Color(0.95, 0.55, 0.1)
@@ -176,7 +176,7 @@ func _draw_kueken(b: float, f: bool) -> void:
 	draw_line(Vector2(-3, 11+b), Vector2(-5, 17+b), org, 2)
 	draw_line(Vector2(3, 11+b), Vector2(5, 17+b), org, 2)
 
-# ── Schaf ─────────────────────────────────────────────────────────────────────
+# -- Schaf ---------------------------------------------------------------------
 func _draw_schaf(b: float, la: float, lb: float, f: bool) -> void:
 	var wh  = Color(0.94, 0.92, 0.88) if not f else Color.WHITE
 	var blk = Color(0.1, 0.08, 0.08)
@@ -190,7 +190,7 @@ func _draw_schaf(b: float, la: float, lb: float, f: bool) -> void:
 	draw_circle(Vector2(18, -8+b), 9, blk)
 	draw_circle(Vector2(21, -10+b), 2, Color(0.85,0.85,0.85))
 
-# ── Ziege ─────────────────────────────────────────────────────────────────────
+# -- Ziege ---------------------------------------------------------------------
 func _draw_ziege(b: float, la: float, lb: float, f: bool) -> void:
 	var lg  = Color(0.80, 0.78, 0.75) if not f else Color.WHITE
 	var dg  = Color(0.52, 0.50, 0.48)
@@ -209,7 +209,7 @@ func _draw_ziege(b: float, la: float, lb: float, f: bool) -> void:
 	draw_circle(Vector2(23, -6+b), 2, dg)
 	draw_circle(Vector2(28, -6+b), 2, dg)
 
-# ── Pferd ─────────────────────────────────────────────────────────────────────
+# -- Pferd ---------------------------------------------------------------------
 func _draw_pferd(b: float, la: float, lb: float, f: bool) -> void:
 	var brn = Color(0.65, 0.38, 0.15) if not f else Color.WHITE
 	var dbn = Color(0.38, 0.20, 0.06)
@@ -230,7 +230,7 @@ func _draw_pferd(b: float, la: float, lb: float, f: bool) -> void:
 		var angle = -PI*0.3 + float(i)*0.15
 		draw_line(Vector2(-22, 0+b), Vector2(-22+cos(angle)*16, sin(angle)*16+b), dbn, 3)
 
-# ── Esel ──────────────────────────────────────────────────────────────────────
+# -- Esel ----------------------------------------------------------------------
 func _draw_esel(b: float, la: float, lb: float, f: bool) -> void:
 	var gy  = Color(0.62, 0.60, 0.60) if not f else Color.WHITE
 	var dgy = Color(0.35, 0.33, 0.32)
@@ -241,7 +241,7 @@ func _draw_esel(b: float, la: float, lb: float, f: bool) -> void:
 	draw_rect(Rect2(-18, -8+b, 36, 20), gy)
 	draw_rect(Rect2(14, -20+b, 10, 14), gy)
 	draw_circle(Vector2(20, -26+b), 13, gy)
-	# Lange Ohren – sehr markant
+	# Lange Ohren - sehr markant
 	draw_rect(Rect2(9, -52+b, 6, 30), gy)
 	draw_rect(Rect2(24, -52+b, 6, 30), gy)
 	draw_rect(Rect2(10.5, -50+b, 3, 26), Color(0.88,0.70,0.70))
@@ -254,7 +254,7 @@ func _draw_esel(b: float, la: float, lb: float, f: bool) -> void:
 	draw_line(Vector2(-18, -4+b), Vector2(-26, 4+b), dgy, 3)
 	draw_line(Vector2(-26, 4+b), Vector2(-24, 10+b), dgy, 4)
 
-# ── Kaninchen ─────────────────────────────────────────────────────────────────
+# -- Kaninchen -----------------------------------------------------------------
 func _draw_kaninchen(b: float, f: bool) -> void:
 	var wh = Color(0.96, 0.94, 0.92) if not f else Color.WHITE
 	var pk = Color(0.92, 0.65, 0.68)

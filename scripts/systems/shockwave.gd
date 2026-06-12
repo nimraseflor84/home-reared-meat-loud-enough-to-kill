@@ -1,5 +1,4 @@
 extends Node2D
-class_name Shockwave
 
 @export var radius: float = 100.0
 @export var damage: float = 50.0

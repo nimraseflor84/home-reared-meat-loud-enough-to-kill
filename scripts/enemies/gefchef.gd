@@ -1,23 +1,23 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# Knastdirektor Dr. Horst Käfig
-# Angriff:  Schlagstöcke werfen (rotierende Projektile)
-# Spezial:  Gefängnisausbruch – 3 Gefangene stürmen aus dem Off
+# Knastdirektor Dr. Horst Kaefig
+# Angriff:  Schlagstoecke werfen (rotierende Projektile)
+# Spezial:  Gefaengnisausbruch - 3 Gefangene stuermen aus dem Off
 
 const _GEFANGENER_SCENE = preload("res://scenes/entities/enemies/enemy_gefangener.tscn")
 
-const BATON_CD      = 2.2    # Sekunden zwischen Würfen
+const BATON_CD      = 2.2    # Sekunden zwischen Wuerfen
 const BATON_SPEED   = 235.0
 const BATON_RANGE   = 520.0  # maximale Reichweite
-const AUSBRUCH_CD   = 14.0   # Spezialfähigkeit-Cooldown
+const AUSBRUCH_CD   = 14.0   # Spezialfaehigkeit-Cooldown
 const PHASE2_HP     = 0.5
 
 var _baton_timer: float    = 1.0
 var _ausbruch_timer: float = 7.0   # erstes Ausbruch nach 7 s
 var _phase2: bool          = false
-var _alarm_anim: float     = -1.0  # 0 .. 1.0 – roter Alarm-Blitz
+var _alarm_anim: float     = -1.0  # 0 .. 1.0 - roter Alarm-Blitz
 
-# Schlagstöcke als interne Projektile:
+# Schlagstoecke als interne Projektile:
 # {pos: Vector2, vel: Vector2, angle: float, angle_vel: float, dmg: float}
 var _batons: Array = []
 
@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -43,7 +43,7 @@ func _process(delta: float) -> void:
 		if _alarm_anim >= 1.0:
 			_alarm_anim = -1.0
 
-	# Batons bewegen & Treffer prüfen
+	# Batons bewegen & Treffer pruefen
 	for i in range(_batons.size() - 1, -1, -1):
 		var bt = _batons[i]
 		bt["pos"]   += bt["vel"] * delta
@@ -85,12 +85,12 @@ func _physics_process(delta: float) -> void:
 
 	super._physics_process(delta)
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _throw_baton() -> void:
 	if not is_instance_valid(target):
 		return
 	var dir = (target.global_position - global_position).normalized()
-	# Phase 2: zwei Batons in leichtem Fächer
+	# Phase 2: zwei Batons in leichtem Faecher
 	var angles = [0.0] if not _phase2 else [-0.18, 0.18]
 	for a in angles:
 		_batons.append({
@@ -122,7 +122,7 @@ func _ausbruch_spawn_pos() -> Vector2:
 func _on_dying_process(_delta: float) -> void:
 	_batons.clear()
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -162,13 +162,13 @@ func _draw_body(bob: float, flash: bool) -> void:
 
 	# Torso (dicke Uniform-Jacke)
 	draw_rect(Rect2(-18, -14+bob, 36, 30), navy)
-	# Weißes Hemd am Kragen sichtbar
+	# Weisses Hemd am Kragen sichtbar
 	draw_rect(Rect2(-6, -14+bob, 12, 8), white)
 	# Schwarze Krawatte
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-3, -10+bob), Vector2(3, -10+bob), Vector2(2, 8+bob), Vector2(-2, 8+bob)
 	]), black)
-	# Uniformknöpfe
+	# Uniformknoepfe
 	for ky in [-4.0, 2.0, 8.0]:
 		draw_circle(Vector2(0, ky+bob), 2.5, gold)
 
@@ -191,26 +191,26 @@ func _draw_body(bob: float, flash: bool) -> void:
 	# Arme
 	draw_rect(Rect2(-26, -8+bob, 8, 18), navy)
 	draw_rect(Rect2(18,  -8+bob, 8, 18), navy)
-	# Hände
+	# Haende
 	draw_circle(Vector2(-24, 10+bob), 7, skin)
 	draw_circle(Vector2(24,  10+bob), 7, skin)
 
-	# Schlagstock an der Hüfte (wenn kein Baton aktiv)
+	# Schlagstock an der Huefte (wenn kein Baton aktiv)
 	if _batons.is_empty():
 		draw_line(Vector2(26, -6+bob), Vector2(30, 14+bob), baton, 5)
 		draw_circle(Vector2(26, -6+bob), 5, baton.darkened(0.2))
 
-	# Kopf (rund, etwas aufgedunsen – Büro-Typ)
+	# Kopf (rund, etwas aufgedunsen - Buero-Typ)
 	draw_circle(Vector2(0, -28+bob), 20, skin)
 	# Doppelkinn
 	draw_arc(Vector2(0, -16+bob), 14, 0.2, PI-0.2, 8, skin.darkened(0.12), 8)
 
-	# Mütze (Dienstmütze navy mit gold)
-	draw_rect(Rect2(-22, -44+bob, 44, 8), navy)   # Schirmmütze Krempe
+	# Muetze (Dienstmuetze navy mit gold)
+	draw_rect(Rect2(-22, -44+bob, 44, 8), navy)   # Schirmmuetze Krempe
 	draw_rect(Rect2(-18, -58+bob, 36, 16), navy)  # Kappe oben
 	draw_rect(Rect2(-20, -44+bob, 40, 4), dnavy)  # Schattenkante
 	draw_line(Vector2(-18, -44+bob), Vector2(18, -44+bob), gold, 3)  # goldener Streifen
-	# Abzeichen auf Mütze (Adler/Stern)
+	# Abzeichen auf Muetze (Adler/Stern)
 	draw_circle(Vector2(0, -50+bob), 6, gold)
 	for si in range(5):
 		var ang = float(si) * TAU / 5.0 - PI*0.5
@@ -228,7 +228,7 @@ func _draw_body(bob: float, flash: bool) -> void:
 	# Mund (schmaler, abweisender Strich)
 	draw_line(Vector2(-7, -21+bob), Vector2(7, -21+bob), Color(0.22,0.12,0.06), 3)
 
-	# Phase 2: Gesicht rötet sich
+	# Phase 2: Gesicht roetet sich
 	if _phase2:
 		draw_circle(Vector2(0, -28+bob), 20, Color(0.75, 0.20, 0.15, 0.30))
 
@@ -261,7 +261,7 @@ func _draw_batons() -> void:
 func _draw_alarm(bob: float) -> void:
 	var at  = _alarm_anim
 	var alf = sin(at * TAU * 3.0) * 0.5 + 0.5  # blinken
-	# Roter Alarm-Schein um den Körper
+	# Roter Alarm-Schein um den Koerper
 	draw_circle(Vector2(0, -10+bob), 38, Color(0.85, 0.08, 0.05, alf * 0.45))
 	# "AUSBRUCH!" Text-Ersatz: orangefarbene Streifen
 	for i in range(3):
@@ -269,7 +269,7 @@ func _draw_alarm(bob: float) -> void:
 		var al = max(0.0, 1.0 - at * 1.2) * alf
 		draw_line(Vector2(-28, yy), Vector2(28, yy), Color(1.0, 0.55, 0.0, al), 3)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t     = _death_anim_time
 	var navy  = Color(0.08, 0.12, 0.32)
@@ -288,18 +288,18 @@ func _draw_death() -> void:
 	# Beine auseinander
 	draw_rect(Rect2(-16 + fall*0.2, 14+fall*0.45, 13, 16), navy)
 	draw_rect(Rect2(3   + fall*0.2, 14+fall*0.45, 13, 16), navy)
-	# Torso kippt zurück
+	# Torso kippt zurueck
 	draw_rect(Rect2(-18 + fall*0.25*lean, -14+fall*lean, 36, 30), navy)
 	# Abzeichen fliegt ab
 	var gx = -10.0 - t*25.0;  var gy = -4.0 - t*40.0
 	draw_circle(Vector2(gx, gy), 8, gold)
-	# Mütze fliegt ab
+	# Muetze fliegt ab
 	var hx = t*28.0;  var hy = -44.0 - t*52.0
 	draw_rect(Rect2(-22+hx, hy, 44, 8), navy)
 	draw_rect(Rect2(-18+hx, hy-16, 36, 16), navy)
 	# Kopf rollt weg
 	draw_circle(Vector2(fall*0.55, -28+fall*0.85), 20, skin)
-	# Schlagstöcke fliegen auseinander
+	# Schlagstoecke fliegen auseinander
 	for i in range(2):
 		var bx = (-1.0 if i == 0 else 1.0) * (20.0 + t*50.0)
 		var by = -10.0 - t*30.0

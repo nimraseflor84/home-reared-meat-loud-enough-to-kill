@@ -1,9 +1,9 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# Spießiges Rentnerpaar: Willi & Gerlinde Schrei-Stopp
+# Spiessiges Rentnerpaar: Willi & Gerlinde Schrei-Stopp
 # Willi  (links):    Gehstock-Hieb
 # Gerlinde (rechts): Rollator-Ramme
-# Spezial:           Signalpistole – 3 zufällige Leuchtmunition mit Effekten
+# Spezial:           Signalpistole - 3 zufaellige Leuchtmunition mit Effekten
 
 const STOCK_CD    = 1.8
 const STOCK_RNG   = 70.0
@@ -31,16 +31,16 @@ var _stock_timer: float   = 1.0
 var _roller_timer: float  = 1.6
 var _signal_timer: float  = 9.0
 
-var _stock_anim: float    = 0.0   # 1→0: Gehstock-Schwinganimation
-var _roller_anim: float   = 0.0   # 1→0: Rollator-Stoßanimation
-var _pistol_out: float    = 0.0   # 1→0: Signalpistole sichtbar
+var _stock_anim: float    = 0.0   # 1->0: Gehstock-Schwinganimation
+var _roller_anim: float   = 0.0   # 1->0: Rollator-Stossanimation
+var _pistol_out: float    = 0.0   # 1->0: Signalpistole sichtbar
 
 # Projektile: {pos, vel, type, dmg}
 var _signal_shots: Array  = []
 
 # Aktive Status-Effekte: {type, timer, itimer, orig_speed?}
 var _effects: Array       = []
-var _speed_boost: float   = 0.0   # Timer für rosa-Boost
+var _speed_boost: float   = 0.0   # Timer fuer rosa-Boost
 
 func _ready() -> void:
 	enemy_id             = "buergermeister"
@@ -53,7 +53,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -93,7 +93,7 @@ func _process(delta: float) -> void:
 		var eff = _effects[i]
 		eff["timer"] -= delta
 		if eff["timer"] <= 0.0:
-			# Effekt beenden – ggf. Originalwert wiederherstellen
+			# Effekt beenden - ggf. Originalwert wiederherstellen
 			if eff["type"] == "blau" and is_instance_valid(target) and "move_speed" in target:
 				target.move_speed = eff.get("orig_speed", 100.0)
 			_effects.remove_at(i)
@@ -111,7 +111,7 @@ func _process(delta: float) -> void:
 					eff["itimer"] = 0.0
 					if is_instance_valid(target):
 						target.take_damage(damage * 0.22)
-			"schwarz": # Bewegungsunfähig – Velocity jeden Frame auf null
+			"schwarz": # Bewegungsunfaehig - Velocity jeden Frame auf null
 				if is_instance_valid(target):
 					target.velocity = Vector2.ZERO
 
@@ -140,7 +140,7 @@ func _physics_process(delta: float) -> void:
 
 	super._physics_process(delta)
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _do_stock_hit() -> void:
 	if not is_instance_valid(target): return
 	if global_position.distance_to(target.global_position) > STOCK_RNG: return
@@ -165,7 +165,7 @@ func _fire_signal() -> void:
 	if not is_instance_valid(target): return
 	_pistol_out = 1.0
 	var base_dir = (target.global_position - global_position).normalized()
-	# 3 Schüsse – zufällige Typen, leichter Fächer
+	# 3 Schuesse - zufaellige Typen, leichter Faecher
 	var angles = [-0.28, 0.0, 0.28]
 	for a in angles:
 		var t = SIGNAL_TYPES[randi() % SIGNAL_TYPES.size()]
@@ -180,11 +180,11 @@ func _fire_signal() -> void:
 
 func _apply_signal_effect(type: String, dmg: float) -> void:
 	match type:
-		"rot":    # Feuer – Initialschaden + DoT
+		"rot":    # Feuer - Initialschaden + DoT
 			if is_instance_valid(target): target.take_damage(dmg * 0.7)
 			_effects.append({"type":"rot",    "timer":3.0, "itimer":0.0})
 
-		"blau":   # Wasser – stark verlangsamt
+		"blau":   # Wasser - stark verlangsamt
 			if is_instance_valid(target): target.take_damage(dmg * 0.4)
 			var orig = 100.0
 			if is_instance_valid(target) and "move_speed" in target:
@@ -192,18 +192,18 @@ func _apply_signal_effect(type: String, dmg: float) -> void:
 				target.move_speed = max(orig * 0.38, 22.0)
 			_effects.append({"type":"blau", "timer":3.5, "itimer":0.0, "orig_speed": orig})
 
-		"gelb":   # Blitz – hoher Sofortschaden + Knockback
+		"gelb":   # Blitz - hoher Sofortschaden + Knockback
 			if is_instance_valid(target):
 				target.take_damage(dmg * 2.2)
 				if target.has_method("apply_knockback"):
 					target.apply_knockback(
 						(target.global_position - global_position).normalized() * 510.0)
 
-		"gruen":  # Gift – langsame DoT
+		"gruen":  # Gift - langsame DoT
 			if is_instance_valid(target): target.take_damage(dmg * 0.3)
 			_effects.append({"type":"gruen",  "timer":4.5, "itimer":0.0})
 
-		"schwarz":# Bewegungsunfähig
+		"schwarz":# Bewegungsunfaehig
 			if is_instance_valid(target): target.take_damage(dmg * 0.4)
 			_effects.append({"type":"schwarz","timer":2.2, "itimer":0.0})
 
@@ -221,7 +221,7 @@ func _on_dying_process(_delta: float) -> void:
 	_signal_shots.clear()
 	_effects.clear()
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -242,7 +242,7 @@ func _draw() -> void:
 	if _pistol_out > 0.0:
 		_draw_signal_pistol(bob)
 
-# ── Willi Schrei-Stopp (links, Gehstock) ──────────────────────────────────────
+# -- Willi Schrei-Stopp (links, Gehstock) --------------------------------------
 func _draw_willi(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0, arm_l: float = 0.0, arm_r: float = 0.0) -> void:
 	var ox     = -24.0
 	var skin   = Color(0.88, 0.74, 0.60) if not flash else Color.WHITE
@@ -259,7 +259,7 @@ func _draw_willi(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0
 	draw_rect(Rect2(ox+2,  12 + leg_r * 0.3 + bob, 7,  18), grey)
 	# Beige Strickjacke
 	draw_rect(Rect2(ox-12, -8+bob, 24, 22), beige)
-	# Knöpfe
+	# Knoepfe
 	for ky in [-2.0, 4.0, 10.0]:
 		draw_circle(Vector2(ox, ky+bob), 2.0, Color(0.62,0.58,0.42))
 	# Arme (animiert)
@@ -268,7 +268,7 @@ func _draw_willi(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0
 	draw_circle(Vector2(ox-18, 13 + arm_l + bob), 5, skin)
 	draw_circle(Vector2(ox+18, 13 + arm_r + bob), 5, skin)
 
-	# Gehstock (rechte Hand) – Ability-Schwinganimation; folgt Arm-Position
+	# Gehstock (rechte Hand) - Ability-Schwinganimation; folgt Arm-Position
 	var swing   = _stock_anim * 22.0
 	var c_base  = Vector2(ox+18, 13 + arm_r + bob)
 	var c_dir   = Vector2(sin(deg_to_rad(30.0 + swing)), 0.85).normalized()
@@ -285,7 +285,7 @@ func _draw_willi(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0
 	# Wenige graue Haare (seitlich)
 	for i in range(4):
 		draw_arc(Vector2(ox-11+float(i)*5, -28 + bob * 0.4), 4, PI, 0, 5, Color(0.72,0.72,0.75), 3)
-	# Kleines Schnauzbärtchen
+	# Kleines Schnauzbaertchen
 	draw_line(Vector2(ox-5, -16 + bob * 0.4), Vector2(ox+5, -16 + bob * 0.4), Color(0.62,0.62,0.64), 3)
 	# Dicke Brille
 	draw_arc(Vector2(ox-5, -22 + bob * 0.4), 5, 0, TAU, 6, Color(0.18,0.12,0.04), 2)
@@ -293,14 +293,14 @@ func _draw_willi(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0
 	draw_line(Vector2(ox, -22 + bob * 0.4), Vector2(ox, -22 + bob * 0.4), Color(0.18,0.12,0.04), 2)
 	draw_circle(Vector2(ox-5, -22 + bob * 0.4), 3, Color(0.55,0.72,0.88))
 	draw_circle(Vector2(ox+5, -22 + bob * 0.4), 3, Color(0.55,0.72,0.88))
-	# Mürrisch heruntergezogener Mund
+	# Muerrisch heruntergezogener Mund
 	draw_arc(Vector2(ox, -13 + bob * 0.4), 5, PI*0.15, PI*0.85, 5, Color(0.45,0.25,0.18), 3)
-	# Phase2: Zornige Schläfenadern
+	# Phase2: Zornige Schlaefenadern
 	if _phase2:
 		draw_line(Vector2(ox-13,-26 + bob * 0.4), Vector2(ox-9,-23 + bob * 0.4), Color(0.85,0.08,0.06), 2)
 		draw_line(Vector2(ox+13,-26 + bob * 0.4), Vector2(ox+9,-23 + bob * 0.4), Color(0.85,0.08,0.06), 2)
 
-# ── Gerlinde Schrei-Stopp (rechts, Rollator) ──────────────────────────────────
+# -- Gerlinde Schrei-Stopp (rechts, Rollator) ----------------------------------
 func _draw_gerlinde(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0) -> void:
 	var ox     = 24.0
 	var skin   = Color(0.90, 0.78, 0.68) if not flash else Color.WHITE
@@ -309,7 +309,7 @@ func _draw_gerlinde(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 
 	var metal  = Color(0.62, 0.64, 0.68)
 	var gold_e = Color(0.85, 0.70, 0.08)
 
-	# Rollator (in front of Gerlinde, stößt nach vorne bei Ramme)
+	# Rollator (in front of Gerlinde, stoesst nach vorne bei Ramme)
 	var ram_y = -_roller_anim * 11.0
 	var ry    = -4.0 + bob + ram_y
 	# Griff-Querstange
@@ -319,10 +319,10 @@ func _draw_gerlinde(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 
 	draw_line(Vector2(ox+14, ry),    Vector2(ox+14, ry+20), metal, 3)
 	# Untere Querstange
 	draw_line(Vector2(ox-14, ry+18), Vector2(ox+14, ry+18), metal, 3)
-	# Räder (kleine Kreise)
+	# Raeder (kleine Kreise)
 	draw_circle(Vector2(ox-14, ry+22), 4, Color(0.22,0.22,0.25))
 	draw_circle(Vector2(ox+14, ry+22), 4, Color(0.22,0.22,0.25))
-	# Hände greifen Griffe
+	# Haende greifen Griffe
 	draw_circle(Vector2(ox-14, ry+2), 4, skin)
 	draw_circle(Vector2(ox+14, ry+2), 4, skin)
 	# Aufprall-Flash
@@ -341,18 +341,18 @@ func _draw_gerlinde(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 
 			draw_circle(Vector2(ox+fx, fy+bob), 1.2, Color(0.95,0.30,0.30))
 	# Oberteil
 	draw_rect(Rect2(ox-11, -8+bob, 22, 16), dress)
-	# Weißer Kragen
+	# Weisser Kragen
 	draw_circle(Vector2(ox, -8+bob), 5, white)
-	# Arme (halten Rollator – nur bob, kein Arm-Swing)
+	# Arme (halten Rollator - nur bob, kein Arm-Swing)
 	draw_rect(Rect2(ox-19, -2+bob, 6, 16), dress)
 	draw_rect(Rect2(ox+13, -2+bob, 6, 16), dress)
-	# Handtasche (hängt am Rollator-Griff links)
+	# Handtasche (haengt am Rollator-Griff links)
 	draw_rect(Rect2(ox-24, ry+4,  10, 9), Color(0.55,0.28,0.50))
 	draw_line(Vector2(ox-14, ry+2), Vector2(ox-22, ry+6), Color(0.45,0.22,0.40), 2)
 
 	# Kopf
 	draw_circle(Vector2(ox, -22 + bob * 0.4), 13, skin)
-	# Weißes Haar – Dutt
+	# Weisses Haar - Dutt
 	draw_circle(Vector2(ox, -30 + bob * 0.4), 10, white)
 	draw_circle(Vector2(ox, -32 + bob * 0.4), 7, white.darkened(0.12))
 	# Haarnetz-Punkte
@@ -374,7 +374,7 @@ func _draw_gerlinde(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 
 		draw_line(Vector2(ox-8,-26 + bob * 0.4), Vector2(ox-2,-24 + bob * 0.4), Color(0.55,0.28,0.18), 2.5)
 		draw_line(Vector2(ox+2,-24 + bob * 0.4), Vector2(ox+8,-26 + bob * 0.4), Color(0.55,0.28,0.18), 2.5)
 
-# ── Signalpistole (Willis rechte Hand) ───────────────────────────────────────
+# -- Signalpistole (Willis rechte Hand) ---------------------------------------
 func _draw_signal_pistol(bob: float) -> void:
 	var ox    = -24.0
 	var alpha = _pistol_out
@@ -382,17 +382,17 @@ func _draw_signal_pistol(bob: float) -> void:
 	var py    = 6.0 + bob
 	# Griff
 	draw_rect(Rect2(px-2, py, 4, 10), Color(0.35,0.20,0.08, alpha))
-	# Lauf (kurzer Leuchtpistolen-Lauf, nach oben/schräg)
+	# Lauf (kurzer Leuchtpistolen-Lauf, nach oben/schraeg)
 	draw_rect(Rect2(px-4, py-10, 14, 7), Color(0.22,0.22,0.26, alpha))
-	# Laufmündung
+	# Laufmuendung
 	draw_line(Vector2(px+10, py-10), Vector2(px+10, py-3), Color(0.35,0.35,0.40, alpha), 3)
-	# Mündungsblitz
+	# Muendungsblitz
 	if _pistol_out > 0.4:
 		var fa = (_pistol_out - 0.4) * 1.67
 		draw_circle(Vector2(px+12, py-7), 7*fa, Color(1.0, 0.88, 0.2, fa*0.85))
 		draw_circle(Vector2(px+16, py-7), 4*fa, Color(1.0, 1.0, 0.5, fa*0.7))
 
-# ── Signal-Projektile ─────────────────────────────────────────────────────────
+# -- Signal-Projektile ---------------------------------------------------------
 func _draw_signal_shots() -> void:
 	for s in _signal_shots:
 		var lp  = to_local(s["pos"])
@@ -402,7 +402,7 @@ func _draw_signal_shots() -> void:
 		for i in range(4):
 			var tp = lp - vel_n * float(i+1) * 7.0
 			draw_circle(tp, (4-float(i))*1.8, Color(col.r, col.g, col.b, 0.22-float(i)*0.05))
-		# Leuchtgeschoss – Schein, Kern, weißes Zentrum
+		# Leuchtgeschoss - Schein, Kern, weisses Zentrum
 		draw_circle(lp, 13, Color(col.r, col.g, col.b, 0.28))
 		draw_circle(lp,  8, col)
 		draw_circle(lp,  4, Color(1.0, 1.0, 1.0, 0.85))
@@ -422,7 +422,7 @@ func _draw_signal_shots() -> void:
 			"schwarz": # X (Stopp)
 				draw_line(lp+Vector2(-6,-6), lp+Vector2(6,6),  Color(0.9,0.9,0.9,0.8), 2.5)
 				draw_line(lp+Vector2(6,-6),  lp+Vector2(-6,6), Color(0.9,0.9,0.9,0.8), 2.5)
-			"weiss":   # Grünes Kreuz (Heilung)
+			"weiss":   # Gruenes Kreuz (Heilung)
 				draw_line(lp+Vector2(-6,0), lp+Vector2(6,0),  Color(0.1,0.85,0.1,0.9), 2.5)
 				draw_line(lp+Vector2(0,-6), lp+Vector2(0,6),  Color(0.1,0.85,0.1,0.9), 2.5)
 			"rosa":    # Pfeil-Blitz (Boost)
@@ -430,7 +430,7 @@ func _draw_signal_shots() -> void:
 				draw_line(lp+Vector2(2,-4), lp+Vector2(6,0), Color(1.0,0.5,0.8,0.9), 2.5)
 				draw_line(lp+Vector2(2, 4), lp+Vector2(6,0), Color(1.0,0.5,0.8,0.9), 2.5)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t      = _death_anim_time
 	var beige  = Color(0.78, 0.70, 0.52).darkened(t * 0.35)

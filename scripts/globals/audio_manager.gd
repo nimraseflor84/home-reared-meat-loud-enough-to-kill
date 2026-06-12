@@ -2,12 +2,13 @@ extends Node
 
 # ── Musik ──────────────────────────────────────────────────────────────────
 const SONGS = [
-	{"title": "Dumb Boys",            "path": "res://assets/music/dumb_boys.mp3"},
-	{"title": "Medusa",               "path": "res://assets/music/medusa.mp3"},
-	{"title": "Drink Fight Die",      "path": "res://assets/music/drink_fight_die.mp3"},
-	{"title": "Bolognese Bloodbath",  "path": "res://assets/music/bolognese_bloodbath.mp3"},
-	{"title": "Empire of Scum",       "path": "res://assets/music/empire_of_scum.mp3"},
-	{"title": "Evisceration Parade",  "path": "res://assets/music/evisceration_parade.mp3"},
+	# BPM: bitte mit tatsächlichem DAW/Metronom-Wert verifizieren!
+	{"title": "Dumb Boys",            "path": "res://assets/music/dumb_boys.mp3",           "bpm": 142.0},
+	{"title": "Medusa",               "path": "res://assets/music/medusa.mp3",               "bpm": 118.0},
+	{"title": "Drink Fight Die",      "path": "res://assets/music/drink_fight_die.mp3",      "bpm": 164.0},
+	{"title": "Bolognese Bloodbath",  "path": "res://assets/music/bolognese_bloodbath.mp3",  "bpm": 182.0},
+	{"title": "Empire of Scum",       "path": "res://assets/music/empire_of_scum.mp3",       "bpm": 128.0},
+	{"title": "Evisceration Parade",  "path": "res://assets/music/evisceration_parade.mp3",  "bpm": 168.0},
 ]
 
 var music_player: AudioStreamPlayer
@@ -22,14 +23,15 @@ var _music_enabled: bool = true
 var _proj_sfx_enabled: bool = true
 var _current_song_title: String = ""
 
-# BPM-Beat-System (120 BPM)
-const BPM = 120.0
-const BEAT_INTERVAL = 60.0 / BPM
+# BPM-Beat-System – dynamisch pro Song
+const DEFAULT_BPM = 120.0
+var _current_bpm: float = DEFAULT_BPM
+var _beat_interval: float = 60.0 / DEFAULT_BPM
 var _beat_timer: float = 0.0
 var _beat_active: bool = false
 
 signal beat_occurred()
-signal song_changed(title: String)
+signal song_changed(title: String, bpm: float)  # bpm mitschicken für RhythmSystem
 
 # Precomputed SFX
 var _sfx_hit: AudioStreamWAV = null
@@ -103,9 +105,18 @@ func _load_settings() -> void:
 func _process(delta: float) -> void:
 	if _beat_active:
 		_beat_timer += delta
-		if _beat_timer >= BEAT_INTERVAL:
-			_beat_timer -= BEAT_INTERVAL
+		if _beat_timer >= _beat_interval:
+			_beat_timer -= _beat_interval
 			emit_signal("beat_occurred")
+
+func get_current_bpm() -> float:
+	return _current_bpm
+
+func get_beat_interval() -> float:
+	return _beat_interval
+
+func get_beat_progress() -> float:
+	return _beat_timer / _beat_interval
 
 # ── Musik-Steuerung ─────────────────────────────────────────────────────────
 func start_music() -> void:
@@ -134,9 +145,13 @@ func next_song() -> void:
 	_play_current()
 
 func _load_mp3(path: String) -> AudioStreamMP3:
+	if not ResourceLoader.exists(path):
+		push_warning("AudioManager: MP3 nicht gefunden (Import fehlt?): %s" % path)
+		return null
 	var stream = ResourceLoader.load(path, "AudioStreamMP3")
 	if stream is AudioStreamMP3:
 		return stream
+	push_warning("AudioManager: MP3 konnte nicht geladen werden: %s" % path)
 	return null
 
 func _play_current() -> void:
@@ -153,7 +168,11 @@ func _play_current() -> void:
 				music_player.volume_db = -80.0
 			music_player.play()
 			_current_song_title = song["title"]
-			emit_signal("song_changed", _current_song_title)
+			# BPM pro Song setzen – Beat-Timer resetten für sauberen Sync
+			_current_bpm = song.get("bpm", DEFAULT_BPM)
+			_beat_interval = 60.0 / _current_bpm
+			_beat_timer = 0.0
+			emit_signal("song_changed", _current_song_title, _current_bpm)
 			return
 		tries += 1
 		_current_index = (_current_index + 1) % _playlist.size()
@@ -200,9 +219,8 @@ func get_music_enabled() -> bool:
 func get_current_song_title() -> String:
 	return _current_song_title
 
-# ── Beat ────────────────────────────────────────────────────────────────────
-func get_beat_progress() -> float:
-	return _beat_timer / BEAT_INTERVAL
+# ── Beat ─────────────────────────────────────────────────────────────────────
+# get_beat_progress() ist oben bei den Beat-Hilfsmethoden definiert
 
 # ── SFX: Prozedurales WAV-Generator ────────────────────────────────────────
 # Generiert einen Sinuston mit Pitch-Glide und Attack-Decay-Hüllkurve

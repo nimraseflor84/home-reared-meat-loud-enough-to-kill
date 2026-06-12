@@ -1,7 +1,7 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# Gefangener – spawnt beim "Gefängnisausbruch" des Gefchefs
-# Stürmt mit Stichwaffe auf Spieler zu, schneller Kontaktschaden
+# Gefangener - spawnt beim "Gefaengnisausbruch" des Gefchefs
+# Stuermt mit Stichwaffe auf Spieler zu, schneller Kontaktschaden
 
 var _shiv_flash: float = -1.0   # kurze Stich-Animation
 
@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 			_shiv_flash = -1.0
 	super._process(delta)
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		return
@@ -62,10 +62,10 @@ func _draw() -> void:
 	# Nummern-Streifen auf Brust
 	draw_rect(Rect2(-6, -6+bob, 12, 4), dsuit)
 	draw_rect(Rect2(-6,  0+bob, 12, 4), dsuit)
-	# Arme (gegenläufig zu Beinen, vorwärts gestreckt beim Rennen)
+	# Arme (gegenlaeufig zu Beinen, vorwaerts gestreckt beim Rennen)
 	draw_rect(Rect2(-22, -4 + arm_l + bob, 8, 14), suit)
 	draw_rect(Rect2(14,  -4 + arm_r + bob, 8, 14), suit)
-	# Hände
+	# Haende
 	draw_circle(Vector2(-20, 9 + arm_l + bob), 6, skin)
 	draw_circle(Vector2(20,  9 + arm_r + bob), 6, skin)
 	# Zerbrochene Handfessel links (folgt linker Hand)
@@ -93,10 +93,10 @@ func _draw() -> void:
 	draw_circle(Vector2(5,  -24+bob), 4,   Color(0.96, 0.94, 0.88))
 	draw_circle(Vector2(-5, -24+bob), 2,   Color(0.08, 0.05, 0.03))
 	draw_circle(Vector2(5,  -24+bob), 2,   Color(0.08, 0.05, 0.03))
-	# Wütende Augenbrauen
+	# Wuetende Augenbrauen
 	draw_line(Vector2(-9, -30+bob), Vector2(-1, -27+bob), Color(0.2,0.12,0.04), 3)
 	draw_line(Vector2(1,  -27+bob), Vector2(9,  -30+bob), Color(0.2,0.12,0.04), 3)
-	# Gefletscht – Zähne sichtbar
+	# Gefletscht - Zaehne sichtbar
 	draw_arc(Vector2(0, -18+bob), 5, 0.15, PI-0.15, 5, Color(0.1,0.05,0.02), 4)
 	for tx in [-4.0, 0.0, 4.0]:
 		draw_line(Vector2(tx, -17+bob), Vector2(tx, -13+bob), Color(0.92,0.90,0.85), 2)

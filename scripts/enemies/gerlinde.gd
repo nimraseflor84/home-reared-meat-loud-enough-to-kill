@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # Gerlinde Schrei-Stopp
 # Angriff:  Rollator-Ramme
-# Spezial:  "HILFE RUFEN!" – 3 zufällige Verstärkung spawnen
+# Spezial:  "HILFE RUFEN!" - 3 zufaellige Verstaerkung spawnen
 
 const ROLLER_CD  = 2.4
 const ROLLER_RNG = 78.0
@@ -20,7 +20,7 @@ var _base_speed: float  = 32.0
 var _roller_timer: float = 1.6
 var _rufen_timer: float  = 10.0
 var _roller_anim: float  = 0.0
-var _rufen_anim: float   = 0.0   # 1→0: Sprechblase sichtbar
+var _rufen_anim: float   = 0.0   # 1->0: Sprechblase sichtbar
 
 func _ready() -> void:
 	enemy_id             = "gerlinde"
@@ -33,7 +33,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -65,7 +65,7 @@ func _physics_process(delta: float) -> void:
 
 	super._physics_process(delta)
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _do_roller_hit() -> void:
 	if not is_instance_valid(target): return
 	if global_position.distance_to(target.global_position) > ROLLER_RNG: return
@@ -92,7 +92,7 @@ func _start_rufen() -> void:
 		if e.has_method("set_target"):
 			e.set_target(target)
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -115,7 +115,7 @@ func _draw_body(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0)
 	var metal  = Color(0.62, 0.64, 0.68)
 	var gold_e = Color(0.85, 0.70, 0.08)
 
-	# Rollator – stößt nach vorne (nach oben im Sprite) bei Ramme
+	# Rollator - stoesst nach vorne (nach oben im Sprite) bei Ramme
 	var ram_y = -_roller_anim * 11.0
 	var ry    = -4.0 + bob + ram_y
 	draw_line(Vector2(-14, ry),    Vector2(14, ry),    metal, 4)  # Griffstange
@@ -144,13 +144,13 @@ func _draw_body(bob: float, flash: bool, leg_l: float = 0.0, leg_r: float = 0.0)
 			draw_circle(Vector2(fx, fy+bob), 1.2, Color(0.95,0.30,0.30))
 	draw_rect(Rect2(-11, -8+bob, 22, 16), dress)  # Oberteil
 	draw_circle(Vector2(0, -8+bob), 5, white)      # Kragen
-	# Arme (halten Rollator – nur bob, kein Arm-Swing)
+	# Arme (halten Rollator - nur bob, kein Arm-Swing)
 	draw_rect(Rect2(-19, -2+bob, 6, 16), dress)
 	draw_rect(Rect2(13,  -2+bob, 6, 16), dress)
 
 	# Kopf
 	draw_circle(Vector2(0, -22 + bob * 0.4), 13, skin)
-	# Weißer Dutt mit Haarnetz
+	# Weisser Dutt mit Haarnetz
 	draw_circle(Vector2(0, -30 + bob * 0.4), 10, white)
 	draw_circle(Vector2(0, -32 + bob * 0.4), 7, white.darkened(0.12))
 	for ni in range(5):
@@ -184,7 +184,7 @@ func _draw_rufen_bubble(bob: float) -> void:
 	]), Color(1.0,1.0,1.0, alpha))
 	draw_line(Vector2(bx-6, by+h*0.5), Vector2(bx-4, by+h*0.5+10), Color(0.72,0.38,0.38,alpha), 2)
 	draw_line(Vector2(bx+4, by+h*0.5), Vector2(bx-4, by+h*0.5+10), Color(0.72,0.38,0.38,alpha), 2)
-	# "HILFE!" – Pixel-Text
+	# "HILFE!" - Pixel-Text
 	var r = Color(0.72, 0.08, 0.08, alpha)
 	# H
 	draw_line(Vector2(bx-19, by-7), Vector2(bx-19, by+7), r, 2)
@@ -208,7 +208,7 @@ func _draw_rufen_bubble(bob: float) -> void:
 	draw_line(Vector2(bx+13, by-7), Vector2(bx+13, by+2), r, 2)
 	draw_circle(Vector2(bx+13, by+6), 1.5, r)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t     = _death_anim_time
 	var dress = Color(0.85, 0.52, 0.60).darkened(t * 0.35)
@@ -220,7 +220,7 @@ func _draw_death() -> void:
 	if t > 0.3:
 		draw_circle(Vector2(0, 34), min((t-0.3)*38.0, 28.0), Color(0.78, 0.62, 0.08, 0.55))
 
-	# Gerlinde kippt vorwärts in den Rollator
+	# Gerlinde kippt vorwaerts in den Rollator
 	draw_rect(Rect2(-14+fall*0.20, 6+fall*0.46, 28, 22), dress)
 	draw_circle(Vector2(fall*0.28, -22+fall*0.90), 13, skin)
 	# Dutt fliegt weg

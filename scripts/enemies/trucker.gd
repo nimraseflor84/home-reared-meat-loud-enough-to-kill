@@ -1,20 +1,20 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # Thunder-Trucker Heinz
 # Angriff:   Bowie-Messer-Stich (Nahkampf)
-# Spezial:   Steigt in Truck → 10 s lang Überfahren-Modus
+# Spezial:   Steigt in Truck -> 10 s lang Ueberfahren-Modus
 
 const KNIFE_CD      = 1.6
 const KNIFE_RANGE   = 72.0
 const TRUCK_CD      = 13.0
 const TRUCK_DUR     = 10.0    # Sekunden im Truck
 const TRUCK_SPD     = 440.0   # Truck-Geschwindigkeit
-const TRUCK_DMG_MUL = 4.0     # Schaden beim Überfahren
+const TRUCK_DMG_MUL = 4.0     # Schaden beim Ueberfahren
 const TRUCK_W       = 72.0    # Truck Breite (Kollisionsbreite)
-const TRUCK_H       = 120.0   # Truck Länge
+const TRUCK_H       = 120.0   # Truck Laenge
 
 # Modi
-const M_FOOT  = 0   # zu Fuß
+const M_FOOT  = 0   # zu Fuss
 const M_ENTER = 1   # Einsteige-Animation (0.8 s)
 const M_TRUCK = 2   # Truck aktiv (10 s)
 const M_EXIT  = 3   # Aussteige-Animation (0.5 s)
@@ -29,7 +29,7 @@ var _truck_active_t: float = 0.0   # 0..TRUCK_DUR
 
 var _truck_pos: Vector2   = Vector2.ZERO
 var _truck_dir: Vector2   = Vector2.DOWN
-var _truck_hit: bool      = false   # pro Überfahrt einmal Schaden
+var _truck_hit: bool      = false   # pro Ueberfahrt einmal Schaden
 
 var _phase2: bool         = false
 var _dust: Array          = []
@@ -44,7 +44,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -123,18 +123,18 @@ func _physics_process(delta: float) -> void:
 			move_and_slide()
 
 		M_TRUCK:
-			# Truck verfolgt den Spieler — dreht kontinuierlich nach
+			# Truck verfolgt den Spieler -- dreht kontinuierlich nach
 			if is_instance_valid(target):
 				var desired = (_truck_pos.direction_to(target.global_position))
 				_truck_dir  = _truck_dir.lerp(desired, delta * 1.8).normalized()
 			_truck_pos += _truck_dir * TRUCK_SPD * delta
 
-			# Bildschirm-Clamp für den Truck
+			# Bildschirm-Clamp fuer den Truck
 			var vp = get_viewport_rect()
 			_truck_pos.x = clamp(_truck_pos.x, 60, vp.size.x - 60)
 			_truck_pos.y = clamp(_truck_pos.y, 60, vp.size.y - 60)
 
-			# Spieler-Kollision mit Truck (Rechteck-Näherung)
+			# Spieler-Kollision mit Truck (Rechteck-Naeherung)
 			if is_instance_valid(target):
 				var diff     = target.global_position - _truck_pos
 				var forward  = diff.dot(_truck_dir)
@@ -147,12 +147,12 @@ func _physics_process(delta: float) -> void:
 						target.apply_knockback(_truck_dir * 700.0)
 						AudioManager.play_hit_sfx()
 				else:
-					_truck_hit = false   # reset für nächste Überfahrt
+					_truck_hit = false   # reset fuer naechste Ueberfahrt
 
 			# Heinz-Node bleibt unsichtbar am Truck
 			global_position = _truck_pos
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _do_knife() -> void:
 	_knife_anim = 0.0
 	if is_instance_valid(target) and target.has_method("take_damage"):
@@ -176,7 +176,7 @@ func _on_dying_process(_delta: float) -> void:
 	_dust.clear()
 	_mode = M_FOOT
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -239,7 +239,7 @@ func _draw_heinz(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: fl
 	draw_rect(Rect2(-14, 14 + leg_l * 0.3 + bob, 11, 16), jeans)
 	draw_rect(Rect2(3,   14 + leg_r * 0.3 + bob, 11, 16), jeans)
 
-	# Körper (Flanell-Shirt + Lederweste drüber)
+	# Koerper (Flanell-Shirt + Lederweste drueber)
 	draw_rect(Rect2(-16, -12+bob, 32, 28), shirt)
 	# Plaid-Linien auf Shirt
 	for sy in [-8.0, -2.0, 4.0, 10.0]:
@@ -258,7 +258,7 @@ func _draw_heinz(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: fl
 	# Arme
 	draw_rect(Rect2(-24, -6 + arm_l + bob, 8, 18), shirt)
 	draw_rect(Rect2(16,  -6 + arm_r + bob, 8, 18), shirt)
-	# Hände
+	# Haende
 	draw_circle(Vector2(-22, 11 + arm_l + bob), 7, skin)
 	draw_circle(Vector2(22,  11 + arm_r + bob), 7, skin)
 
@@ -330,14 +330,14 @@ func _draw_truck(center: Vector2, dir: Vector2) -> void:
 	# Schatten
 	draw_circle(center + dir * 5.0, 42, Color(0, 0, 0, 0.22))
 
-	# ── Anhänger / Ladefläche (hinten) ──
+	# -- Anhaenger / Ladeflaeche (hinten) --
 	var cargo_c = center - dir * 65.0
 	var cb = [
 		cargo_c + right*30 - dir*50, cargo_c - right*30 - dir*50,
 		cargo_c - right*30 + dir*50, cargo_c + right*30 + dir*50,
 	]
 	draw_colored_polygon(PackedVector2Array(cb), rust.darkened(0.2))
-	# Querstreifen Ladefläche
+	# Querstreifen Ladeflaeche
 	for si in range(4):
 		var sp = cargo_c - dir*40 + dir*float(si)*22.0
 		draw_line(sp + right*30, sp - right*30, rust.darkened(0.35), 3)
@@ -347,7 +347,7 @@ func _draw_truck(center: Vector2, dir: Vector2) -> void:
 		draw_circle(np + right*30, 3, chrome)
 		draw_circle(np - right*30, 3, chrome)
 
-	# ── Fahrerkabine (vorne) ──
+	# -- Fahrerkabine (vorne) --
 	var cab_c = center + dir * 30.0
 	var cab_pts = PackedVector2Array([
 		cab_c + right*28  - dir*10,
@@ -381,9 +381,9 @@ func _draw_truck(center: Vector2, dir: Vector2) -> void:
 	])
 	draw_colored_polygon(hood_pts, rust.darkened(0.1))
 
-	# Stoßstange (Frontgrill)
+	# Stossstange (Frontgrill)
 	draw_rect_from_center(cab_c + dir*74, right*22, dir*5, chrome)
-	# Grill-Stäbe
+	# Grill-Staebe
 	for gi in range(5):
 		var gx = cab_c + dir*70 + right*(-16 + float(gi)*8)
 		draw_line(gx - dir*4, gx + dir*4, chrome.darkened(0.2), 2.5)
@@ -394,11 +394,11 @@ func _draw_truck(center: Vector2, dir: Vector2) -> void:
 	draw_circle(cab_c + right*16 + dir*74, 4, Color(1,1,0.8))
 	draw_circle(cab_c - right*16 + dir*74, 4, Color(1,1,0.8))
 
-	# Rücklichter
+	# Ruecklichter
 	draw_circle(cab_c + right*27 - dir*10, 5, red_c)
 	draw_circle(cab_c - right*27 - dir*10, 5, red_c)
 
-	# ── Räder (4 Stück) ──
+	# -- Raeder (4 Stueck) --
 	for side_m in [-1.0, 1.0]:
 		for fwd in [-45.0, 25.0]:
 			var wheel_c = center + right * side_m * 32.0 + dir * fwd
@@ -436,7 +436,7 @@ func _draw_heinz_in_truck(truck_local: Vector2, dir: Vector2) -> void:
 	draw_arc(face_pos + Vector2(0,3), 4, 0.2, PI-0.2, 5, Color(0.2,0.1,0.04), 2)
 	draw_arc(face_pos - Vector2(0,8), 10, PI, TAU, 8, hair, 6)  # Kappe
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t     = _death_anim_time
 	var skin  = Color(0.68, 0.45, 0.28)
@@ -454,7 +454,7 @@ func _draw_death() -> void:
 	# Beine
 	draw_rect(Rect2(-14+fall*0.22, 14+fall*0.44, 11, 14), jeans)
 	draw_rect(Rect2(3+fall*0.22,   14+fall*0.44, 11, 14), jeans)
-	# Körper kippt
+	# Koerper kippt
 	draw_rect(Rect2(-16+fall*0.28*lean, -12+fall*lean, 32, 26), vest)
 	# Kopf
 	draw_circle(Vector2(fall*0.52, -26+fall*0.86), 19, skin)

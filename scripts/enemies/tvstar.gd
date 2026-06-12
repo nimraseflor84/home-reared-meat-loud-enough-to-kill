@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # TV-Guru Bernd Goldmann
 # Angriff:   Kleine gelbe Blitze (Zickzack-Projektile)
-# Spezial:   BADFLIX – Monitor zeigt Intro-Animation → spawnt 5 zufällige TV-Figuren
+# Spezial:   BADFLIX - Monitor zeigt Intro-Animation -> spawnt 5 zufaellige TV-Figuren
 
 const BLITZ_CD   = 2.0
 const BLITZ_SPD  = 320.0
@@ -30,7 +30,7 @@ var _bf_t: float           = 0.0
 var _monitor_alpha: float  = 0.0
 var _monitor_scan: float   = 0.0   # scrollende Scanlinie
 
-# Blitz-Projektile – {pos, vel, seed, dmg}
+# Blitz-Projektile - {pos, vel, seed, dmg}
 var _blitze: Array         = []
 
 func _ready() -> void:
@@ -43,7 +43,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
@@ -54,7 +54,7 @@ func _process(delta: float) -> void:
 		_phase2    = true
 		move_speed = move_speed * 1.65
 
-	# Blitze bewegen + Treffer prüfen
+	# Blitze bewegen + Treffer pruefen
 	for i in range(_blitze.size() - 1, -1, -1):
 		var b = _blitze[i]
 		b["pos"] += b["vel"] * delta
@@ -98,15 +98,15 @@ func _physics_process(delta: float) -> void:
 			_start_badflix()
 		super._physics_process(delta)
 	else:
-		# Während BADFLIX: langsam schleichen
+		# Waehrend BADFLIX: langsam schleichen
 		velocity *= 0.88
 		move_and_slide()
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _shoot_blitz() -> void:
 	if not is_instance_valid(target): return
 	var base_dir = (target.global_position - global_position).normalized()
-	# Phase1: 2 Blitze, Phase2: 3 Blitze im breiteren Fächer
+	# Phase1: 2 Blitze, Phase2: 3 Blitze im breiteren Faecher
 	var angles = [-0.18, 0.18] if not _phase2 else [-0.28, 0.0, 0.28]
 	for a in angles:
 		var dir = base_dir.rotated(a)
@@ -149,7 +149,7 @@ func _do_spawn_figuren() -> void:
 func _on_dying_process(_delta: float) -> void:
 	_blitze.clear()
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -188,7 +188,7 @@ func _draw_body(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: flo
 	# Goldener Anzug-Jacket
 	draw_rect(Rect2(-16, -12+bob, 32, 28), gold)
 
-	# Weißes Hemd
+	# Weisses Hemd
 	draw_rect(Rect2(-5, -12+bob, 10, 14), white)
 
 	# Goldene Revers
@@ -208,7 +208,7 @@ func _draw_body(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: flo
 		Vector2(-4,10+bob), Vector2(4,10+bob), Vector2(0,16+bob)
 	]), purp.darkened(0.25))
 
-	# Goldene Knöpfe
+	# Goldene Knoepfe
 	for ky in [-4.0, 2.0]:
 		draw_circle(Vector2(-7, ky+bob), 2.5, lgold)
 
@@ -218,7 +218,7 @@ func _draw_body(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: flo
 	draw_circle(Vector2(-22, 13 + arm_l + bob), 7, skin)
 	draw_circle(Vector2(22,  13 + arm_r + bob), 7, skin)
 
-	# Blitz-Manschettenknöpfe
+	# Blitz-Manschettenknoepfe
 	_draw_small_bolt(Vector2(-22, 5 + arm_l + bob), 5.0, lgold)
 	_draw_small_bolt(Vector2(22,  5 + arm_r + bob), 5.0, lgold)
 
@@ -231,22 +231,22 @@ func _draw_body(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: flo
 	var hb = bob * 0.4
 	draw_circle(Vector2(0, -28+hb), 20, skin)
 
-	# Große Fönwelle
+	# Grosse Foenwelle
 	_draw_pompadour(hb, lgold, gold)
 
 	# Rundes Brillengestell
 	draw_arc(Vector2(-7, -30+hb), 7, 0, TAU, 8, black, 2)
 	draw_arc(Vector2(7,  -30+hb), 7, 0, TAU, 8, black, 2)
-	draw_line(Vector2(-14,-30+hb), Vector2(-16,-28+hb), black, 2)  # linker Bügel
-	draw_line(Vector2(14, -30+hb), Vector2(16, -28+hb), black, 2)  # rechter Bügel
+	draw_line(Vector2(-14,-30+hb), Vector2(-16,-28+hb), black, 2)  # linker Buegel
+	draw_line(Vector2(14, -30+hb), Vector2(16, -28+hb), black, 2)  # rechter Buegel
 
-	# Augen hinter Gläsern (blaue Iris)
+	# Augen hinter Glaesern (blaue Iris)
 	draw_circle(Vector2(-7, -30+hb), 4, white)
 	draw_circle(Vector2(7,  -30+hb), 4, white)
 	draw_circle(Vector2(-7, -30+hb), 2, Color(0.12,0.20,0.72))
 	draw_circle(Vector2(7,  -30+hb), 2, Color(0.12,0.20,0.72))
 
-	# Breites strahlendes Lächeln
+	# Breites strahlendes Laecheln
 	draw_arc(Vector2(0, -20+hb), 10, 0.2, PI-0.2, 8, Color(0.88,0.20,0.12), 4)
 	for ti in range(5):
 		draw_rect(Rect2(-7 + ti*3, -22+hb, 2, 5), white)
@@ -308,7 +308,7 @@ func _draw_blitze() -> void:
 			pts.append(origin + fwd * float(i) * seg + perp * off)
 		# Breiter gelber Schein
 		draw_polyline(pts, Color(1.0, 0.95, 0.3, 0.35), 8.0)
-		# Weißer Kern
+		# Weisser Kern
 		draw_polyline(pts, Color(1.0, 1.0, 0.85), 2.5)
 
 func _draw_badflix_monitor(bob: float) -> void:
@@ -318,7 +318,7 @@ func _draw_badflix_monitor(bob: float) -> void:
 	var w     = 54.0
 	var h     = 40.0
 
-	# Monitor-Gehäuse (Röhren-Stil)
+	# Monitor-Gehaeuse (Roehren-Stil)
 	draw_rect(Rect2(mx-w*0.5-5, my-h*0.5-5, w+10, h+10),
 		Color(0.20, 0.20, 0.22, alpha))
 	# Bildschirm
@@ -336,7 +336,7 @@ func _draw_badflix_monitor(bob: float) -> void:
 		var ta = min((_bf_t - 0.35) / 0.3, 1.0)
 		# Roter Balken
 		draw_rect(Rect2(mx-24, my-9, 48, 18), Color(0.85, 0.06, 0.06, alpha * ta))
-		# Weiße Pixelschrift: "BADFLIX"
+		# Weisse Pixelschrift: "BADFLIX"
 		# B
 		draw_rect(Rect2(mx-22, my-7, 3, 14), Color(1,1,1, alpha*ta))
 		draw_rect(Rect2(mx-19, my-7, 5, 6),  Color(1,1,1, alpha*ta))
@@ -369,13 +369,13 @@ func _draw_badflix_monitor(bob: float) -> void:
 			Rect2(mx-w*0.5-7, my-h*0.5-7, w+14, h+14),
 			Color(1.0, 0.92, 0.1, pulse * 0.85), false, 3.0)
 
-	# Verbindungslinie Monitor → Boss-Kopf
+	# Verbindungslinie Monitor -> Boss-Kopf
 	draw_line(
 		Vector2(mx, my + h*0.5 + 4),
 		Vector2(0, -52.0 + bob),
 		Color(0.32, 0.28, 0.30, alpha * 0.65), 2.0)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t     = _death_anim_time
 	var gold  = Color(0.85, 0.70, 0.06)
@@ -391,7 +391,7 @@ func _draw_death() -> void:
 		draw_circle(Vector2(0, 36), min((t-0.25)*40.0, 32.0),
 			Color(0.88, 0.72, 0.06, 0.62))
 
-	# Körper kippt
+	# Koerper kippt
 	draw_rect(Rect2(-13+fall*0.28, 14+fall*0.50, 10, 16), gold.darkened(t*0.4))
 	draw_rect(Rect2(3+fall*0.28,   14+fall*0.50, 10, 16), gold.darkened(t*0.4))
 	draw_rect(Rect2(-16+fall*0.30*lean, -12+fall*lean, 32, 26), gold.darkened(t*0.4))

@@ -143,7 +143,7 @@ func _create_upgrade_card(upgrade: Dictionary, pos: Vector2, size: Vector2, inde
 	desc_lbl.size = Vector2(size.x - 30, 80)
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	desc_lbl.text = upgrade.get("desc", "")
+	desc_lbl.text = UpgradeDB.get_desc(upgrade)
 	desc_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.9))
 	desc_lbl.add_theme_font_size_override("font_size", 15)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -153,7 +153,7 @@ func _create_upgrade_card(upgrade: Dictionary, pos: Vector2, size: Vector2, inde
 	var btn = Button.new()
 	btn.position = Vector2(20, size.y - 60)
 	btn.size = Vector2(size.x - 40, 50)
-	btn.text = "TAKE IT!"
+	btn.text = LocalizationManager.t("take_it")
 	btn.add_theme_font_size_override("font_size", 20)
 	var btn_style = StyleBoxFlat.new()
 	btn_style.bg_color = border_color.darkened(0.4)

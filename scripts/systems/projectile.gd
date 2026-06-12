@@ -1,5 +1,4 @@
 extends Area2D
-class_name Projectile
 
 @export var speed: float = 400.0
 @export var damage: float = 20.0
@@ -43,11 +42,47 @@ func _process(delta: float) -> void:
 	global_position += direction * speed * delta
 	queue_redraw()
 
-	# Remove if out of viewport
+	# -- Distance-based hit detection (Area2D body_entered unreliable mit direct movement) --
+	var enemies: Array = get_tree().get_nodes_in_group("enemies")
+	for i in range(enemies.size()):
+		var enemy: Node2D = enemies[i] as Node2D
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		if enemy in _hit_enemies:
+			continue
+		if global_position.distance_to(enemy.global_position) < size + 32.0:
+			_hit_enemy(enemy)
+			if not is_inside_tree():
+				return  # Projektil wurde zerstoert
+
+	# Bounce off screen edges (reverb_echo upgrade) or remove if out of viewport
 	var vp = get_viewport_rect()
-	if global_position.x < -50 or global_position.x > vp.size.x + 50 or \
-	   global_position.y < -50 or global_position.y > vp.size.y + 50:
-		queue_free()
+	if bounce_count > 0 and _bounced < bounce_count:
+		var bounced := false
+		if global_position.x <= 0:
+			global_position.x = 1.0
+			direction.x = abs(direction.x)
+			bounced = true
+		elif global_position.x >= vp.size.x:
+			global_position.x = vp.size.x - 1.0
+			direction.x = -abs(direction.x)
+			bounced = true
+		if global_position.y <= 0:
+			global_position.y = 1.0
+			direction.y = abs(direction.y)
+			bounced = true
+		elif global_position.y >= vp.size.y:
+			global_position.y = vp.size.y - 1.0
+			direction.y = -abs(direction.y)
+			bounced = true
+		if bounced:
+			_bounced += 1
+			_hit_enemies.clear()  # Nach Bounce wieder alle Gegner treffen koennen
+	else:
+		# Kein Bounce mehr oder kein Bounce-Upgrade: normal aus dem Screen entfernen
+		if global_position.x < -50 or global_position.x > vp.size.x + 50 or \
+		   global_position.y < -50 or global_position.y > vp.size.y + 50:
+			queue_free()
 
 func _draw() -> void:
 	match proj_type:
@@ -59,7 +94,7 @@ func _draw() -> void:
 		5: _draw_basswave()
 		_: _draw_drumstick()
 
-# ── Manni: Two flying drumsticks ──────────────────────────────────────────────
+# -- Manni: Two flying drumsticks ----------------------------------------------
 func _draw_drumstick() -> void:
 	draw_set_transform(Vector2.ZERO, direction.angle())
 	var stick  = Color(0.50, 0.30, 0.12)
@@ -75,7 +110,7 @@ func _draw_drumstick() -> void:
 	draw_circle(Vector2(18,  4), 5, tip)
 	draw_set_transform(Vector2.ZERO, 0.0)
 
-# ── Shouter: Sound-wave arcs (beam pointing forward) ─────────────────────────
+# -- Shouter: Sound-wave arcs (beam pointing forward) -------------------------
 func _draw_soundbeam() -> void:
 	draw_set_transform(Vector2.ZERO, direction.angle())
 	var pulse = sin(_anim_time * 12.0) * 0.2 + 0.8
@@ -87,7 +122,7 @@ func _draw_soundbeam() -> void:
 	draw_circle(Vector2.ZERO, 5, Color(1.0, 0.70, 0.55, 0.95))
 	draw_set_transform(Vector2.ZERO, 0.0)
 
-# ── Dreads: Animated wavy whip ────────────────────────────────────────────────
+# -- Dreads: Animated wavy whip ------------------------------------------------
 func _draw_whip() -> void:
 	draw_set_transform(Vector2.ZERO, direction.angle())
 	var t = _anim_time * 9.0
@@ -101,7 +136,7 @@ func _draw_whip() -> void:
 	draw_circle(Vector2(16, 0), 5, Color(0.0, 1.0, 0.60, 0.9))
 	draw_set_transform(Vector2.ZERO, 0.0)
 
-# ── Riff Slicer: Spinning guitar pick ────────────────────────────────────────
+# -- Riff Slicer: Spinning guitar pick ----------------------------------------
 func _draw_pick() -> void:
 	var angle = _anim_time * 9.0
 	draw_set_transform(Vector2.ZERO, angle)
@@ -116,7 +151,7 @@ func _draw_pick() -> void:
 	draw_circle(Vector2.ZERO, 3, Color(1.0, 0.95, 0.55, 0.85))
 	draw_set_transform(Vector2.ZERO, 0.0)
 
-# ── Distortion: Pulsing warped purple blob ───────────────────────────────────
+# -- Distortion: Pulsing warped purple blob -----------------------------------
 func _draw_distortion() -> void:
 	var t  = _anim_time * 6.0
 	var segs = 14
@@ -128,7 +163,7 @@ func _draw_distortion() -> void:
 	draw_colored_polygon(pts, Color(0.62, 0.08, 0.92, 0.80))
 	draw_circle(Vector2.ZERO, size * 0.45, Color(0.90, 0.55, 1.0, 1.0))
 
-# ── Bassist: Dark blue core + expanding bass ripples ─────────────────────────
+# -- Bassist: Dark blue core + expanding bass ripples -------------------------
 func _draw_basswave() -> void:
 	var pulse = sin(_anim_time * 6.0) * 0.15 + 0.85
 	draw_circle(Vector2.ZERO, size * pulse, Color(0.06, 0.16, 0.78, 0.92))
@@ -138,22 +173,29 @@ func _draw_basswave() -> void:
 		draw_arc(Vector2.ZERO, r, 0, TAU, 18,
 				Color(0.20, 0.42, 0.95, 0.42 - i * 0.14), 2.5)
 
+func _hit_enemy(body: Node2D) -> void:
+	if body == null or not is_instance_valid(body) or body in _hit_enemies:
+		return
+	_hit_enemies.append(body)
+	# Duck-type check: enemies have 'is_alive' property; bare nodes do not
+	if body.get("is_alive") != null:
+		body.take_damage(damage, shooter)
+	AudioManager.play_hit_sfx()
+
+	# Slow zone upgrade
+	if is_instance_valid(shooter) and shooter.has_upgrade("wall_of_sound"):
+		if body.get("is_alive") != null:
+			body.apply_slow(0.5, 2.0)
+
+	if _pierced < pierce_count:
+		_pierced += 1
+	else:
+		queue_free()
+
 func _on_area_entered(_area: Area2D) -> void:
 	pass
 
 func _on_body_entered(body: Node2D) -> void:
-	if body.is_in_group("enemies") and body not in _hit_enemies:
-		_hit_enemies.append(body)
-		if body.has_method("take_damage"):
-			body.take_damage(damage, shooter)
-		AudioManager.play_hit_sfx()
-
-		# Slow zone upgrade
-		if is_instance_valid(shooter) and shooter.has_upgrade("wall_of_sound"):
-			if body.has_method("apply_slow"):
-				body.apply_slow(0.5, 2.0)
-
-		if _pierced < pierce_count:
-			_pierced += 1
-		else:
-			queue_free()
+	# Fallback: physics-based detection (ergaenzt distance-check in _process)
+	if body.is_in_group("enemies"):
+		_hit_enemy(body)

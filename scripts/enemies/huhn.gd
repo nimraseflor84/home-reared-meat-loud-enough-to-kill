@@ -1,4 +1,4 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 var _zigzag_timer: float = 0.0
 var _zigzag_dir: float = 1.0
@@ -30,7 +30,7 @@ func _move_toward_target(delta: float) -> void:
 func _draw() -> void:
 	if _dying: _draw_death(); return
 	var flash    = _hit_flash > 0
-	# ── South Park Stil (Huhn) ──
+	# -- South Park Stil (Huhn) --
 	var body_col = Color(0.95, 0.55, 0.12) if not flash else Color.WHITE
 	var wing_col = Color(0.88, 0.82, 0.72)
 	var beak_col = Color(1.0, 0.80, 0.05)
@@ -40,16 +40,16 @@ func _draw() -> void:
 	var lk    = _wc * 5.0
 	var wf    = abs(_wc) * 6.0 - 1.0
 
-	# Beine (dünne gelbe Stiele mit Zehen – alternierend)
+	# Beine (duenne gelbe Stiele mit Zehen - alternierend)
 	draw_line(Vector2(-4, 14 + bob), Vector2(-6 - lk, 24), beak_col, 3.0)
 	draw_line(Vector2(4,  14 + bob), Vector2(6 + lk,  24), beak_col, 3.0)
 	draw_line(Vector2(-6 - lk, 24), Vector2(-11 - lk, 24), beak_col, 2.0)
 	draw_line(Vector2(6 + lk,  24), Vector2(11 + lk,  24), beak_col, 2.0)
 
-	# Runder Körper (South Park: flacher Kreis)
+	# Runder Koerper (South Park: flacher Kreis)
 	draw_circle(Vector2(0, 4 + bob), 14, body_col)
 
-	# Flügel-Stubs (flattern)
+	# Fluegel-Stubs (flattern)
 	draw_rect(Rect2(-19, -1 + bob - wf, 8, 10), wing_col)
 	draw_rect(Rect2(11,  -1 + bob - wf, 8, 10), wing_col)
 
@@ -77,7 +77,7 @@ func _draw_death() -> void:
 	var blood    = Color(0.72, 0.0,  0.02)
 
 	if t < 0.38:
-		# Phase 1: Federn fliegen ab, Körper schrumpft
+		# Phase 1: Federn fliegen ab, Koerper schrumpft
 		var pt = t / 0.38
 		var sc = 1.0 - pt * 0.45
 		draw_circle(Vector2(0,  4*sc), 14*sc, body_col)
@@ -99,11 +99,11 @@ func _draw_death() -> void:
 		# Kamm fliegt ab
 		draw_circle(Vector2(-2 - pt*18, -23 - pt*22), 4*(1.0-pt), red_col)
 	else:
-		# Phase 2: KÖRPER EXPLODIERT – Fleisch und Blut
+		# Phase 2: KOeRPER EXPLODIERT - Fleisch und Blut
 		var pt = (t - 0.38) / 0.62
 		# Orangefarbener Flash
 		draw_circle(Vector2(0, 4), 14*(1.0-pt), Color(1.0, 0.65, 0.25, (1.0-pt)*0.75))
-		# 11 Körperchunks radial
+		# 11 Koerperchunks radial
 		for i in range(11):
 			var a  = float(i)*TAU/11.0
 			var d  = 5.0 + pt*58.0
@@ -117,7 +117,7 @@ func _draw_death() -> void:
 			var sz = 3.8 - pt*2.8
 			if sz > 0.1:
 				draw_circle(Vector2(cos(a),sin(a))*d, sz, blood)
-		# Beine laufen noch weiter (losgelöst)
+		# Beine laufen noch weiter (losgeloest)
 		draw_line(Vector2(-4-pt*14, 14+pt*10), Vector2(-6-pt*18, 24+pt*6), beak_col, 3.0)
 		draw_line(Vector2( 4+pt*12, 14+pt*8),  Vector2( 6+pt*16, 24+pt*9), beak_col, 3.0)
 		# Blutlache

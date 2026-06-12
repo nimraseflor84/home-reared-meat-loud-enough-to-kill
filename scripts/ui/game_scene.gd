@@ -1,6 +1,6 @@
 extends Node2D
 
-var player = null           # P1 – rückwärtskompatible Referenz
+var player = null           # P1 - rueckwaertskompatible Referenz
 var _players: Array = []   # alle Spieler (1 oder 2)
 var rhythm_system = null
 var crowd_meter_sys = null
@@ -23,26 +23,31 @@ var _screen_flash: float = 0.0
 var _screen_flash_color: Color = Color.WHITE
 var _current_map: String = "farm"
 
-# Farm – Traktor
-var _tractor_dir: int      = 0      # 0=L→R  1=R→L  2=T→B  3=B→T
-var _tractor_progress: float = 0.0  # 0..1 Fortschritt über den Bildschirm
+# Screen Shake
+var _shake_intensity: float = 0.0   # aktuelle Staerke in Pixeln
+var _shake_duration: float  = 0.0   # verbleibende Zeit
+var _shake_enabled: bool    = true   # aus SaveManager geladen
+
+# Farm - Traktor
+var _tractor_dir: int      = 0      # 0=L->R  1=R->L  2=T->B  3=B->T
+var _tractor_progress: float = 0.0  # 0..1 Fortschritt ueber den Bildschirm
 var _tractor_active: bool  = false
-var _tractor_next: float   = 1.8    # Sekunden bis zur nächsten Fahrt
+var _tractor_next: float   = 1.8    # Sekunden bis zur naechsten Fahrt
 var _tractor_lane: float   = 0.5    # Position auf der Querachse (normiert 0..1)
 var _tractor_blood: Array  = []     # [{ox,oy,r}] Blutflecken relativ zum Traktor
 var _tractor_hit_cd: float = 0.0    # Schadenskooldown
-const _TRACTOR_DUR    = 3.8          # Sekunden für eine komplette Überfahrt
+const _TRACTOR_DUR    = 3.8          # Sekunden fuer eine komplette Ueberfahrt
 const _TRACTOR_HALF_W = 36.0        # Halbe Breite der Kollisionsbox
 const _TRACTOR_HALF_H = 28.0
 
-# Meppen – Autos / Kreisverkehr
+# Meppen - Autos / Kreisverkehr
 var _meppen_roundabout_cars: Array = []
 var _meppen_street_cars: Array    = []
 var _meppen_car_hit_cd: float     = 0.0
 var _meppen_next_car: float       = 1.5
 const _MEPPEN_ROUNDABOUT_RADIUS   = 80.0
 
-# Proberaum – Lichtflackern
+# Proberaum - Lichtflackern
 var _probe_flicker: float      = 1.0
 var _probe_flicker_timer: float = 0.0
 var _probe_flicker_active: bool = false
@@ -70,6 +75,17 @@ func _ready() -> void:
 	_start_wave_with_delay(next_wave)
 	AudioManager.start_music()
 	GameManager.add_volume_widget(self)
+	_setup_touch_controls()
+	_shake_enabled = bool(SaveManager.get_setting("screen_shake") if SaveManager.get_setting("screen_shake") != null else true)
+
+func _setup_touch_controls() -> void:
+	var canvas := CanvasLayer.new()
+	canvas.layer = 20
+	add_child(canvas)
+	var tc_script := load("res://scripts/ui/touch_controls.gd")
+	var tc := Control.new()
+	tc.script = tc_script
+	canvas.add_child(tc)
 
 func _setup_systems() -> void:
 	rhythm_system = load("res://scripts/systems/rhythm_system.gd").new()
@@ -85,6 +101,7 @@ func _setup_systems() -> void:
 	get_node("UpgradeManager").add_child(upgrade_manager)
 
 	wave_manager.connect("wave_completed", _on_wave_completed)
+	wave_manager.connect("enemy_type_spawned", _on_enemy_type_spawned)
 	rhythm_system.connect("rhythm_hit", _on_rhythm_hit)
 	rhythm_system.connect("beat_occurred", _on_beat)
 	crowd_meter_sys.connect("level_changed", _on_crowd_level_changed)
@@ -144,7 +161,7 @@ func _setup_hud() -> void:
 		hp_label2.name = "P2HPLabel"
 		hp_label2.position = Vector2(20, 78)
 		hp_label2.size = Vector2(200, 16)
-		hp_label2.text = "P2 HP"
+		hp_label2.text = "P2 " + LocalizationManager.t("hud_hp")
 		hp_label2.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
 		hp_label2.add_theme_font_size_override("font_size", 14)
 		hud_canvas.add_child(hp_label2)
@@ -217,9 +234,9 @@ func _setup_hud() -> void:
 	beat_indicator.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	beat_indicator.anchor_top = 1.0
 	beat_indicator.anchor_bottom = 1.0
-	beat_indicator.position = Vector2(230, -30)
-	beat_indicator.size = Vector2(20, 20)
-	beat_indicator.color = Color(0.5, 0.5, 0.5, 0.3)
+	beat_indicator.position = Vector2(230, -50)
+	beat_indicator.size = Vector2(30, 30)
+	beat_indicator.color = Color(0.0, 0.0, 0.0, 0.0)  # Unsichtbar bis Metronom-Upgrade
 	hud_canvas.add_child(beat_indicator)
 
 	var ult_label = Label.new()
@@ -290,19 +307,404 @@ func _spawn_players() -> void:
 		var p = pscene.instantiate()
 		p.global_position = base_pos + spawn_offsets[i]
 		p.player_index = i
-		if i == 1:
-			p._joy_device = 1  # P2 nutzt immer Joypad 1
+		if GameManager.network_mode == 1:
+			# Host steuert P1 lokal; P2 wird auf dem Client gespielt -> Remote-Geist
+			if i == 1:
+				p._is_remote = true
+		elif GameManager.network_mode == 2:
+			# Client steuert P2 lokal (Touch); P1 laeuft auf Host -> Remote-Geist
+			if i == 0:
+				p._is_remote = true
+		else:
+			if i == 1:
+				p._joy_device = 1
 		add_child(p)
 		p.add_to_group("players")
 		p.connect("died",         _on_player_died.bind(i))
 		p.connect("hp_changed",   _on_player_hp_changed.bind(i))
 		p.connect("attacked",     _on_player_attacked)
 		p.connect("ultimate_used", _on_player_ultimate)
+		p.connect("took_damage",  _on_player_took_damage)
 		_players.append(p)
 		if i == 0:
 			player = p
 	if is_instance_valid(player):
 		upgrade_manager.set_player(player)
+
+# -- Dash-Anzeige (nur Desktop) -------------------------------------------------
+# Auf Mobile zeigt touch_controls.gd einen eigenen DASH-Button. Auf dem Desktop
+# war der Dash bisher unsichtbar (keine Anzeige, kein Hinweis auf die Taste).
+# Diese Anzeige spiegelt den Mobile-Button: Tastenhinweis + Cooldown-Balken.
+
+const _DASH_BAR_WIDTH: float = 140.0
+const _DASH_BAR_HEIGHT: float = 6.0
+
+func _update_dash_indicator() -> void:
+	# Mobile hat den Touch-Button, dort keine zweite Anzeige
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		return
+	if hud == null or not is_instance_valid(player):
+		return
+	var lbl: Label = hud.get_node_or_null("DashHintLabel")
+	var bar_bg: ColorRect = hud.get_node_or_null("DashBarBG")
+	var bar: ColorRect = hud.get_node_or_null("DashBar")
+	if lbl == null:
+		lbl = Label.new()
+		lbl.name = "DashHintLabel"
+		lbl.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		lbl.anchor_top = 1.0
+		lbl.anchor_bottom = 1.0
+		lbl.position = Vector2(20, -64)
+		lbl.size = Vector2(300, 22)
+		lbl.text = LocalizationManager.t("dash_hint")
+		lbl.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
+		lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.05, 0.15, 1.0))
+		lbl.add_theme_constant_override("outline_size", 3)
+		lbl.add_theme_font_size_override("font_size", 14)
+		hud.add_child(lbl)
+		bar_bg = ColorRect.new()
+		bar_bg.name = "DashBarBG"
+		bar_bg.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		bar_bg.anchor_top = 1.0
+		bar_bg.anchor_bottom = 1.0
+		bar_bg.position = Vector2(20, -38)
+		bar_bg.size = Vector2(_DASH_BAR_WIDTH, _DASH_BAR_HEIGHT)
+		bar_bg.color = Color(0.05, 0.1, 0.2, 0.7)
+		hud.add_child(bar_bg)
+		bar = ColorRect.new()
+		bar.name = "DashBar"
+		bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		bar.anchor_top = 1.0
+		bar.anchor_bottom = 1.0
+		bar.position = Vector2(20, -38)
+		bar.size = Vector2(_DASH_BAR_WIDTH, _DASH_BAR_HEIGHT)
+		bar.color = Color(0.3, 0.75, 1.0)
+		hud.add_child(bar)
+	if bar == null:
+		return
+	# Cooldown aus dem Spieler lesen (typ-sicher ueber get, Felder existieren in player_base)
+	var cd = player.get("_dash_cooldown_timer")
+	var cd_max = player.get("_DASH_COOLDOWN")
+	if cd == null or cd_max == null or float(cd_max) <= 0.0:
+		return
+	var ready_ratio: float = clamp(1.0 - float(cd) / float(cd_max), 0.0, 1.0)
+	bar.size.x = _DASH_BAR_WIDTH * ready_ratio
+	# Blau wenn bereit, Orange waehrend des Cooldowns
+	bar.color = Color(0.3, 0.75, 1.0) if ready_ratio >= 1.0 else Color(0.95, 0.6, 0.2)
+
+# Gegner-Lore: eine Zeile pro Gegnertyp, eingeblendet beim allerersten Kontakt
+# (persistiert in SaveManager unter "seen_enemy_lore"). Erklaert nebenbei die
+# Welt: Wer sind diese Gegner und was hat SoundCorp damit zu tun.
+# Struktur: "name" und "text" sind Sprach-Dictionaries (de/en/fr/es/uk).
+const ENEMY_LORE: Dictionary = {
+	"sektierer": {
+		"name": {"de": "DIE SEKTIERER", "en": "THE CULTISTS", "fr": "LES SECTAIRES", "es": "LOS SECTARIOS", "uk": "СЕКТАНТИ"},
+		"text": {"de": "Jünger der Neuen Stille. Sie beten den Mutationsakkord an.",
+			"en": "Disciples of the New Silence. They worship the mutation chord.",
+			"fr": "Disciples du Nouveau Silence. Ils vénèrent l'accord mutant.",
+			"es": "Discípulos del Nuevo Silencio. Adoran el acorde mutante.",
+			"uk": "Послідовники Нової Тиші. Поклоняються мутаційному акорду."}},
+	"stille": {
+		"name": {"de": "DIE STILLE-WESEN", "en": "THE SILENCE CREATURES", "fr": "LES CRÉATURES DU SILENCE", "es": "LAS CRIATURAS DEL SILENCIO", "uk": "ІСТОТИ ТИШІ"},
+		"text": {"de": "Einst Konzertbesucher. Der Akkord nahm ihre Ohren, jetzt wollen sie deine Musik.",
+			"en": "Once concertgoers. The chord took their ears, now they come for your music.",
+			"fr": "D'anciens spectateurs. L'accord a pris leurs oreilles, ils viennent pour ta musique.",
+			"es": "Antiguos espectadores. El acorde se llevó sus oídos, ahora vienen por tu música.",
+			"uk": "Колишні глядачі. Акорд забрав їхні вуха, тепер вони йдуть по твою музику."}},
+	"verstimmte": {
+		"name": {"de": "DIE VERSTIMMTEN", "en": "THE DETUNED", "fr": "LES DÉSACCORDÉS", "es": "LOS DESAFINADOS", "uk": "РОЗСТРОЄНІ"},
+		"text": {"de": "Ehemalige Chormitglieder. Verstimmt durch SoundCorp-Ohrstöpsel.",
+			"en": "Former choir members. Detuned by SoundCorp earplugs.",
+			"fr": "D'anciens choristes, désaccordés par des bouchons SoundCorp.",
+			"es": "Antiguos coristas, desafinados por tapones SoundCorp.",
+			"uk": "Колишні хористи, розстроєні берушами SoundCorp."}},
+	"headbanger": {
+		"name": {"de": "DIE HEADBANGER", "en": "THE HEADBANGERS", "fr": "LES HEADBANGERS", "es": "LOS HEADBANGERS", "uk": "ХЕДБЕНГЕРИ"},
+		"text": {"de": "Sie liebten Metal. Jetzt rammen sie alles, was lauter ist als sie.",
+			"en": "They loved metal. Now they ram everything louder than them.",
+			"fr": "Ils aimaient le metal. Maintenant ils chargent tout ce qui est plus bruyant qu'eux.",
+			"es": "Amaban el metal. Ahora embisten todo lo que suena más fuerte que ellos.",
+			"uk": "Вони любили метал. Тепер таранять усе, що гучніше за них."}},
+	"huhn": {
+		"name": {"de": "DAS MUTANTEN-HUHN", "en": "THE MUTANT CHICKEN", "fr": "LA POULE MUTANTE", "es": "LA GALLINA MUTANTE", "uk": "КУРКА-МУТАНТ"},
+		"text": {"de": "Hat die Radio-Werbung im Stall gehört. Seitdem aggressiv.",
+			"en": "Heard the radio ad in the coop. Aggressive ever since.",
+			"fr": "Elle a entendu la pub radio dans le poulailler. Agressive depuis.",
+			"es": "Oyó el anuncio en el gallinero. Agresiva desde entonces.",
+			"uk": "Почула рекламу в курнику. Відтоді агресивна."}},
+	"wildschwein": {
+		"name": {"de": "DAS WILDSCHWEIN", "en": "THE WILD BOAR", "fr": "LE SANGLIER", "es": "EL JABALÍ", "uk": "КАБАН"},
+		"text": {"de": "Der Akkord macht aus Borsten Stacheln.",
+			"en": "The chord turns bristles into spikes.",
+			"fr": "L'accord transforme les soies en piques.",
+			"es": "El acorde convierte las cerdas en púas.",
+			"uk": "Акорд перетворює щетину на шипи."}},
+	"grossbauer": {
+		"name": {"de": "DER GROSSBAUER", "en": "THE FARM BARON", "fr": "LE GRAND FERMIER", "es": "EL GRAN TERRATENIENTE", "uk": "ВЕЛИКИЙ ФЕРМЕР"},
+		"text": {"de": "Verkaufte seinen Hof an SoundCorp. Bezahlt wurde er mit Stille.",
+			"en": "Sold his farm to SoundCorp. He was paid in silence.",
+			"fr": "Il a vendu sa ferme à SoundCorp. Payé en silence.",
+			"es": "Vendió su granja a SoundCorp. Le pagaron en silencio.",
+			"uk": "Продав ферму SoundCorp. Заплатили тишею."}},
+	"waerter": {
+		"name": {"de": "DER WÄRTER", "en": "THE PRISON GUARD", "fr": "LE GARDIEN", "es": "EL GUARDIA", "uk": "НАГЛЯДАЧ"},
+		"text": {"de": "Bewacht die Stille in Block C. Hasst Lärm von Berufs wegen.",
+			"en": "Guards the silence in cell block C. Hates noise professionally.",
+			"fr": "Garde le silence du bloc C. Déteste le bruit par profession.",
+			"es": "Custodia el silencio del bloque C. Odia el ruido por oficio.",
+			"uk": "Охороняє тишу в блоці C. Ненавидить шум за фахом."}},
+	"gefchef": {
+		"name": {"de": "DER KNASTDIREKTOR", "en": "THE WARDEN", "fr": "LE DIRECTEUR DE PRISON", "es": "EL DIRECTOR DE LA PRISIÓN", "uk": "НАЧАЛЬНИК В'ЯЗНИЦІ"},
+		"text": {"de": "Dr. Käfig sperrt Musiker aus Prinzip ein.",
+			"en": "Dr. Kaefig locks up musicians on principle.",
+			"fr": "Le Dr Kaefig enferme les musiciens par principe.",
+			"es": "El Dr. Kaefig encierra músicos por principio.",
+			"uk": "Д-р Кефіг садить музикантів із принципу."}},
+	"cowboy": {
+		"name": {"de": "DER COWBOY", "en": "THE COWBOY", "fr": "LE COWBOY", "es": "EL VAQUERO", "uk": "КОВБОЙ"},
+		"text": {"de": "Reitet für die Neue Stille. Sein Lasso fängt Schallwellen.",
+			"en": "Rides for the New Silence. His lasso catches sound waves.",
+			"fr": "Chevauche pour le Nouveau Silence. Son lasso attrape les ondes sonores.",
+			"es": "Cabalga por el Nuevo Silencio. Su lazo atrapa ondas de sonido.",
+			"uk": "Скаче за Нову Тишу. Його ласо ловить звукові хвилі."}},
+	"sheriff": {
+		"name": {"de": "DER SHERIFF", "en": "THE SHERIFF", "fr": "LE SHÉRIF", "es": "EL SHERIFF", "uk": "ШЕРИФ"},
+		"text": {"de": "Hat Ruhestörung zum Kapitalverbrechen erklärt.",
+			"en": "Declared noise disturbance a capital crime.",
+			"fr": "A déclaré le tapage crime capital.",
+			"es": "Declaró el ruido crimen capital.",
+			"uk": "Оголосив порушення тиші тяжким злочином."}},
+	"trump": {
+		"name": {"de": "DER PRÄSIDENT", "en": "THE PRESIDENT", "fr": "LE PRÉSIDENT", "es": "EL PRESIDENTE", "uk": "ПРЕЗИДЕНТ"},
+		"text": {"de": "Will eine Mauer gegen Schallwellen bauen.",
+			"en": "Wants to build a wall against sound waves.",
+			"fr": "Veut construire un mur contre les ondes sonores.",
+			"es": "Quiere construir un muro contra las ondas de sonido.",
+			"uk": "Хоче збудувати стіну проти звукових хвиль."}},
+	"trucker": {
+		"name": {"de": "DER THUNDER-TRUCKER", "en": "THE THUNDER TRUCKER", "fr": "LE ROUTIER DU TONNERRE", "es": "EL CAMIONERO DEL TRUENO", "uk": "ГРОМОВИЙ ДАЛЕКОБІЙНИК"},
+		"text": {"de": "Sein Truck liefert SoundCorp-Lautsprecher. Tonnenweise.",
+			"en": "His truck hauls SoundCorp speakers. By the ton.",
+			"fr": "Son camion livre des enceintes SoundCorp. Par tonnes.",
+			"es": "Su camión transporta altavoces SoundCorp. Por toneladas.",
+			"uk": "Його вантажівка возить динаміки SoundCorp. Тоннами."}},
+	"security": {
+		"name": {"de": "DER WERKSCHUTZ", "en": "THE SECURITY GUARD", "fr": "L'AGENT DE SÉCURITÉ", "es": "EL SEGURATA", "uk": "ОХОРОНЕЦЬ"},
+		"text": {"de": "SoundCorp-Werkschutz. Beschützt die Stille mit dem Schlagstock.",
+			"en": "SoundCorp security. Protects the silence with a baton.",
+			"fr": "Vigile SoundCorp. Protège le silence à la matraque.",
+			"es": "Seguridad de SoundCorp. Protege el silencio a porrazos.",
+			"uk": "Охорона SoundCorp. Захищає тишу кийком."}},
+	"tvstar": {
+		"name": {"de": "DER TV-GURU", "en": "THE TV GURU", "fr": "LE GOUROU TÉLÉ", "es": "EL GURÚ DE LA TV", "uk": "ТЕЛЕГУРУ"},
+		"text": {"de": "Moderiert die Dauerwerbesendung der Neuen Stille.",
+			"en": "Hosts the New Silence infomercial. On every channel.",
+			"fr": "Anime le téléachat du Nouveau Silence.",
+			"es": "Presenta la teletienda del Nuevo Silencio.",
+			"uk": "Веде рекламне шоу Нової Тиші."}},
+	"buergermeister": {
+		"name": {"de": "DER BÜRGERMEISTER", "en": "THE MAYOR", "fr": "LE MAIRE", "es": "EL ALCALDE", "uk": "БУРГОМІСТР"},
+		"text": {"de": "Unterschrieb den SoundCorp-Deal für Meppen. Ohne zu lesen.",
+			"en": "Signed the SoundCorp deal for Meppen. Without reading it.",
+			"fr": "A signé le contrat SoundCorp pour Meppen. Sans le lire.",
+			"es": "Firmó el contrato de SoundCorp por Meppen. Sin leerlo.",
+			"uk": "Підписав угоду SoundCorp за Меппен. Не читаючи."}},
+	"willi": {
+		"name": {"de": "WILLI SCHREI-STOPP", "en": "WILLI SCREAM-STOP", "fr": "WILLI SCHREI-STOPP", "es": "WILLI SCHREI-STOPP", "uk": "ВІЛЛІ ШРАЙ-ШТОП"},
+		"text": {"de": "Rief 40 Jahre lang die Polizei wegen Ruhestörung. Jetzt regelt er es selbst.",
+			"en": "Called the cops about noise for 40 years. Now he handles it himself.",
+			"fr": "40 ans à appeler les flics pour le bruit. Maintenant il s'en charge lui-même.",
+			"es": "40 años llamando a la policía por el ruido. Ahora lo resuelve él mismo.",
+			"uk": "40 років викликав поліцію через шум. Тепер розбирається сам."}},
+	"gerlinde": {
+		"name": {"de": "GERLINDE SCHREI-STOPP", "en": "GERLINDE SCREAM-STOP", "fr": "GERLINDE SCHREI-STOPP", "es": "GERLINDE SCHREI-STOPP", "uk": "ГЕРЛІНДА ШРАЙ-ШТОП"},
+		"text": {"de": "Willis bessere Hälfte. Ihr Hörgerät ist eine SoundCorp-Waffe.",
+			"en": "Willi's better half. Her hearing aid is a SoundCorp weapon.",
+			"fr": "La moitié de Willi. Son appareil auditif est une arme SoundCorp.",
+			"es": "La media naranja de Willi. Su audífono es un arma de SoundCorp.",
+			"uk": "Половинка Віллі. Її слуховий апарат — зброя SoundCorp."}},
+	"mega_schwein": {
+		"name": {"de": "BORSTE-BERND", "en": "BRISTLE-BERND", "fr": "BORSTE-BERND", "es": "BORSTE-BERND", "uk": "БОРСТЕ-БЕРНД"},
+		"text": {"de": "Das Maskottchen des Death Feast. Mutiert.",
+			"en": "The Death Feast mascot. Mutated.",
+			"fr": "La mascotte du Death Feast. Mutée.",
+			"es": "La mascota del Death Feast. Mutada.",
+			"uk": "Маскот Death Feast. Мутований."}},
+	"farm_schwein": {
+		"name": {"de": "DIE FARMTIERE", "en": "THE FARM ANIMALS", "fr": "LES ANIMAUX DE LA FERME", "es": "LOS ANIMALES DE GRANJA", "uk": "СВІЙСЬКІ ТВАРИНИ"},
+		"text": {"de": "Ganz normale Tiere. Bis die Frequenz kam.",
+			"en": "Ordinary animals. Until the frequency hit.",
+			"fr": "Des animaux ordinaires. Jusqu'à la fréquence.",
+			"es": "Animales corrientes. Hasta que llegó la frecuencia.",
+			"uk": "Звичайні тварини. Поки не прийшла частота."}},
+	"dirigent": {
+		"name": {"de": "DER DIRIGENT", "en": "THE CONDUCTOR", "fr": "LE CHEF D'ORCHESTRE", "es": "EL DIRECTOR", "uk": "ДИРИГЕНТ"},
+		"text": {"de": "Sein Taktstock dirigiert die Apokalypse.",
+			"en": "His baton conducts the apocalypse.",
+			"fr": "Sa baguette dirige l'apocalypse.",
+			"es": "Su batuta dirige el apocalipsis.",
+			"uk": "Його паличка диригує апокаліпсисом."}},
+}
+
+# Warteschlange fuer Lore-Einblendungen (nie mehr als eine gleichzeitig)
+var _lore_queue: Array = []
+var _lore_active: bool = false
+const LORE_SHOW_SEC: float = 5.0
+
+func _on_enemy_type_spawned(type: String) -> void:
+	if not ENEMY_LORE.has(type):
+		return
+	var seen: Array = SaveManager.save_data.get("seen_enemy_lore", [])
+	if type in seen:
+		return
+	seen.append(type)
+	SaveManager.save_data["seen_enemy_lore"] = seen
+	SaveManager.save_game()
+	_lore_queue.append(type)
+	_show_next_lore()
+
+func _show_next_lore() -> void:
+	if _lore_active or _lore_queue.is_empty() or hud == null:
+		return
+	_lore_active = true
+	var type: String = _lore_queue.pop_front()
+	var entry: Dictionary = ENEMY_LORE.get(type, {})
+	var lang: String = _content_lang()
+	var names: Dictionary = entry.get("name", {})
+	var texts: Dictionary = entry.get("text", {})
+	var lore_name: String = names.get(lang, names.get("en", ""))
+	var lore_text: String = texts.get(lang, texts.get("en", ""))
+
+	var toast = Label.new()
+	toast.name = "LoreToast"
+	# Desktop: unten links. Mobile: oben links, denn unten links liegt der
+	# Touch-Joystick aus touch_controls.gd und wuerde den Toast verdecken.
+	var is_mobile: bool = OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")
+	if is_mobile:
+		toast.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		toast.position = Vector2(20, 90)
+	else:
+		toast.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		toast.anchor_top = 1.0
+		toast.anchor_bottom = 1.0
+		toast.position = Vector2(20, -150)
+	toast.size = Vector2(470, 70)
+	toast.autowrap_mode = TextServer.AUTOWRAP_WORD
+	toast.text = LocalizationManager.t("lore_new") + lore_name + "\n" + lore_text
+	toast.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))
+	toast.add_theme_color_override("font_outline_color", Color(0.15, 0.08, 0.0, 1.0))
+	toast.add_theme_constant_override("outline_size", 4)
+	toast.add_theme_font_size_override("font_size", 16)
+	toast.modulate.a = 0.0
+	hud.add_child(toast)
+
+	var t: Tween = create_tween()
+	t.tween_property(toast, "modulate:a", 1.0, 0.3)
+	t.tween_interval(LORE_SHOW_SEC)
+	t.tween_property(toast, "modulate:a", 0.0, 0.4)
+	t.tween_callback(func():
+		if is_instance_valid(toast):
+			toast.queue_free()
+		_lore_active = false
+		_show_next_lore()
+	)
+
+# Band-Funk: kurze Dialogzeilen der Bandmitglieder vor jeder Story-Welle.
+# Traegt die Story zwischen den Akten weiter (SoundCorp-Spur, Charakter-Humor).
+# Nur im Story-Mode aktiv. Sprachen: de/en/fr/es/uk, Fallback en.
+const STORY_FUNK: Dictionary = {
+	1:  {"de": "Manni: Die kommen aus den Boxen! SPIELT LAUTER!",
+		 "en": "Manni: They're coming out of the speakers! PLAY LOUDER!",
+		 "fr": "Manni: Ils sortent des enceintes! JOUEZ PLUS FORT!",
+		 "es": "Manni: ¡Salen de los altavoces! ¡TOCAD MÁS FUERTE!",
+		 "uk": "Манні: Вони лізуть з динаміків! ГРАЙТЕ ГУЧНІШЕ!"},
+	2:  {"de": "Chicken: Ein Erzbischof? Der will uns den Stecker ziehen!",
+		 "en": "Chicken: An archbishop? He's here to pull our plug!",
+		 "fr": "Chicken: Un archevêque? Il vient nous débrancher!",
+		 "es": "Chicken: ¿Un arzobispo? ¡Viene a desenchufarnos!",
+		 "uk": "Чікен: Архієпископ? Він хоче висмикнути наш шнур!"},
+	3:  {"de": "Nik: Wie sind wir im Knast gelandet? Egal. Weiterspielen.",
+		 "en": "Nik: How did we end up in prison? Whatever. Keep playing.",
+		 "fr": "Nik: Comment on a atterri en prison? Peu importe. On continue.",
+		 "es": "Nik: ¿Cómo acabamos en prisión? Da igual. Seguimos tocando.",
+		 "uk": "Нік: Як ми опинились у в'язниці? Байдуже. Граємо далі."},
+	4:  {"de": "Armin: Der Direktor hasst Musik. Zeigen wir ihm ein Solo.",
+		 "en": "Armin: The warden hates music. Let's show him a solo.",
+		 "fr": "Armin: Le directeur déteste la musique. Offrons-lui un solo.",
+		 "es": "Armin: El director odia la música. Vamos a regalarle un solo.",
+		 "uk": "Армін: Начальник ненавидить музику. Покажемо йому соло."},
+	5:  {"de": "Andz: Mutanten-Hühner. Und auf dem Futtertrog: ein SoundCorp-Logo.",
+		 "en": "Andz: Mutant chickens. And on the feed trough: a SoundCorp logo.",
+		 "fr": "Andz: Des poules mutantes. Et sur la mangeoire: un logo SoundCorp.",
+		 "es": "Andz: Gallinas mutantes. Y en el comedero: un logo de SoundCorp.",
+		 "uk": "Андз: Кури-мутанти. А на годівниці: логотип SoundCorp."},
+	6:  {"de": "Grindhouse: Diese Schweine haben den Akkord gehört. Definitiv.",
+		 "en": "Grindhouse: These pigs heard the chord. Definitely.",
+		 "fr": "Grindhouse: Ces cochons ont entendu l'accord. C'est sûr.",
+		 "es": "Grindhouse: Estos cerdos oyeron el acorde. Seguro.",
+		 "uk": "Ґрайндхаус: Ці свині чули акорд. Точно."},
+	7:  {"de": "Manni: DAS ist das größte Schwein, das ich je gesehen hab!",
+		 "en": "Manni: THAT is the biggest pig I have ever seen!",
+		 "fr": "Manni: C'est le plus gros cochon que j'aie jamais vu!",
+		 "es": "Manni: ¡ES el cerdo más grande que he visto!",
+		 "uk": "Манні: Це НАЙБІЛЬША свиня, яку я бачив!"},
+	8:  {"de": "Chicken: Übersee-Gig. Das Publikum ist... schwierig.",
+		 "en": "Chicken: Overseas gig. The crowd is... difficult.",
+		 "fr": "Chicken: Concert outre-mer. Le public est... difficile.",
+		 "es": "Chicken: Bolo en ultramar. El público es... difícil.",
+		 "uk": "Чікен: Закордонний виступ. Публіка... складна."},
+	9:  {"de": "Armin: Ein Truck voller Verstärker. Wir übertönen ihn.",
+		 "en": "Armin: A truck full of amps. We will drown it out.",
+		 "fr": "Armin: Un camion plein d'amplis. On va le couvrir.",
+		 "es": "Armin: Un camión lleno de amplis. Lo taparemos con sonido.",
+		 "uk": "Армін: Вантажівка, повна підсилювачів. Ми її заглушимо."},
+	10: {"de": "Nik: SoundCorps Tonstudio. Hier wurde die Werbung aufgenommen. Hört ihr das Summen?",
+		 "en": "Nik: SoundCorp's studio. This is where the ad was recorded. You hear that hum?",
+		 "fr": "Nik: Le studio de SoundCorp. C'est ici que la pub a été enregistrée. Vous entendez ce bourdonnement?",
+		 "es": "Nik: El estudio de SoundCorp. Aquí se grabó el anuncio. ¿Oís ese zumbido?",
+		 "uk": "Нік: Студія SoundCorp. Тут записали ту рекламу. Чуєте гул?"},
+	11: {"de": "Andz: Live auf Sendung. Wenn wir untergehen, dann zur Primetime.",
+		 "en": "Andz: Live on air. If we go down, we go down in primetime.",
+		 "fr": "Andz: En direct à l'antenne. Si on tombe, on tombe en prime time.",
+		 "es": "Andz: En directo. Si caemos, caemos en prime time.",
+		 "uk": "Андз: Прямий ефір. Якщо падати, то в прайм-тайм."},
+	12: {"de": "Grindhouse: Zuhause in Meppen. Alles verstummt. Machen wir es wieder laut.",
+		 "en": "Grindhouse: Home in Meppen. Everything silenced. Let's make it loud again.",
+		 "fr": "Grindhouse: De retour à Meppen. Tout est silencieux. Remettons du bruit.",
+		 "es": "Grindhouse: En casa, en Meppen. Todo en silencio. Hagamos ruido otra vez.",
+		 "uk": "Ґрайндхаус: Вдома, у Меппені. Все стихло. Зробимо знову гучно."},
+	13: {"de": "Manni: Das Rentnerpaar von gegenüber! Die haben schon immer die Polizei gerufen.",
+		 "en": "Manni: The retired couple from across the street! They always called the cops on us.",
+		 "fr": "Manni: Le couple de retraités d'en face! Ils ont toujours appelé les flics.",
+		 "es": "Manni: ¡Los jubilados de enfrente! Siempre llamaban a la policía.",
+		 "uk": "Манні: Пенсіонери з будинку навпроти! Вони завжди викликали поліцію."},
+	14: {"de": "Chicken: Das Festival-Gelände. Letzte Station vor dem Finale.",
+		 "en": "Chicken: The festival grounds. Last stop before the finale.",
+		 "fr": "Chicken: Le terrain du festival. Dernier arrêt avant le final.",
+		 "es": "Chicken: El recinto del festival. Última parada antes del final.",
+		 "uk": "Чікен: Фестивальне поле. Остання зупинка перед фіналом."},
+	15: {"de": "Alle: Für die Musik. LAUTER!",
+		 "en": "Everyone: For the music. LOUDER!",
+		 "fr": "Tous: Pour la musique. PLUS FORT!",
+		 "es": "Todos: Por la música. ¡MÁS FUERTE!",
+		 "uk": "Усі: За музику. ГУЧНІШЕ!"},
+}
+
+# Liefert den aktiven Sprachschluessel fuer Inhalts-Dictionaries (Fallback en)
+func _content_lang() -> String:
+	var cur: String = LocalizationManager.current_language
+	if cur in ["de", "en", "fr", "es", "uk"]:
+		return cur
+	return "en"
+
+# Liefert die Funk-Zeile fuer eine Welle in der aktiven Sprache ("" wenn keine)
+func _get_funk_line(wave_num: int) -> String:
+	if GameManager.endless_mode:
+		return ""
+	var entry: Dictionary = STORY_FUNK.get(wave_num, {})
+	if entry.is_empty():
+		return ""
+	return entry.get(_content_lang(), entry.get("en", ""))
 
 func _start_wave_with_delay(wave_num: int) -> void:
 	_in_transition = true
@@ -312,15 +714,24 @@ func _start_wave_with_delay(wave_num: int) -> void:
 func _show_wave_banner(wave_num: int) -> void:
 	if not hud:
 		return
-	# Remove old banner if exists
+	# Remove old banners if they exist
 	var old = hud.get_node_or_null("WaveBanner")
 	if old:
 		old.queue_free()
 	var old_sub = hud.get_node_or_null("LocationBanner")
 	if old_sub:
 		old_sub.queue_free()
+	var old_cnt = hud.get_node_or_null("EnemyCountBanner")
+	if old_cnt:
+		old_cnt.queue_free()
+	var old_shop = hud.get_node_or_null("ShopAnnounceBanner")
+	if old_shop:
+		old_shop.queue_free()
+	var old_funk = hud.get_node_or_null("FunkBanner")
+	if old_funk:
+		old_funk.queue_free()
 
-	# Wave banner
+	# Wave banner (groesser, mit Scale-Pop)
 	var banner = Label.new()
 	banner.name = "WaveBanner"
 	banner.set_anchors_preset(Control.PRESET_CENTER)
@@ -328,22 +739,37 @@ func _show_wave_banner(wave_num: int) -> void:
 	banner.anchor_right = 0.5
 	banner.anchor_top = 0.5
 	banner.anchor_bottom = 0.5
-	banner.position = Vector2(-200, -80)
-	banner.size = Vector2(400, 60)
+	banner.position = Vector2(-300, -110)
+	banner.size = Vector2(600, 80)
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	banner.pivot_offset = banner.size * 0.5
 	if _is_boss_wave(wave_num):
 		banner.text = LocalizationManager.t("boss_wave_banner") % [wave_num]
 		banner.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		banner.add_theme_color_override("font_outline_color", Color(0.25, 0.0, 0.0, 1.0))
 	else:
 		banner.text = LocalizationManager.t("wave_banner") % [wave_num]
 		banner.add_theme_color_override("font_color", Color(1.0, 1.0, 0.3))
-	banner.add_theme_font_size_override("font_size", 48)
+		banner.add_theme_color_override("font_outline_color", Color(0.15, 0.08, 0.0, 1.0))
+	banner.add_theme_constant_override("outline_size", 6)
+	banner.add_theme_font_size_override("font_size", 56)
 	hud.add_child(banner)
 
-	# Location subtitle banner
+	# Metal/Punk Scale-Pop: 1.6x -> 0.95x -> 1.0x (Tween)
+	banner.scale = Vector2(1.6, 1.6)
+	banner.modulate.a = 0.0
+	var pop_tween: Tween = create_tween()
+	pop_tween.set_parallel(true)
+	pop_tween.tween_property(banner, "scale", Vector2(0.95, 0.95), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	pop_tween.tween_property(banner, "modulate:a", 1.0, 0.15)
+	var pop_settle: Tween = create_tween()
+	pop_settle.tween_interval(0.18)
+	pop_settle.tween_property(banner, "scale", Vector2(1.0, 1.0), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	# Location subtitle banner (Titel/Untertitel kommen lokalisiert aus dem
+	# LocalizationManager, Keys: map_<id>_title / map_<id>_sub)
 	var map_id = _get_map_for_wave(wave_num)
-	var map_info = _MAP_INFO.get(map_id, {})
 	var loc_banner = Label.new()
 	loc_banner.name = "LocationBanner"
 	loc_banner.set_anchors_preset(Control.PRESET_CENTER)
@@ -351,23 +777,127 @@ func _show_wave_banner(wave_num: int) -> void:
 	loc_banner.anchor_right = 0.5
 	loc_banner.anchor_top = 0.5
 	loc_banner.anchor_bottom = 0.5
-	loc_banner.position = Vector2(-250, -20)
+	loc_banner.position = Vector2(-250, -30)
 	loc_banner.size = Vector2(500, 36)
 	loc_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	loc_banner.text = map_info.get("title", "") + "  –  " + map_info.get("subtitle", "")
+	loc_banner.text = LocalizationManager.map_title(map_id) + "  -  " + LocalizationManager.map_subtitle(map_id)
 	loc_banner.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
 	loc_banner.add_theme_font_size_override("font_size", 18)
 	hud.add_child(loc_banner)
 
+	# Enemy Count Banner fuer die naechste Welle (prominent unter dem Location-Label)
+	# Anzahl aus dem WaveManager mit Schwierigkeits-Multiplikator berechnen
+	var enemy_count: int = _get_estimated_enemy_count(wave_num)
+	if enemy_count > 0:
+		var cnt_banner = Label.new()
+		cnt_banner.name = "EnemyCountBanner"
+		cnt_banner.set_anchors_preset(Control.PRESET_CENTER)
+		cnt_banner.anchor_left = 0.5
+		cnt_banner.anchor_right = 0.5
+		cnt_banner.anchor_top = 0.5
+		cnt_banner.anchor_bottom = 0.5
+		cnt_banner.position = Vector2(-300, 15)
+		cnt_banner.size = Vector2(600, 32)
+		cnt_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cnt_banner.text = LocalizationManager.t("next_wave_enemies") % [enemy_count]
+		cnt_banner.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15))
+		cnt_banner.add_theme_color_override("font_outline_color", Color(0.18, 0.05, 0.0, 1.0))
+		cnt_banner.add_theme_constant_override("outline_size", 3)
+		cnt_banner.add_theme_font_size_override("font_size", 22)
+		cnt_banner.modulate.a = 0.0
+		hud.add_child(cnt_banner)
+		var cnt_tween: Tween = create_tween()
+		cnt_tween.tween_interval(0.25)
+		cnt_tween.tween_property(cnt_banner, "modulate:a", 1.0, 0.25)
+
+	# Band-Funk: Dialogzeile der Band unter dem Gegner-Zaehler (nur Story-Mode)
+	var funk_line: String = _get_funk_line(wave_num)
+	if funk_line != "":
+		var funk_banner = Label.new()
+		funk_banner.name = "FunkBanner"
+		funk_banner.set_anchors_preset(Control.PRESET_CENTER)
+		funk_banner.anchor_left = 0.5
+		funk_banner.anchor_right = 0.5
+		funk_banner.anchor_top = 0.5
+		funk_banner.anchor_bottom = 0.5
+		funk_banner.position = Vector2(-380, 58)
+		funk_banner.size = Vector2(760, 52)
+		funk_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		funk_banner.autowrap_mode = TextServer.AUTOWRAP_WORD
+		funk_banner.text = "» " + funk_line + " «"
+		funk_banner.add_theme_color_override("font_color", Color(0.65, 0.95, 0.7))
+		funk_banner.add_theme_color_override("font_outline_color", Color(0.0, 0.12, 0.04, 1.0))
+		funk_banner.add_theme_constant_override("outline_size", 3)
+		funk_banner.add_theme_font_size_override("font_size", 19)
+		funk_banner.modulate.a = 0.0
+		hud.add_child(funk_banner)
+		var funk_tween: Tween = create_tween()
+		funk_tween.tween_interval(0.4)
+		funk_tween.tween_property(funk_banner, "modulate:a", 1.0, 0.3)
+
+	# (Shop-Ankuendigung wird in _show_shop_announce() direkt vor dem Shop-Wechsel angezeigt -
+	# nicht hier im Wave-Banner.)
+
 	var timer = get_tree().create_timer(2.5, false)
 	timer.connect("timeout", func():
-		if is_instance_valid(banner): banner.queue_free()
-		if is_instance_valid(loc_banner): loc_banner.queue_free()
+		if is_instance_valid(banner):
+			var fade_out: Tween = create_tween()
+			fade_out.set_parallel(true)
+			fade_out.tween_property(banner, "modulate:a", 0.0, 0.25)
+			fade_out.tween_property(banner, "scale", Vector2(1.15, 1.15), 0.25)
+			fade_out.chain().tween_callback(func():
+				if is_instance_valid(banner): banner.queue_free()
+			)
+		if is_instance_valid(loc_banner):
+			loc_banner.queue_free()
+		if hud:
+			var cnt = hud.get_node_or_null("EnemyCountBanner")
+			if cnt:
+				cnt.queue_free()
+			# Funk-Zeile bleibt etwas laenger stehen und blendet dann aus,
+			# damit der Spieler sie auch beim Wellenstart noch lesen kann
+			var funk = hud.get_node_or_null("FunkBanner")
+			if funk:
+				var funk_out: Tween = create_tween()
+				funk_out.tween_interval(1.5)
+				funk_out.tween_property(funk, "modulate:a", 0.0, 0.4)
+				funk_out.tween_callback(func():
+					if is_instance_valid(funk): funk.queue_free()
+				)
 	)
 
 	if _is_boss_wave(wave_num):
 		var boss_warn_timer = get_tree().create_timer(2.6, false)
 		boss_warn_timer.connect("timeout", _show_boss_warning)
+
+# Geschaetzte Gegneranzahl fuer eine bevorstehende Welle.
+# Liest WAVE_CONFIG von der wave_manager.gd-Instanz (so brauchen wir keinen
+# class_name-Zugriff und respektieren die Codebase-Konvention der path-based loads).
+# Multipliziert mit dem aktuellen Difficulty-Count-Multiplikator (so wie es start_wave macht).
+func _get_estimated_enemy_count(wave_num: int) -> int:
+	var base_count: int = 0
+	var extras: int = 0
+	var wave_config: Dictionary = {}
+	if is_instance_valid(wave_manager):
+		var s = wave_manager.get_script()
+		if s:
+			# get_script_constant_map() liefert alle class-level consts als Dict
+			var consts: Dictionary = s.get_script_constant_map()
+			wave_config = consts.get("WAVE_CONFIG", {})
+	if wave_config.has(wave_num):
+		var cfg: Dictionary = wave_config[wave_num]
+		base_count = int(cfg.get("count", 0))
+		extras = int(cfg.get("extras", 0))
+	else:
+		# Endless-Fallback: gleiche Formel wie WaveManager._get_endless_config
+		if wave_num % 5 == 0:
+			base_count = 1
+			extras = 4 + max(0, (wave_num / 5) - 1)
+		else:
+			base_count = 10 + wave_num * 2
+	var count_mult: float = GameManager.DIFFICULTY_COUNT[GameManager.difficulty]
+	var total: int = int(max(1, base_count * count_mult)) + extras
+	return total
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_action_pressed("ui_cancel") and not event.is_echo() and not _game_over and not _between_waves and not _in_transition:
@@ -399,7 +929,7 @@ func _show_pause_overlay() -> void:
 	_pause_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_pause_overlay)
 
-	# Elevator animation as the bottom layer — Node2D _draw() is reliable
+	# Elevator animation as the bottom layer -- Node2D _draw() is reliable
 	var ElevatorClass = load("res://scripts/ui/elevator_scene.gd")
 	if ElevatorClass:
 		_pause_elevator = ElevatorClass.new()
@@ -419,17 +949,60 @@ func _show_pause_overlay() -> void:
 		AudioManager.stop_elevator_music()
 		GameManager.go_to_main_menu()
 	)
+	_pause_screen.options_requested.connect(func():
+		get_tree().paused = false
+		_paused = false
+		AudioManager.stop_elevator_music()
+		GameManager.go_to_options()
+	)
+	_pause_screen.restart_requested.connect(func():
+		get_tree().paused = false
+		_paused = false
+		AudioManager.stop_elevator_music()
+		# Run komplett von Welle 1 mit gleichem Character neu starten
+		if GameManager.endless_mode:
+			GameManager.start_endless_game()
+		else:
+			GameManager.start_game()
+	)
 
 func _hide_pause_overlay() -> void:
 	if is_instance_valid(_pause_overlay):
 		_pause_overlay.visible = false
 
+var _net_sync_timer: float = 0.0
+
 func _process(delta: float) -> void:
 	if _paused:
 		return
 	_anim_time += delta
+	_update_dash_indicator()
+	# Netzwerk: eigene Spielerposition 30fps an Gegenseite senden
+	if GameManager.network_mode > 0:
+		_net_sync_timer += delta
+		if _net_sync_timer >= 0.033:
+			_net_sync_timer = 0.0
+			_net_send_my_pos()
 	if _screen_flash > 0:
 		_screen_flash -= delta * 3.0
+
+	# Screen Shake - canvas_transform Offset
+	if _shake_enabled and _shake_duration > 0.0:
+		_shake_duration -= delta
+		if _shake_duration <= 0.0:
+			_shake_duration = 0.0
+			get_viewport().canvas_transform = Transform2D.IDENTITY
+		else:
+			var decay = _shake_duration / max(_shake_duration + delta, 0.001)
+			var strength = _shake_intensity * decay
+			var offset = Vector2(
+				randf_range(-strength, strength),
+				randf_range(-strength, strength)
+			)
+			get_viewport().canvas_transform = Transform2D(0.0, offset)
+	elif _shake_duration <= 0.0:
+		get_viewport().canvas_transform = Transform2D.IDENTITY
+
 	queue_redraw()
 
 	if _current_map == "farm":
@@ -445,6 +1018,10 @@ func _process(delta: float) -> void:
 			_in_transition = false
 			var next_wave = GameManager.current_wave + 1
 			_current_map = _get_map_for_wave(next_wave)
+			# Wellen-Reset fuer alle Spieler (Kill-Streak-Counter, Encore-Charges)
+			for p in _players:
+				if is_instance_valid(p) and p.has_method("reset_for_new_wave"):
+					p.reset_for_new_wave()
 			wave_manager.start_wave(next_wave)
 			_update_wave_label(next_wave)
 		return
@@ -472,14 +1049,23 @@ func _update_hud(_delta: float) -> void:
 			ult_lbl.text = LocalizationManager.t("hud_ult_ready")
 			ult_lbl.add_theme_color_override("font_color", Color(1.0, 0.7, 0.0))
 		else:
-			ult_lbl.text = "E: Ultimate [%.1fs]" % player.ultimate_timer
+			ult_lbl.text = LocalizationManager.t("hud_ult_cd") % player.ultimate_timer
 			ult_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 
 	var beat_ind = hud.get_node_or_null("BeatIndicator")
 	if beat_ind:
-		var progress = rhythm_system.get_beat_progress()
-		var pulse = abs(sin(progress * PI))
-		beat_ind.color = Color(pulse, pulse * 0.5, 0.1, 0.8)
+		# Metronom-Upgrade: Beat-Indikator nur anzeigen wenn Upgrade vorhanden
+		var has_metronome := false
+		for p in _players:
+			if is_instance_valid(p) and p.has_upgrade("metronome"):
+				has_metronome = true
+				break
+		if has_metronome:
+			var progress = rhythm_system.get_beat_progress()
+			var pulse = abs(sin(progress * PI))
+			beat_ind.color = Color(pulse * 0.9 + 0.1, pulse * 0.7, 0.1 + pulse * 0.2, 0.95)
+		else:
+			beat_ind.color = Color(0.0, 0.0, 0.0, 0.0)
 
 	var enemy_lbl = hud.get_node_or_null("EnemyLabel")
 	if enemy_lbl and wave_manager.wave_active:
@@ -499,9 +1085,9 @@ func _update_wave_label(wave_num: int) -> void:
 	if wave_lbl:
 		wave_lbl.text = LocalizationManager.t("hud_wave_prefix") + str(wave_num)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# DRAW – Map-Hintergrund + Screen-Flash
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
+# DRAW - Map-Hintergrund + Screen-Flash
+# -----------------------------------------------------------------------------
 func _draw() -> void:
 	var vp = get_viewport_rect()
 	_draw_map_background(vp)
@@ -524,21 +1110,21 @@ func _draw_map_background(vp: Rect2) -> void:
 		"death_feast":  _draw_death_feast(vp)
 		_:              _draw_farm(vp)
 
-# ── Farm ─────────────────────────────────────────────────────────────────────
+# -- Farm ---------------------------------------------------------------------
 func _draw_farm(vp: Rect2) -> void:
-	# ── Luftbild-Perspektive: Blick von oben auf den Hof ─────────────────────
+	# -- Luftbild-Perspektive: Blick von oben auf den Hof ---------------------
 	var w = vp.size.x
 	var h = vp.size.y
 	# Gras (gesamter Hintergrund)
 	draw_rect(Rect2(0, 0, w, h), Color(0.28, 0.50, 0.18))
-	# Feldstreifen an Rändern (oben/unten)
+	# Feldstreifen an Raendern (oben/unten)
 	for i in range(6):
 		var fx2 = i * (w / 6.0)
 		draw_rect(Rect2(fx2, 0,       w/6.0 - 2, h * 0.18), Color(0.22 + (i%2)*0.08, 0.44 + (i%2)*0.06, 0.12))
 		draw_rect(Rect2(fx2, h*0.82,  w/6.0 - 2, h * 0.18), Color(0.22 + (i%2)*0.08, 0.44 + (i%2)*0.06, 0.12))
 	# Zentraler Hofplatz (Erde)
 	draw_rect(Rect2(w*0.18, h*0.18, w*0.64, h*0.64), Color(0.52, 0.38, 0.20))
-	# Schlammpfütze Mitte
+	# Schlammpfuetze Mitte
 	draw_ellipse_approx(Vector2(w*0.5, h*0.5), Vector2(75, 40), Color(0.38, 0.26, 0.12))
 	# Zaunpfosten + Latten (Draufsicht)
 	for i in range(15):
@@ -558,25 +1144,25 @@ func _draw_farm(vp: Rect2) -> void:
 		draw_circle(Vector2(hbx, hby), 20, Color(0.75, 0.62, 0.20))
 		draw_arc(Vector2(hbx, hby), 13, 0, TAU, 8, Color(0.58, 0.46, 0.12), 2)
 		draw_arc(Vector2(hbx, hby),  7, 0, TAU, 6, Color(0.58, 0.46, 0.12), 1.5)
-	# Hühnerstall (kleines Gebäude, Draufsicht)
+	# Huehnerstall (kleines Gebaeude, Draufsicht)
 	draw_rect(Rect2(w*0.76, h*0.24, 75, 55), Color(0.58, 0.46, 0.26))
 	draw_line(Vector2(w*0.76+37, h*0.24), Vector2(w*0.76+37, h*0.24+55), Color(0.45, 0.34, 0.16), 4)
-	# Wassertränke
+	# Wassertraenke
 	draw_rect(Rect2(w*0.74, h*0.58, 48, 20), Color(0.36, 0.26, 0.14))
 	draw_rect(Rect2(w*0.74+3, h*0.58+3, 42, 14), Color(0.26, 0.46, 0.62))
-	# Traktorspuren (Reifenspuren über den Hofplatz)
+	# Traktorspuren (Reifenspuren ueber den Hofplatz)
 	draw_line(Vector2(0, h*0.44), Vector2(w, h*0.44), Color(0.45, 0.32, 0.16, 0.45), 5)
 	draw_line(Vector2(0, h*0.52), Vector2(w, h*0.52), Color(0.45, 0.32, 0.16, 0.45), 5)
 
-	# ── TRAKTOR – zufällige Richtungen ──────────────────────────────────────────
+	# -- TRAKTOR - zufaellige Richtungen ------------------------------------------
 	if _tractor_active:
 		var tp  = _get_tractor_world_pos()
 		var ang := 0.0
 		match _tractor_dir:
-			0: ang =  0.0        # L→R
-			1: ang =  PI         # R→L
-			2: ang =  PI * 0.5   # T→B
-			3: ang = -PI * 0.5   # B→T
+			0: ang =  0.0        # L->R
+			1: ang =  PI         # R->L
+			2: ang =  PI * 0.5   # T->B
+			3: ang = -PI * 0.5   # B->T
 
 		# Reifenspuren hinter dem Traktor (Weltkoordinaten, VOR Transform)
 		_draw_tractor_tracks(tp, ang)
@@ -594,9 +1180,9 @@ func _draw_farm(vp: Rect2) -> void:
 				Color(0.62, 0.60, 0.58, 0.38 - si*0.10))
 		for bd in _tractor_blood:  # Blutflecken
 			draw_circle(Vector2(bd.ox, bd.oy), bd.r, Color(0.68, 0.04, 0.04, 0.82))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)  # Transform zurücksetzen
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)  # Transform zuruecksetzen
 
-# ── Traktor-Logik ─────────────────────────────────────────────────────────────
+# -- Traktor-Logik -------------------------------------------------------------
 func _get_tractor_world_pos() -> Vector2:
 	var vp := get_viewport_rect()
 	var p   := _tractor_progress
@@ -615,16 +1201,16 @@ func _draw_tractor_tracks(tp: Vector2, ang: float) -> void:
 	var s2   := tp + perp *  14.0     # rechte Spur
 	var fwd  := Vector2(cos(ang), sin(ang))
 	match _tractor_dir:
-		0:  # L→R – Spur von linkem Rand bis Traktor
+		0:  # L->R - Spur von linkem Rand bis Traktor
 			draw_line(Vector2(0.0, s1.y), s1 - fwd * 32.0, col, 5)
 			draw_line(Vector2(0.0, s2.y), s2 - fwd * 32.0, col, 5)
-		1:  # R→L – Spur von rechtem Rand bis Traktor
+		1:  # R->L - Spur von rechtem Rand bis Traktor
 			draw_line(Vector2(vp.size.x, s1.y), s1 - fwd * 32.0, col, 5)
 			draw_line(Vector2(vp.size.x, s2.y), s2 - fwd * 32.0, col, 5)
-		2:  # T→B – Spur von obem Rand bis Traktor
+		2:  # T->B - Spur von obem Rand bis Traktor
 			draw_line(Vector2(s1.x, 0.0), s1 - fwd * 24.0, col, 5)
 			draw_line(Vector2(s2.x, 0.0), s2 - fwd * 24.0, col, 5)
-		3:  # B→T – Spur von unterem Rand bis Traktor
+		3:  # B->T - Spur von unterem Rand bis Traktor
 			draw_line(Vector2(s1.x, vp.size.y), s1 - fwd * 24.0, col, 5)
 			draw_line(Vector2(s2.x, vp.size.y), s2 - fwd * 24.0, col, 5)
 
@@ -676,13 +1262,13 @@ func _update_probe_flicker(delta: float) -> void:
 			_probe_flicker_active = true
 			_probe_flicker_timer  = 0.0
 
-# ── Gefaengnis ───────────────────────────────────────────────────────────────
+# -- Gefaengnis ---------------------------------------------------------------
 func _draw_prison(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
 	var t = _anim_time
 
-	# === BETONWÄNDE (verwittert, mit Moos und Rissen) ===
+	# === BETONWAeNDE (verwittert, mit Moos und Rissen) ===
 	draw_rect(Rect2(0, 0, w, h), Color(0.20, 0.19, 0.22))
 	var brng = RandomNumberGenerator.new()
 	brng.seed = 4242
@@ -707,7 +1293,7 @@ func _draw_prison(vp: Rect2) -> void:
 	for row in range(12):
 		draw_line(Vector2(0, row * 66), Vector2(w, row * 66), Color(0.11, 0.10, 0.13), 2.0)
 
-	# === FLACKERNDE LEUCHTSTOFFRÖHREN ===
+	# === FLACKERNDE LEUCHTSTOFFROeHREN ===
 	var fl1 = 1.0
 	if fmod(t, 8.3) < 0.20:
 		fl1 = abs(sin(t * 55.0)) * 0.25
@@ -726,7 +1312,7 @@ func _draw_prison(vp: Rect2) -> void:
 		])
 		draw_colored_polygon(lpts, Color(0.88, 0.92, 0.78, 0.05 * fl))
 
-	# === GITTERSTÄBE ===
+	# === GITTERSTAeBE ===
 	for i in range(15):
 		var bx = i * 90.0 + 20
 		draw_line(Vector2(bx + 4, 0), Vector2(bx + 4, h), Color(0.0, 0.0, 0.0, 0.28), 4.0)
@@ -750,7 +1336,7 @@ func _draw_prison(vp: Rect2) -> void:
 	draw_rect(Rect2(tlt_x - 8, tlt_y - 4, 18, 5), Color(0.40, 0.39, 0.44))
 	draw_circle(Vector2(tlt_x, tlt_y + 4), 11, Color(0.38, 0.37, 0.42))
 	draw_rect(Rect2(tlt_x - 8, tlt_y + 12, 16, 14), Color(0.32, 0.30, 0.35))
-	# Graffiti-Strichliste (Tage gezählt)
+	# Graffiti-Strichliste (Tage gezaehlt)
 	var gx0 = w * 0.54; var gy0 = h * 0.36
 	for gi in range(10):
 		var gsx = gx0 + (gi % 5) * 9.0
@@ -789,12 +1375,12 @@ func _draw_prison(vp: Rect2) -> void:
 	draw_colored_polygon(sw_pts, Color(1.0, 0.96, 0.65, 0.07))
 	draw_circle(Vector2(sw_x, 0), 9, Color(1.0, 0.96, 0.72, 0.6))
 
-	# === BODEN (nass, Pfützen, Fugen) ===
+	# === BODEN (nass, Pfuetzen, Fugen) ===
 	draw_rect(Rect2(0, h * 0.84, w, h * 0.16), Color(0.15, 0.14, 0.17))
 	for fi in range(9):
 		draw_line(Vector2(fi * 145.0, h * 0.84), Vector2(fi * 145.0, h), Color(0.10, 0.09, 0.12, 0.5), 1.5)
 	draw_line(Vector2(0, h * 0.915), Vector2(w, h * 0.915), Color(0.10, 0.09, 0.12, 0.4), 1.5)
-	# Pfützen mit animierten Tropfen-Wellen
+	# Pfuetzen mit animierten Tropfen-Wellen
 	var puddle_data = [
 		[w * 0.18, h * 0.88, 26.0, 13.0, 0.0],
 		[w * 0.55, h * 0.91, 32.0, 12.0, 0.35],
@@ -818,7 +1404,7 @@ func _draw_prison(vp: Rect2) -> void:
 	if et_prison < 3.5:
 		var flash_a = abs(sin(et_prison * 8.5)) * 0.24
 		draw_rect(Rect2(0, 0, w, h), Color(0.95, 0.08, 0.06, flash_a))
-		# Rotierende Alarmleuchten (2 Stück)
+		# Rotierende Alarmleuchten (2 Stueck)
 		var al_angle = et_prison * 6.0
 		for ai in range(2):
 			var al_x = w * (0.25 + float(ai) * 0.5)
@@ -832,14 +1418,14 @@ func _draw_prison(vp: Rect2) -> void:
 			draw_rect(Rect2(0, 0, w, 6), Color(1.0, 0.06, 0.06, 0.92))
 			draw_rect(Rect2(0, h - 6, w, 6), Color(1.0, 0.06, 0.06, 0.92))
 
-# ── Proberaum ────────────────────────────────────────────────────────────────
+# -- Proberaum ----------------------------------------------------------------
 func _draw_proberaum(vp: Rect2) -> void:
 	var w  = vp.size.x
 	var h  = vp.size.y
 	var t  = _anim_time
 	var fl = _probe_flicker
 
-	# ── Raum-Grundstruktur ─────────────────────────────────────────────────
+	# -- Raum-Grundstruktur -------------------------------------------------
 	# Hinterwand (Schaumstoff-Platten, dunkelbraun)
 	draw_rect(Rect2(0, 0, w, h * 0.62), Color(0.14 * fl, 0.11 * fl, 0.09 * fl))
 	# Boden (verschlissener dunkelroter Teppich)
@@ -856,7 +1442,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 		var px = i * (w / 9.0)
 		draw_line(Vector2(px, 16), Vector2(px, h * 0.62), Color(0.07 * fl, 0.05 * fl, 0.04 * fl), 2.0)
 
-	# ── Deckenlicht (flackernd) ────────────────────────────────────────────
+	# -- Deckenlicht (flackernd) --------------------------------------------
 	for li in range(2):
 		var lx = w * 0.28 + li * w * 0.44
 		draw_rect(Rect2(lx - 18, 0, 36, 12), Color(0.22, 0.18, 0.14))
@@ -866,7 +1452,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 			Vector2(lx + 110, h * 0.62), Vector2(lx - 110, h * 0.62),
 		]), Color(fl * 0.14, fl * 0.13, fl * 0.10, 0.13))
 
-	# ── Verstärker-Stack LINKS (Gitarre) ───────────────────────────────────
+	# -- Verstaerker-Stack LINKS (Gitarre) -----------------------------------
 	for row in range(2):
 		var ay = h * 0.20 + row * 82
 		draw_rect(Rect2(22, ay, 92, 78), Color(0.08, 0.06, 0.05))
@@ -876,7 +1462,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 	# Logo-Streifen am Amp
 	draw_rect(Rect2(24, h * 0.20 + 14, 88, 10), Color(0.18, 0.06, 0.04))
 
-	# Gitarre 1 auf Ständer – Strat-Style, rot (kürzer als Bass)
+	# Gitarre 1 auf Staender - Strat-Style, rot (kuerzer als Bass)
 	var gx = 128.0; var gy = h * 0.44
 	draw_circle(Vector2(gx, gy),      13, Color(0.58, 0.08, 0.06))       # unterer Body
 	draw_circle(Vector2(gx, gy - 22), 10, Color(0.58, 0.08, 0.06))       # oberer Body (Strat-Doppelausschnitt)
@@ -888,7 +1474,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 	draw_line(Vector2(gx, gy + 13), Vector2(gx - 12, gy + 32), Color(0.45, 0.42, 0.40), 2)
 	draw_line(Vector2(gx, gy + 13), Vector2(gx + 12, gy + 32), Color(0.45, 0.42, 0.40), 2)
 
-	# Kleiner Combo-Amp (für Gitarre 2)
+	# Kleiner Combo-Amp (fuer Gitarre 2)
 	var ca_x = 156.0; var ca_y = h * 0.30
 	draw_rect(Rect2(ca_x, ca_y, 68, 56), Color(0.07, 0.05, 0.06))
 	draw_rect(Rect2(ca_x + 4, ca_y + 3, 60, 9), Color(0.15 * fl, 0.09 * fl, 0.06 * fl))
@@ -896,9 +1482,9 @@ func _draw_proberaum(vp: Rect2) -> void:
 	draw_circle(Vector2(ca_x + 34, ca_y + 37), 10, Color(0.10 * fl, 0.10 * fl, 0.11 * fl))
 	draw_rect(Rect2(ca_x + 4, ca_y + 14, 10, 6), Color(0.22, 0.10, 0.04))  # Logo-Streifen
 
-	# Gitarre 2 auf Ständer – Les-Paul-Style, Sunburst (kürzer als Bass)
+	# Gitarre 2 auf Staender - Les-Paul-Style, Sunburst (kuerzer als Bass)
 	var gx2 = 194.0; var gy2 = h * 0.44
-	draw_circle(Vector2(gx2, gy2),      14, Color(0.52, 0.18, 0.03))      # Body groß
+	draw_circle(Vector2(gx2, gy2),      14, Color(0.52, 0.18, 0.03))      # Body gross
 	draw_circle(Vector2(gx2, gy2),       8, Color(0.22, 0.06, 0.01))      # Sunburst-Kern
 	draw_circle(Vector2(gx2 - 5, gy2 - 17), 9, Color(0.52, 0.18, 0.03))  # Obere Schulter
 	draw_rect(Rect2(gx2 - 3, gy2 - 70, 5, 53), Color(0.42, 0.24, 0.08))  # Hals
@@ -909,7 +1495,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 	draw_line(Vector2(gx2, gy2 + 14), Vector2(gx2 - 11, gy2 + 32), Color(0.45, 0.42, 0.40), 2)
 	draw_line(Vector2(gx2, gy2 + 14), Vector2(gx2 + 11, gy2 + 32), Color(0.45, 0.42, 0.40), 2)
 
-	# ── Schlagzeug CENTER BACK ─────────────────────────────────────────────
+	# -- Schlagzeug CENTER BACK ---------------------------------------------
 	var dx = w * 0.5; var dy = h * 0.46
 	draw_circle(Vector2(dx, dy + 20), 38, Color(0.12, 0.08, 0.06))
 	draw_circle(Vector2(dx, dy + 20), 28, Color(0.20, 0.14, 0.11))
@@ -926,7 +1512,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 	draw_line(Vector2(dx + 32, dy - 10), Vector2(dx - 12, dy + 32), Color(0.58, 0.38, 0.14), 3)
 	draw_line(Vector2(dx + 44, dy - 6),  Vector2(dx + 2,  dy + 34), Color(0.58, 0.38, 0.14), 3)
 
-	# ── Bass-Verstärker RECHTS ─────────────────────────────────────────────
+	# -- Bass-Verstaerker RECHTS ---------------------------------------------
 	draw_rect(Rect2(w - 132, h * 0.18, 108, 168), Color(0.08, 0.06, 0.06))
 	draw_rect(Rect2(w - 128, h * 0.18 + 4, 100, 14), Color(0.16 * fl, 0.10 * fl, 0.07 * fl))
 	for bi in range(2):
@@ -934,7 +1520,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 			draw_circle(Vector2(w - 112 + bi * 58, h * 0.18 + 58 + bj * 74), 26, Color(0.04, 0.04, 0.05))
 			draw_circle(Vector2(w - 112 + bi * 58, h * 0.18 + 58 + bj * 74), 18, Color(0.10 * fl, 0.10 * fl, 0.11 * fl))
 
-	# Bass auf Ständer (rechts)
+	# Bass auf Staender (rechts)
 	var bax = w - 162.0; var bay = h * 0.44
 	draw_circle(Vector2(bax, bay), 16, Color(0.08, 0.18, 0.42))
 	draw_circle(Vector2(bax, bay - 28), 12, Color(0.08, 0.18, 0.42))
@@ -946,7 +1532,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 	draw_line(Vector2(bax, bay + 16), Vector2(bax - 13, bay + 37), Color(0.45, 0.42, 0.40), 2)
 	draw_line(Vector2(bax, bay + 16), Vector2(bax + 13, bay + 37), Color(0.45, 0.42, 0.40), 2)
 
-	# ── Banjo (an Wand rechts) ─────────────────────────────────────────────
+	# -- Banjo (an Wand rechts) ---------------------------------------------
 	var bnx = w - 50.0; var bny = h * 0.28
 	draw_circle(Vector2(bnx, bny), 17, Color(0.52, 0.38, 0.12))
 	draw_circle(Vector2(bnx, bny), 12, Color(0.88, 0.80, 0.62))
@@ -956,40 +1542,40 @@ func _draw_proberaum(vp: Rect2) -> void:
 	draw_line(Vector2(bnx, bny - 17), Vector2(bnx, bny - 28), Color(0.50, 0.48, 0.42), 3)
 	draw_rect(Rect2(bnx - 4, bny - 30, 8, 5), Color(0.50, 0.48, 0.42))
 
-	# ── Background Characters proben ───────────────────────────────────────
+	# -- Background Characters proben ---------------------------------------
 	_draw_proberaum_chars(vp, t, fl)
 
-	# ── Sofa UNTEN MITTE (Rückenlehne am unteren Rand, Sitz zeigt nach oben) ──
+	# -- Sofa UNTEN MITTE (Rueckenlehne am unteren Rand, Sitz zeigt nach oben) --
 	var sb_w = 310.0; var sb_x = w * 0.5 - sb_w * 0.5; var sb_y = h - 78.0
 	# Beine
 	for lx2 in [sb_x + 10, sb_x + sb_w - 22]:
 		draw_rect(Rect2(lx2, sb_y + 62, 14, 14), Color(0.28, 0.18, 0.08))
-	# Sitzfläche (vorne / oben im Bild)
+	# Sitzflaeche (vorne / oben im Bild)
 	draw_rect(Rect2(sb_x, sb_y, sb_w, 42), Color(0.38, 0.22, 0.14))
-	# Rückenlehne (hinten / ganz unten)
+	# Rueckenlehne (hinten / ganz unten)
 	draw_rect(Rect2(sb_x, sb_y + 40, sb_w, 36), Color(0.46, 0.28, 0.18))
 	# Armlehnen links/rechts
 	draw_rect(Rect2(sb_x - 16, sb_y - 2, 18, 78), Color(0.42, 0.25, 0.16))
 	draw_rect(Rect2(sb_x + sb_w - 2, sb_y - 2, 18, 78), Color(0.42, 0.25, 0.16))
-	# Sitzkissen (4 Stück)
+	# Sitzkissen (4 Stueck)
 	for ki in range(4):
 		draw_rect(Rect2(sb_x + 4 + ki * 75, sb_y + 4, 68, 32), Color(0.50, 0.32, 0.20))
 		draw_line(Vector2(sb_x + 4 + ki * 75, sb_y + 4),
 			Vector2(sb_x + 4 + ki * 75, sb_y + 36), Color(0.30, 0.18, 0.10), 1.5)
 
-	# ── Sofa LINKS (Rückenlehne am linken Rand, Sitz zeigt nach rechts) ───
+	# -- Sofa LINKS (Rueckenlehne am linken Rand, Sitz zeigt nach rechts) ---
 	var sl_h = 220.0; var sl_x = 0.0; var sl_y = h * 0.66
 	# Beine
 	for ly2 in [sl_y + 12, sl_y + sl_h - 24]:
 		draw_rect(Rect2(sl_x + 60, ly2, 14, 14), Color(0.28, 0.18, 0.08))
-	# Rückenlehne (ganz links)
+	# Rueckenlehne (ganz links)
 	draw_rect(Rect2(sl_x, sl_y, 36, sl_h), Color(0.26, 0.30, 0.50))
-	# Sitzfläche (rechts davon)
+	# Sitzflaeche (rechts davon)
 	draw_rect(Rect2(sl_x + 34, sl_y, 42, sl_h), Color(0.20, 0.24, 0.40))
 	# Armlehnen oben/unten
 	draw_rect(Rect2(sl_x, sl_y - 16, 78, 18), Color(0.22, 0.26, 0.44))
 	draw_rect(Rect2(sl_x, sl_y + sl_h - 2, 78, 18), Color(0.22, 0.26, 0.44))
-	# Sitzkissen (3 Stück, vertikal gestapelt)
+	# Sitzkissen (3 Stueck, vertikal gestapelt)
 	for ki in range(3):
 		draw_rect(Rect2(sl_x + 36, sl_y + 6 + ki * 70, 34, 62), Color(0.28, 0.34, 0.55))
 		draw_line(Vector2(sl_x + 36, sl_y + 6 + ki * 70),
@@ -1000,7 +1586,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 		draw_line(Vector2(sl_x + 41, sl_y + 93 + li * 5),
 			Vector2(sl_x + 63, sl_y + 93 + li * 5), Color(0.30, 0.28, 0.22), 0.9)
 
-	# ── Tisch VOR dem unteren Sofa (zwischen Sofa-unten und Sofa-links) ────
+	# -- Tisch VOR dem unteren Sofa (zwischen Sofa-unten und Sofa-links) ----
 	var tx = sb_x - 30.0; var ty = h * 0.72; var tw = sb_w + 60.0; var th = 44.0
 	# Tischbeine
 	for lx2 in [tx + 10, tx + tw - 24]:
@@ -1008,7 +1594,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 	# Tischplatte
 	# Tischrahmen (dunkle Kante)
 	draw_rect(Rect2(tx, ty, tw, th), Color(0.30, 0.28, 0.26))
-	# Fliesentisch – Fliesen-Raster (helle/dunkle Abwechslung)
+	# Fliesentisch - Fliesen-Raster (helle/dunkle Abwechslung)
 	var tile_w = 28.0; var tile_h = 20.0
 	var cols_t = int(ceil((tw - 4) / tile_w))
 	var rows_t = int(ceil((th - 4) / tile_h))
@@ -1026,14 +1612,14 @@ func _draw_proberaum(vp: Rect2) -> void:
 			if fw > 0 and fh > 0:
 				var cidx = (row * 3 + col * 2) % tile_colors.size()
 				draw_rect(Rect2(fx, fy, fw, fh), tile_colors[cidx])
-	# Fugennetz (dünne dunkle Linien)
+	# Fugennetz (duenne dunkle Linien)
 	for col in range(1, cols_t):
 		draw_line(Vector2(tx + 2 + col * tile_w - 1, ty + 2),
 			Vector2(tx + 2 + col * tile_w - 1, ty + th - 2), Color(0.22, 0.20, 0.18), 1.0)
 	for row in range(1, rows_t):
 		draw_line(Vector2(tx + 2, ty + 2 + row * tile_h - 1),
 			Vector2(tx + tw - 2, ty + 2 + row * tile_h - 1), Color(0.22, 0.20, 0.18), 1.0)
-	# 23 Bierflaschen in 2 Reihen dicht gedrängt
+	# 23 Bierflaschen in 2 Reihen dicht gedraengt
 	var bottle_rng = RandomNumberGenerator.new()
 	bottle_rng.seed = 12345
 	var b_cols_arr = [Color(0.35,0.25,0.08), Color(0.12,0.32,0.08)]
@@ -1058,7 +1644,7 @@ func _draw_proberaum(vp: Rect2) -> void:
 		draw_circle(Vector2(tx + tw - 22 + cos(ka2)*11, ty + 20 + sin(ka2)*6),
 			2, Color(0.78, 0.22, 0.04))
 
-	# ── Kabel (rechte Seite, weg von den Möbeln) ───────────────────────────
+	# -- Kabel (rechte Seite, weg von den Moebeln) ---------------------------
 	var crng = RandomNumberGenerator.new()
 	crng.seed = 77777
 	for ci in range(5):
@@ -1099,7 +1685,7 @@ func _draw_proberaum_chars(vp: Rect2, t: float, fl: float) -> void:
 		# Beine
 		draw_rect(Rect2(cp.x - 9*s, cp.y + 12*s + bob, 7*s, 11*s), ldark)
 		draw_rect(Rect2(cp.x + 2*s, cp.y + 12*s + bob, 7*s, 11*s), ldark)
-		# Körper
+		# Koerper
 		draw_rect(Rect2(cp.x - 11*s, cp.y - 6*s + bob, 22*s, 19*s), lcol)
 		# Arme
 		draw_rect(Rect2(cp.x - 18*s, cp.y - 3*s + bob, 7*s, 12*s), lcol)
@@ -1117,7 +1703,7 @@ func _draw_proberaum_chars(vp: Rect2, t: float, fl: float) -> void:
 						Vector2(cp.x + cos(da)*20*s, cp.y - 14*s + bob),
 						Color(0.22*fl, 0.16*fl, 0.06*fl), 3.0)
 			"shouter":
-				# Hühnerschnabel
+				# Huehnerschnabel
 				draw_colored_polygon(PackedVector2Array([
 					Vector2(cp.x + 11*s, cp.y - 20*s + bob),
 					Vector2(cp.x + 20*s, cp.y - 18*s + bob),
@@ -1141,7 +1727,7 @@ func _draw_proberaum_chars(vp: Rect2, t: float, fl: float) -> void:
 		# Instrument-Interaktion (Armbewegung passt zum Bob)
 		match cid:
 			"bassist", "riff_slicer":
-				# Spielt Gitarre/Bass: rechter Arm schlägt die Saiten
+				# Spielt Gitarre/Bass: rechter Arm schlaegt die Saiten
 				var strum = sin(t * 4.0 + cp.x * 0.02) * 8.0
 				draw_line(Vector2(cp.x + 8*s, cp.y - 2*s + bob),
 					Vector2(cp.x + 18*s, cp.y + 5*s + bob + strum),
@@ -1154,12 +1740,12 @@ func _draw_proberaum_chars(vp: Rect2, t: float, fl: float) -> void:
 				draw_line(Vector2(cp.x + 10*s, cp.y + bob),
 					Vector2(cp.x + 22*s, cp.y + 12*s + bob - beat), Color(0.58*fl,0.38*fl,0.14*fl), 2)
 			"shouter":
-				# Mikrofonständer davor
+				# Mikrofonstaender davor
 				draw_line(Vector2(cp.x, cp.y + 22*s + bob),
 					Vector2(cp.x, cp.y - 28*s + bob), Color(0.55*fl, 0.53*fl, 0.50*fl), 2)
 				draw_circle(Vector2(cp.x, cp.y - 28*s + bob), 5*s, Color(0.30*fl, 0.28*fl, 0.26*fl))
 
-# ── Schweinestall ────────────────────────────────────────────────────────────
+# -- Schweinestall ------------------------------------------------------------
 func _draw_schweinestall(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
@@ -1182,7 +1768,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		var wx = wood_rng.randf_range(0, w)
 		draw_line(Vector2(wx, wy), Vector2(wx + wood_rng.randf_range(40, 120), wy), Color(0.20, 0.12, 0.05, 0.40), 1.0)
 
-	# === DECKENBALKEN (dicke horizontale Träger) ===
+	# === DECKENBALKEN (dicke horizontale Traeger) ===
 	for bi in range(3):
 		var by = h * (0.12 + bi * 0.12)
 		draw_rect(Rect2(0, by - 6, w, 14), Color(0.22, 0.13, 0.05))
@@ -1192,7 +1778,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 	# === FENSTER (dreckig, mit Lichtstrahl) ===
 	var win_x = w * 0.68; var win_y = h * 0.08
 	var win_w = 60.0; var win_h = 44.0
-	# Lichtstrahl schräg auf Boden
+	# Lichtstrahl schraeg auf Boden
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(win_x - 2, win_y + win_h),
 		Vector2(win_x + win_w + 2, win_y + win_h),
@@ -1216,15 +1802,15 @@ func _draw_schweinestall(vp: Rect2) -> void:
 	draw_line(Vector2(win_x, win_y + win_h * 0.5), Vector2(win_x + win_w, win_y + win_h * 0.5),
 		Color(0.20, 0.12, 0.05), 4)
 
-	# === HÄNGENDE LATERNEN (warm glühend) ===
+	# === HAeNGENDE LATERNEN (warm gluehend) ===
 	var lantern_xs = [w * 0.15, w * 0.38, w * 0.62, w * 0.85]
 	for li in range(4):
 		var lx = lantern_xs[li]
 		var sway = sin(t * 0.8 + float(li) * 1.2) * 4.0  # leichtes Schaukeln
 		var lflicker = 0.85 + sin(t * 7.3 + float(li) * 2.1) * 0.08
-		# Aufhängung
+		# Aufhaengung
 		draw_line(Vector2(lx, 0), Vector2(lx + sway, 38), Color(0.28, 0.18, 0.08), 2)
-		# Laterne Körper
+		# Laterne Koerper
 		var lp = Vector2(lx + sway, 42)
 		draw_rect(Rect2(lp.x - 9, lp.y - 4, 18, 22), Color(0.55, 0.38, 0.12))
 		draw_rect(Rect2(lp.x - 7, lp.y - 1, 14, 16), Color(lflicker * 0.95, lflicker * 0.72, lflicker * 0.22))
@@ -1247,7 +1833,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		draw_ellipse_approx(Vector2(mx, my), Vector2(mud_rng.randf_range(5, 22), mud_rng.randf_range(3, 10)),
 			Color(0.22 + mud_rng.randf() * 0.08, 0.12 + mud_rng.randf() * 0.06, 0.04, 0.50))
 
-	# === SCHLAMMPFÜTZEN (dunkel, glänzend) ===
+	# === SCHLAMMPFUeTZEN (dunkel, glaenzend) ===
 	var puddle_data2 = [
 		[w * 0.12, h * 0.62, 60.0, 22.0], [w * 0.35, h * 0.75, 80.0, 28.0],
 		[w * 0.58, h * 0.58, 55.0, 18.0], [w * 0.78, h * 0.70, 70.0, 25.0],
@@ -1269,7 +1855,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 				wpts2.append(Vector2(px2 + cos(wa2) * wave_r2, py2 + sin(wa2) * wave_r2 * 0.4))
 			draw_polyline(wpts2 + wpts2.slice(0, 1), Color(0.30, 0.20, 0.08, (1.0 - drop_t2) * 0.50), 1.0)
 
-	# === HUFABDRÜCKE IM SCHLAMM ===
+	# === HUFABDRUeCKE IM SCHLAMM ===
 	var hoof_rng = RandomNumberGenerator.new()
 	hoof_rng.seed = 8844
 	for _hi in range(20):
@@ -1353,7 +1939,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		draw_ellipse_approx(Vector2(pig_x + 26, pig_y + pig_bob), Vector2(9, 7), Color(0.78, 0.48, 0.52))
 		draw_circle(Vector2(pig_x + 24, pig_y - 2 + pig_bob), 2, Color(0.50, 0.22, 0.28))
 		draw_circle(Vector2(pig_x + 28, pig_y - 2 + pig_bob), 2, Color(0.50, 0.22, 0.28))
-		# Öhrchen
+		# Oehrchen
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(pig_x + 16, pig_y - 16 + pig_bob),
 			Vector2(pig_x + 11, pig_y - 24 + pig_bob),
@@ -1365,7 +1951,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		draw_rect(Rect2(pig_x - 8, pig_y + 14 + pig_bob - trot, 8, 10), Color(0.82, 0.58, 0.62))
 		draw_rect(Rect2(pig_x + 6, pig_y + 14 + pig_bob + trot, 8, 10), Color(0.82, 0.58, 0.62))
 
-	# === SCHMUTZIGE WÄNDE (Spritzer, Graffiti) ===
+	# === SCHMUTZIGE WAeNDE (Spritzer, Graffiti) ===
 	var wall_rng = RandomNumberGenerator.new()
 	wall_rng.seed = 9191
 	for wi2 in range(12):
@@ -1374,7 +1960,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		draw_circle(Vector2(wx2, wy2), wall_rng.randf_range(3, 14),
 			Color(0.22, 0.12, 0.05, 0.38 + wall_rng.randf() * 0.25))
 
-	# === DYNAMISCHES EVENT: Schwein büxt aus (alle 14 s) ────────────────────
+	# === DYNAMISCHES EVENT: Schwein buext aus (alle 14 s) --------------------
 	var et_sau = fmod(_anim_time, 14.0)
 	if et_sau < 4.0:
 		var ep_sau = et_sau / 4.0
@@ -1405,7 +1991,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 			draw_line(Vector2(bx2 + 31, by2 + 11), Vector2(bx2 + 37, by2 + 6), Color(0.55, 0.18, 0.22), 2)
 			draw_line(Vector2(bx2 + 31, by2 + 11), Vector2(bx2 + 37, by2 + 16), Color(0.55, 0.18, 0.22), 2)
 
-	# === FLIEGEN (animiert um Trog und Pfützen) ===
+	# === FLIEGEN (animiert um Trog und Pfuetzen) ===
 	var fly_centers = [
 		Vector2(w * 0.35 + 105, h - 72),
 		Vector2(w * 0.12, h * 0.63),
@@ -1432,7 +2018,7 @@ func _draw_schweinestall(vp: Rect2) -> void:
 		draw_circle(fpos, 2.5, Color(0.06, 0.06, 0.08))
 		draw_circle(fpos + Vector2(0, -3), 1.8, Color(0.10, 0.10, 0.12))
 
-# ── Amerika ──────────────────────────────────────────────────────────────────
+# -- Amerika ------------------------------------------------------------------
 func _draw_amerika(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
@@ -1539,7 +2125,7 @@ func _draw_amerika(vp: Rect2) -> void:
 	# === GEISTERSTADT (Silhouette am Horizont) ===
 	var gt_x = w * 0.60
 	var gt_y = horizon - 2
-	# Hauptgebäude
+	# Hauptgebaeude
 	draw_rect(Rect2(gt_x, gt_y - 38, 68, 40), Color(0.28, 0.20, 0.12))
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(gt_x - 4, gt_y - 38),
@@ -1550,7 +2136,7 @@ func _draw_amerika(vp: Rect2) -> void:
 	draw_rect(Rect2(gt_x + 8, gt_y - 28, 14, 14), Color(0.12, 0.09, 0.05))
 	draw_line(Vector2(gt_x + 8, gt_y - 28), Vector2(gt_x + 22, gt_y - 14), Color(0.20, 0.14, 0.08), 1)
 	draw_rect(Rect2(gt_x + 46, gt_y - 28, 14, 14), Color(0.12, 0.09, 0.05))
-	# Kleines Nebengebäude links
+	# Kleines Nebengebaeude links
 	draw_rect(Rect2(gt_x - 50, gt_y - 20, 38, 22), Color(0.25, 0.18, 0.10))
 	draw_rect(Rect2(gt_x - 54, gt_y - 20, 46, 4), Color(0.20, 0.14, 0.08))
 	# Wasserturm rechts
@@ -1636,7 +2222,7 @@ func _draw_amerika(vp: Rect2) -> void:
 			draw_line(Vector2(cx2 - 7 * cs, spy), Vector2(cx2 - 12 * cs, spy - 3 * cs), Color(0.88, 0.86, 0.72, 0.7), 1.0)
 			draw_line(Vector2(cx2 + 7 * cs, spy), Vector2(cx2 + 12 * cs, spy - 3 * cs), Color(0.88, 0.86, 0.72, 0.7), 1.0)
 
-	# === BILLBOARD (links der Straße, nah) ===
+	# === BILLBOARD (links der Strasse, nah) ===
 	var bb_x = w * 0.28; var bb_y = horizon + 6
 	# Pfosten
 	draw_rect(Rect2(bb_x + 5, bb_y + 28, 4, 30), Color(0.42, 0.30, 0.13))
@@ -1650,7 +2236,7 @@ func _draw_amerika(vp: Rect2) -> void:
 	draw_rect(Rect2(bb_x + 2, bb_y + 15, 22, 15), Color(0.12, 0.16, 0.58))
 	for si3 in range(6):
 		draw_circle(Vector2(bb_x + 7 + (si3 % 2) * 9, bb_y + 19 + (si3 / 2) * 5), 1.4, Color(1, 1, 0.85))
-	# Rot-weiße Streifen rechts
+	# Rot-weisse Streifen rechts
 	for ri3 in range(3):
 		draw_rect(Rect2(bb_x + 26, bb_y + 15 + ri3 * 5, 28, 4),
 			Color(0.80, 0.06, 0.06) if ri3 % 2 == 0 else Color(0.90, 0.90, 0.86))
@@ -1698,7 +2284,7 @@ func _draw_amerika(vp: Rect2) -> void:
 	var haze_alpha = 0.04 + sin(t * 0.7) * 0.015
 	draw_rect(Rect2(0, horizon - 6, w, 12), Color(1.0, 0.90, 0.55, haze_alpha))
 
-	# === DYNAMISCHES EVENT: Tumbleweed rollt durch (alle 13 s) ───────────────
+	# === DYNAMISCHES EVENT: Tumbleweed rollt durch (alle 13 s) ---------------
 	var et_tw = fmod(_anim_time, 13.0)
 	if et_tw < 4.5:
 		var ep_tw = et_tw / 4.5
@@ -1725,7 +2311,7 @@ func _draw_amerika(vp: Rect2) -> void:
 			draw_circle(Vector2(twx + 24 + di * 14, twy + 5 + di * 3),
 				5 + di * 3, Color(0.70, 0.58, 0.32, 0.28 - di * 0.07))
 
-# ── Fahrender Truck ───────────────────────────────────────────────────────────
+# -- Fahrender Truck -----------------------------------------------------------
 func _draw_truck(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
@@ -1912,7 +2498,7 @@ func _draw_truck(vp: Rect2) -> void:
 			Vector2(hx2 + 35, hy2 + 30), Vector2(hx2 - 35, hy2 + 30)
 		]), Color(1.0, 0.95, 0.70, alpha * 0.15))
 
-	# === DYNAMISCHES EVENT: Polizei überholt DRAMATISCH (alle 16 s) ─────────
+	# === DYNAMISCHES EVENT: Polizei ueberholt DRAMATISCH (alle 16 s) ---------
 	var et_cop = fmod(_anim_time, 16.0)
 	if et_cop < 5.0:
 		var ep_cop = et_cop / 5.0
@@ -1956,7 +2542,7 @@ func _draw_truck(vp: Rect2) -> void:
 		var rlen = 12.0 + fmod(float(ri) * 7.3, 10.0)
 		draw_line(Vector2(rx, ry), Vector2(rx + rlen * 0.22, ry + rlen), Color(0.48, 0.58, 0.76, 0.28), 1.0)
 
-# ── Tonstudio Soundlodge ─────────────────────────────────────────────────────
+# -- Tonstudio Soundlodge -----------------------------------------------------
 func _draw_tonstudio(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
@@ -1980,11 +2566,11 @@ func _draw_tonstudio(vp: Rect2) -> void:
 	draw_rect(Rect2(win_cx - win_w2 * 0.5 + 4, win_top + 4, win_w2 - 8, win_h2 - 8), Color(0.05, 0.04, 0.07))
 	# Scheinwerfer-Fleck auf Boden der Kabine
 	draw_ellipse_approx(Vector2(win_cx, win_top + win_h2 - 18), Vector2(32, 9), Color(0.35, 0.30, 0.18, 0.38))
-	# Sänger-Silhouette (bobbing)
+	# Saenger-Silhouette (bobbing)
 	var singer_bob = sin(_anim_time * 1.8) * 2.0
 	draw_ellipse_approx(Vector2(win_cx, win_top + 64 + singer_bob), Vector2(10, 13), Color(0.08, 0.06, 0.10))
 	draw_circle(Vector2(win_cx, win_top + 48 + singer_bob), 9, Color(0.09, 0.07, 0.11))
-	# Mikrofonständer im Live-Raum
+	# Mikrofonstaender im Live-Raum
 	draw_line(Vector2(win_cx + 22, win_top + 52), Vector2(win_cx + 22, win_top + win_h2 - 5),
 		Color(0.18, 0.18, 0.20), 2)
 	draw_ellipse_approx(Vector2(win_cx + 22, win_top + 48), Vector2(5, 7), Color(0.14, 0.14, 0.16))
@@ -2066,7 +2652,7 @@ func _draw_tonstudio(vp: Rect2) -> void:
 		draw_rect(Rect2(eq_x, h * 0.28 - eq_h, 18, eq_h), eq_col)
 	draw_rect(Rect2(w * 0.22, h * 0.25, w * 0.56, 4), Color(0.04, 0.04, 0.05))  # Rahmen unten
 
-	# === MIKROFON AUF STÄNDER (Mitte) ===
+	# === MIKROFON AUF STAeNDER (Mitte) ===
 	var mic_x = w * 0.5; var mic_y = h * 0.38
 	draw_line(Vector2(mic_x, mic_y + 60), Vector2(mic_x, h - 90), Color(0.40, 0.40, 0.44), 3)
 	draw_line(Vector2(mic_x - 20, h - 90), Vector2(mic_x + 20, h - 90), Color(0.40, 0.40, 0.44), 3)
@@ -2076,9 +2662,9 @@ func _draw_tonstudio(vp: Rect2) -> void:
 	for gri in range(3):
 		draw_arc(Vector2(mic_x, mic_y + 28), 5 + gri * 3, 0, TAU, 10, Color(0.40, 0.40, 0.44), 1.0)
 
-	# === GITARRE AUF STÄNDER (rechts an der Wand) ===
+	# === GITARRE AUF STAeNDER (rechts an der Wand) ===
 	var git_x = w * 0.88; var git_y = h * 0.32
-	# Ständer
+	# Staender
 	draw_line(Vector2(git_x, git_y + 105), Vector2(git_x - 18, git_y + 124), Color(0.26, 0.24, 0.30), 2)
 	draw_line(Vector2(git_x, git_y + 105), Vector2(git_x + 18, git_y + 124), Color(0.26, 0.24, 0.30), 2)
 	draw_line(Vector2(git_x - 12, git_y + 118), Vector2(git_x + 12, git_y + 118), Color(0.26, 0.24, 0.30), 2)
@@ -2099,12 +2685,12 @@ func _draw_tonstudio(vp: Rect2) -> void:
 			Vector2(git_x - 2 + sti * 0.5, git_y + 22),
 			Color(0.60, 0.58, 0.54, 0.72), 0.7)
 
-	# === KOPFHÖRER (am Tisch) ===
+	# === KOPFHOeRER (am Tisch) ===
 	draw_arc(Vector2(w * 0.35, h - 100), 12, PI, TAU, 8, Color(0.18, 0.18, 0.20), 5)
 	draw_circle(Vector2(w * 0.35 - 12, h - 100), 8, Color(0.14, 0.14, 0.16))
 	draw_circle(Vector2(w * 0.35 + 12, h - 100), 8, Color(0.14, 0.14, 0.16))
 
-	# === DYNAMISCHES EVENT: Kaffeetasse fällt vom Mischpult (alle 18 s) ─────
+	# === DYNAMISCHES EVENT: Kaffeetasse faellt vom Mischpult (alle 18 s) -----
 	var et_cup = fmod(_anim_time, 18.0)
 	if et_cup < 2.5:
 		var ep_cup = et_cup / 2.5
@@ -2122,7 +2708,7 @@ func _draw_tonstudio(vp: Rect2) -> void:
 				draw_circle(Vector2(cup_x + cos(spangle) * 24 * splat_p, h - 14 + sin(spangle) * 10 * splat_p),
 					3.0 * splat_p, Color(0.30, 0.18, 0.08, 0.75))
 
-# ── TV Studio ────────────────────────────────────────────────────────────────
+# -- TV Studio ----------------------------------------------------------------
 func _draw_tv_studio(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
@@ -2192,7 +2778,7 @@ func _draw_tv_studio(vp: Rect2) -> void:
 		draw_ellipse_approx(Vector2(s_lx2, h * 0.72), Vector2(35, 18),
 			Color(sc2.r, sc2.g, sc2.b, 0.06))
 
-	# === HÄNGENDES BOOM-MIKROFON (schaukelnd) ===
+	# === HAeNGENDES BOOM-MIKROFON (schaukelnd) ===
 	var boom_swing = sin(t * 0.9) * 0.12
 	var boom_cx = w * 0.50
 	var boom_ex = boom_cx + 75.0 + sin(boom_swing) * 28.0
@@ -2349,7 +2935,7 @@ func _draw_tv_studio(vp: Rect2) -> void:
 			var line_w = 55.0 + fmod(tli * 37.3, 60.0)
 			draw_rect(Rect2(w * 0.40, tly, line_w, 5), Color(1.0, 1.0, 1.0, 0.55))
 
-	# === DYNAMISCHES EVENT: Kamera kippt um (alle 15 s) ─────────────────────
+	# === DYNAMISCHES EVENT: Kamera kippt um (alle 15 s) ---------------------
 	var et_cam = fmod(_anim_time, 15.0)
 	if et_cam < 3.2:
 		var ep_cam = et_cam / 3.2
@@ -2369,9 +2955,9 @@ func _draw_tv_studio(vp: Rect2) -> void:
 					Vector2(cam_cx + 30 + cos(spangle) * sdist, cam_cy2 + 42 + sin(spangle) * sdist),
 					Color(1.0, 0.8, 0.1, (1.0 - (ep_cam - 0.7) / 0.3) * 0.9), 2.0)
 
-# ── Meppen ───────────────────────────────────────────────────────────────────
+# -- Meppen -------------------------------------------------------------------
 func _draw_meppen(vp: Rect2) -> void:
-	# ── Luftbild-Perspektive: Blick von oben auf den Marktplatz ─────────────
+	# -- Luftbild-Perspektive: Blick von oben auf den Marktplatz -------------
 	var w = vp.size.x
 	var h = vp.size.y
 	var t = _anim_time
@@ -2416,7 +3002,7 @@ func _draw_meppen(vp: Rect2) -> void:
 	for i in range(9):
 		draw_rect(Rect2(w * 0.493, i * (h / 8.0) + 8, 10, 38), Color(0.85, 0.80, 0.25, 0.72))
 		draw_rect(Rect2(i * (w / 8.0) + 8, h * 0.493, 38, 10), Color(0.85, 0.80, 0.25, 0.72))
-	# === KREISVERKEHR – nur Asphalt-Ring (Mittelinsel wird NACH den Autos gezeichnet) ===
+	# === KREISVERKEHR - nur Asphalt-Ring (Mittelinsel wird NACH den Autos gezeichnet) ===
 	var rc = Vector2(w * 0.5, h * 0.5)
 	draw_circle(rc, 96.0, Color(0.34, 0.32, 0.30))
 	# Gestrichelte Spurlinie
@@ -2424,7 +3010,7 @@ func _draw_meppen(vp: Rect2) -> void:
 		var lma     = float(lmi) / 20.0 * TAU
 		var lm_next = float(lmi + 0.40) / 20.0 * TAU
 		draw_arc(rc, 82.0, lma, lm_next, 4, Color(0.85, 0.80, 0.25, 0.55), 2.0)
-	# Vorfahrt-gewähren-Dreiecke an den Einfahrten
+	# Vorfahrt-gewaehren-Dreiecke an den Einfahrten
 	for yi in range(4):
 		var ya   = float(yi) / 4.0 * TAU
 		var ydir = Vector2(cos(ya), sin(ya))
@@ -2511,7 +3097,7 @@ func _draw_meppen(vp: Rect2) -> void:
 		var sw  = sin(t * 2.2 + lpi * 0.8)
 		var fw  = 34.0; var fh = 22.0
 		var fx  = lpx + 5.0; var fy = lpy + 5.0
-		# Schwarzer Streifen (obere Hälfte)
+		# Schwarzer Streifen (obere Haelfte)
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(fx,       fy),
 			Vector2(fx + fw * 0.5, fy + sw * 1.5),
@@ -2520,7 +3106,7 @@ func _draw_meppen(vp: Rect2) -> void:
 			Vector2(fx + fw * 0.5, fy + fh * 0.5 + sw * 0.5),
 			Vector2(fx,       fy + fh * 0.5),
 		]), Color(0.06, 0.06, 0.06))
-		# Goldener Streifen (untere Hälfte)
+		# Goldener Streifen (untere Haelfte)
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(fx,       fy + fh * 0.5),
 			Vector2(fx + fw * 0.5, fy + fh * 0.5 + sw * 0.5),
@@ -2533,7 +3119,7 @@ func _draw_meppen(vp: Rect2) -> void:
 		var scx = fx + fw * 0.5 + sw * 1.0
 		var scy = fy + fh * 0.5
 		draw_circle(Vector2(scx, scy), 8.0, Color(0.70, 0.08, 0.08))
-		# Sachsenross: weißes Pferd nach links gerichtet
+		# Sachsenross: weisses Pferd nach links gerichtet
 		var hc = Color(0.95, 0.95, 0.95)
 		# Rumpf
 		draw_rect(Rect2(scx - 5, scy - 2, 9, 3), hc)
@@ -2547,7 +3133,7 @@ func _draw_meppen(vp: Rect2) -> void:
 		# Schweif (nach rechts oben)
 		draw_line(Vector2(scx + 4, scy - 1), Vector2(scx + 7, scy - 3), hc, 1.5)
 
-	# === BÄUME (Allee entlang beider Straßen) ===
+	# === BAeUME (Allee entlang beider Strassen) ===
 	var tc_out = Color(0.20, 0.36, 0.14)
 	var tc_mid = Color(0.16, 0.30, 0.10)
 	var tc_in  = Color(0.12, 0.24, 0.08)
@@ -2587,7 +3173,7 @@ func _draw_meppen(vp: Rect2) -> void:
 		if Vector2(pgx, pgy).distance_to(Vector2(w * 0.5, h * 0.5)) < 108:
 			pgx = w * 0.14 + float(pgi) * w * 0.08
 			pgy = pigeon_rng.randf_range(h * 0.14, h * 0.24)
-		# Von Straßen fernhalten
+		# Von Strassen fernhalten
 		if abs(pgx - w * 0.5) < w * 0.07 or abs(pgy - h * 0.5) < h * 0.07:
 			pgx = pigeon_rng.randf_range(w * 0.08, w * 0.20)
 			pgy = pigeon_rng.randf_range(h * 0.60, h * 0.80)
@@ -2606,7 +3192,7 @@ func _draw_meppen(vp: Rect2) -> void:
 			pd_off = flee * scat_frac * 72.0
 		var pgp = pb + pd_off + Vector2(0, pg_bob)
 		var pg_col = Color(0.52, 0.50, 0.48, 0.88)
-		# Flügel bei aufscheuchen gespreizt
+		# Fluegel bei aufscheuchen gespreizt
 		if is_scat and scat_frac > 0.1:
 			var ws = scat_frac * 0.55 * PI
 			draw_arc(pgp, 9.0, PI * 0.5 + ws, PI * 1.5 - ws, 8, pg_col, 2.5)
@@ -2617,26 +3203,26 @@ func _draw_meppen(vp: Rect2) -> void:
 		# kleiner Schatten
 		draw_ellipse_approx(pgp + Vector2(2, 4), Vector2(6, 2), Color(0, 0, 0, 0.15))
 
-	# === FUSSGÄNGER (Passanten auf Pflaster und Bürgersteig) ===
+	# === FUSSGAeNGER (Passanten auf Pflaster und Buergersteig) ===
 	var ped_rng = RandomNumberGenerator.new()
 	ped_rng.seed = 33771
 	var ped_data: Array = []
 	for pedi in range(10):
 		var pdx = ped_rng.randf_range(w * 0.08, w * 0.92)
 		var pdy = ped_rng.randf_range(h * 0.08, h * 0.92)
-		# Nur auf Pflaster/Bürgersteig, nicht auf Straße
+		# Nur auf Pflaster/Buergersteig, nicht auf Strasse
 		if abs(pdx - w * 0.5) < w * 0.06 or abs(pdy - h * 0.5) < h * 0.06:
 			continue
 		ped_data.append({"base": Vector2(pdx, pdy), "phase": float(pedi) * 0.84})
 	for ped in ped_data:
 		var base = ped["base"] as Vector2
 		var ph   = ped["phase"] as float
-		# Fußgänger wandert in kleinem Kreis
+		# Fussgaenger wandert in kleinem Kreis
 		var walk_r  = 18.0
 		var walk_sp = 0.25
 		var px = base.x + cos(ph + t * walk_sp) * walk_r
 		var py = base.y + sin(ph * 1.3 + t * walk_sp * 0.7) * walk_r * 0.6
-		# Körper und Kopf (dunkle Silhouette, top-down)
+		# Koerper und Kopf (dunkle Silhouette, top-down)
 		var pc = Color(0.18, 0.15, 0.12, 0.72)
 		draw_circle(Vector2(px, py - 5), 4.5, pc)
 		draw_ellipse_approx(Vector2(px, py + 2), Vector2(4, 5), pc)
@@ -2652,15 +3238,15 @@ func _draw_meppen(vp: Rect2) -> void:
 		var state = _get_meppen_car_state(car)
 		_draw_meppen_car(state["pos"], state["angle"], car["type"], car["color"], car["blood"])
 
-	# === KREISVERKEHR – Mittelinsel + Brunnen (NACH Autos → überdeckt Clipping) ===
+	# === KREISVERKEHR - Mittelinsel + Brunnen (NACH Autos -> ueberdeckt Clipping) ===
 	var rc2 = Vector2(w * 0.5, h * 0.5)
 	draw_circle(rc2, 68.0, Color(0.30, 0.52, 0.22))
 	draw_circle(rc2, 56.0, Color(0.26, 0.46, 0.18))
-	# Brunnen (Marktbrunnen – original)
-	draw_circle(rc2, 52.0, Color(0.68, 0.66, 0.64))       # äußerer Steinrand
+	# Brunnen (Marktbrunnen - original)
+	draw_circle(rc2, 52.0, Color(0.68, 0.66, 0.64))       # aeusserer Steinrand
 	draw_circle(rc2, 44.0, Color(0.26, 0.40, 0.55))       # Wasser
 	draw_circle(rc2, 40.0, Color(0.28, 0.42, 0.58, 0.9))  # Wasser innen
-	draw_circle(rc2, 13.0, Color(0.65, 0.62, 0.58))       # Mittelsäule
+	draw_circle(rc2, 13.0, Color(0.65, 0.62, 0.58))       # Mittelsaeule
 	draw_circle(rc2,  8.0, Color(0.55, 0.52, 0.48))
 	# Animierte Wasserringe
 	for wri in range(3):
@@ -2676,7 +3262,7 @@ func _draw_meppen(vp: Rect2) -> void:
 		draw_circle(Vector2(rc2.x + cos(fsa) * fsr, rc2.y + sin(fsa) * fsr * 0.6 - fsph * 6),
 			1.5 + (1.0 - fsph) * 1.5, Color(0.55, 0.75, 0.95, (1.0 - fsph) * 0.6))
 
-# ── Meppen – Auto-Logik ───────────────────────────────────────────────────────
+# -- Meppen - Auto-Logik -------------------------------------------------------
 func _get_meppen_car_state(car: Dictionary) -> Dictionary:
 	var wpts: Array = car["waypoints"]
 	var angs: Array = car["draw_angles"]
@@ -2704,11 +3290,11 @@ func _spawn_meppen_car() -> void:
 	var body_colors = [Color(0.80, 0.22, 0.18), Color(0.85, 0.82, 0.78),
 		Color(0.22, 0.36, 0.78), Color(0.12, 0.52, 0.20)]
 	var car_col = Color(0.88, 0.90, 0.96) if car_type == 2 else body_colors[randi() % 4]
-	# Wegpunkte: Anfahrt → Kreisverkehr-Bogen (90°, im Uhrzeigersinn) → Abfahrt
+	# Wegpunkte: Anfahrt -> Kreisverkehr-Bogen (90deg, im Uhrzeigersinn) -> Abfahrt
 	var waypoints:   Array = []
 	var draw_angles: Array = []
 	match dir:
-		0:  # von LINKS → Kreisverkehr → nach OBEN raus
+		0:  # von LINKS -> Kreisverkehr -> nach OBEN raus
 			waypoints   = [Vector2(-60, cy), Vector2(cx - r, cy)]
 			draw_angles = [0.0, 0.0]
 			for i in range(9):
@@ -2716,7 +3302,7 @@ func _spawn_meppen_car() -> void:
 				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
 				draw_angles.append(atan2(cos(a), -sin(a)))
 			waypoints.append(Vector2(cx, -60));   draw_angles.append(-PI * 0.5)
-		1:  # von RECHTS → Kreisverkehr → nach UNTEN raus
+		1:  # von RECHTS -> Kreisverkehr -> nach UNTEN raus
 			waypoints   = [Vector2(w + 60, cy), Vector2(cx + r, cy)]
 			draw_angles = [PI, PI]
 			for i in range(9):
@@ -2724,7 +3310,7 @@ func _spawn_meppen_car() -> void:
 				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
 				draw_angles.append(atan2(cos(a), -sin(a)))
 			waypoints.append(Vector2(cx, h + 60)); draw_angles.append(PI * 0.5)
-		2:  # von OBEN → Kreisverkehr → nach RECHTS raus
+		2:  # von OBEN -> Kreisverkehr -> nach RECHTS raus
 			waypoints   = [Vector2(cx, -60), Vector2(cx, cy - r)]
 			draw_angles = [PI * 0.5, PI * 0.5]
 			for i in range(9):
@@ -2732,7 +3318,7 @@ func _spawn_meppen_car() -> void:
 				waypoints.append(Vector2(cx + cos(a) * r, cy + sin(a) * r))
 				draw_angles.append(atan2(cos(a), -sin(a)))
 			waypoints.append(Vector2(w + 60, cy)); draw_angles.append(0.0)
-		_:  # von UNTEN → Kreisverkehr → nach LINKS raus
+		_:  # von UNTEN -> Kreisverkehr -> nach LINKS raus
 			waypoints   = [Vector2(cx, h + 60), Vector2(cx, cy + r)]
 			draw_angles = [-PI * 0.5, -PI * 0.5]
 			for i in range(9):
@@ -2752,7 +3338,7 @@ func _spawn_meppen_car() -> void:
 
 func _draw_meppen_car(center: Vector2, angle: float, car_type: int, car_color: Color, blood: Array) -> void:
 	draw_set_transform(center, angle)
-	var bw = 44.0 if car_type == 1 else 38.0  # Van etwas länger
+	var bw = 44.0 if car_type == 1 else 38.0  # Van etwas laenger
 	var bh = 15.0 if car_type == 1 else 13.0
 	# Karosserie
 	draw_rect(Rect2(-bw * 0.5, -bh, bw, bh * 2.0), car_color)
@@ -2768,9 +3354,9 @@ func _draw_meppen_car(center: Vector2, angle: float, car_type: int, car_color: C
 				Color(1.0, 0.15, 0.15, 0.95) if blink == 0 else Color(0.1, 0.3, 1.0, 0.95))
 		3:  # Taxi
 			draw_rect(Rect2(-7, -bh - 5, 14, 4), Color(0.88, 0.80, 0.10))
-		1:  # Van – dunkle Seitenlinie
+		1:  # Van - dunkle Seitenlinie
 			draw_line(Vector2(-bw * 0.5, 0), Vector2(bw * 0.5 - 13, 0), Color(0, 0, 0, 0.25), 2)
-	# Räder (4 Ecken)
+	# Raeder (4 Ecken)
 	for wxs in [-bw * 0.5 + 5, bw * 0.5 - 5]:
 		for wys in [-bh, bh]:
 			draw_circle(Vector2(wxs, wys), 4.5, Color(0.10, 0.10, 0.12))
@@ -2799,7 +3385,7 @@ func _update_meppen(delta: float) -> void:
 		_spawn_meppen_car()
 		_meppen_next_car = randf_range(3.5, 6.5)
 
-	# Kollisionsprüfung
+	# Kollisionspruefung
 	if _meppen_car_hit_cd > 0.0 or _in_transition or _between_waves or _game_over:
 		return
 
@@ -2813,7 +3399,7 @@ func _update_meppen(delta: float) -> void:
 				_meppen_car_hit_cd = 1.2
 				return
 
-# ── Death Feast Bühne ─────────────────────────────────────────────────────────
+# -- Death Feast Buehne ---------------------------------------------------------
 func _draw_death_feast(vp: Rect2) -> void:
 	var w = vp.size.x
 	var h = vp.size.y
@@ -2935,7 +3521,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_line(Vector2(br_x, h * 0.55), Vector2(br_x, h * 0.72),
 			Color(0.14, 0.10, 0.06, 0.45), 1.2)
 
-	# === BÜHNENNEBEL (Dry-Ice-Fog auf dem Bühnenboden) ===
+	# === BUeHNENNEBEL (Dry-Ice-Fog auf dem Buehnenboden) ===
 	for fogi in range(7):
 		var fog_phase = fmod(t * 0.07 + float(fogi) * 0.143, 1.0)
 		var fog_x = w * 0.04 + float(fogi) * (w * 0.92 / 6.0) + sin(t * 0.14 + float(fogi) * 1.1) * 36.0
@@ -2985,7 +3571,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		var lc3 = laser_cols[lsi]
 		var la2 = 0.35 + abs(sin(t * (1.4 + lsi * 0.3) + lsi)) * 0.30
 		draw_line(Vector2(lx1, h * 0.10 + 14), Vector2(lx2, h * 0.56), Color(lc3.r, lc3.g, lc3.b, la2), 1.2)
-		# Gegenläufiger Strahl vom anderen Ende
+		# Gegenlaeufiger Strahl vom anderen Ende
 		var lx3 = w - lx1 + sin(la + PI) * w * 0.20
 		draw_line(Vector2(w - lx1, h * 0.10 + 14), Vector2(lx3, h * 0.56), Color(lc3.r, lc3.g, lc3.b, la2 * 0.65), 1.0)
 		# Kleiner Lichtfleck am Auftreffpunkt
@@ -3034,11 +3620,11 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_circle(Vector2(tb_x + 56, tb_y + 27),  3, Color(0.06, 0.04, 0.06))
 		draw_circle(Vector2(tb_x + 64, tb_y + 27),  3, Color(0.06, 0.04, 0.06))
 
-	# === BAND AUF DER BÜHNE =====================================================
-	var sy    = h * 0.50    # Bühnenboden-Referenz (Füße der Figuren)
+	# === BAND AUF DER BUeHNE =====================================================
+	var sy    = h * 0.50    # Buehnenboden-Referenz (Fuesse der Figuren)
 	var skin  = Color(0.88, 0.72, 0.56)
 
-	# ── DRUM KIT (Mitte hinten) ──────────────────────────────────────────────
+	# -- DRUM KIT (Mitte hinten) ----------------------------------------------
 	var dk_x = w * 0.50; var dk_y = sy - 10.0
 	# Kick drum (pulsiert im Takt)
 	draw_circle(Vector2(dk_x, dk_y + 14), 18, Color(0.55, 0.06, 0.06))
@@ -3049,11 +3635,11 @@ func _draw_death_feast(vp: Rect2) -> void:
 	# Snare (links)
 	draw_ellipse_approx(Vector2(dk_x - 26, dk_y + 4), Vector2(13, 6), Color(0.55, 0.06, 0.06))
 	draw_ellipse_approx(Vector2(dk_x - 26, dk_y + 4), Vector2(9, 4),  Color(0.18, 0.14, 0.10))
-	# Hi-Hat (links, zwei Becken leicht geöffnet)
+	# Hi-Hat (links, zwei Becken leicht geoeffnet)
 	draw_circle(Vector2(dk_x - 44, dk_y - 3), 9, Color(0.72, 0.68, 0.28, 0.9))
 	draw_circle(Vector2(dk_x - 44, dk_y - 7), 9, Color(0.72, 0.68, 0.28, 0.85))
 	draw_line(Vector2(dk_x - 44, dk_y - 2), Vector2(dk_x - 42, dk_y + 20), Color(0.45, 0.42, 0.38), 2)
-	# Tom 1 + Tom 2 (über Kick)
+	# Tom 1 + Tom 2 (ueber Kick)
 	draw_ellipse_approx(Vector2(dk_x - 14, dk_y - 3), Vector2(12, 6), Color(0.55, 0.06, 0.06))
 	draw_ellipse_approx(Vector2(dk_x + 14, dk_y - 3), Vector2(12, 6), Color(0.55, 0.06, 0.06))
 	# Floor Tom (rechts, mit Beinen)
@@ -3082,7 +3668,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 	draw_circle(Vector2(dk_x - 3, dk_y - 7  + ma_bob * 0.4), 1.8, Color(0.1, 0.1, 0.1))
 	draw_circle(Vector2(dk_x + 3, dk_y - 7  + ma_bob * 0.4), 1.8, Color(0.1, 0.1, 0.1))
 
-	# ── SHOUTER (Sänger, Frontmitte) mit Mikrophon-Ständer ──────────────────
+	# -- SHOUTER (Saenger, Frontmitte) mit Mikrophon-Staender ------------------
 	var sh_x = w * 0.48; var sh_y = sy
 	draw_line(Vector2(sh_x, sh_y + 2), Vector2(sh_x, sh_y - 50), Color(0.42, 0.40, 0.38), 2.5)
 	draw_line(Vector2(sh_x - 16, sh_y + 2), Vector2(sh_x + 16, sh_y + 2), Color(0.42, 0.40, 0.38), 2.5)
@@ -3104,7 +3690,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 	var sing_o = abs(sin(t * 6.5)) * 4.0
 	draw_arc(Vector2(sh_x, sh_y - 34 + sh_bob * 0.4), sing_o + 2, 0, PI, 6, Color(0.18, 0.08, 0.06), 2.0)
 
-	# ── BASSIST (links von Mitte) mit Bass-Cabinet ───────────────────────────
+	# -- BASSIST (links von Mitte) mit Bass-Cabinet ---------------------------
 	var ba_x = w * 0.33; var ba_y = sy
 	draw_rect(Rect2(ba_x - 28, ba_y - 60, 50, 54), Color(0.08, 0.06, 0.08))
 	draw_rect(Rect2(ba_x - 26, ba_y - 58, 46, 50), Color(0.05, 0.04, 0.05))
@@ -3127,7 +3713,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_line(Vector2(bdx, ba_y - 52 + ba_bob * 0.4), Vector2(bdx + sin(t + bdi) * 2, ba_y - 30 + ba_bob * 0.4), Color(0.25, 0.18, 0.08), 2.5)
 	draw_circle(Vector2(ba_x - 4, ba_y - 42 + ba_bob * 0.4), 1.8, Color(0.1, 0.1, 0.1))
 	draw_circle(Vector2(ba_x + 4, ba_y - 42 + ba_bob * 0.4), 1.8, Color(0.1, 0.1, 0.1))
-	# Bass-Gitarre (Precision Bass, hängt schräg)
+	# Bass-Gitarre (Precision Bass, haengt schraeg)
 	var bg_ang = sin(t * 4.0) * 0.06
 	var bg_off = Vector2(sin(bg_ang) * 18, 0)
 	draw_colored_polygon(PackedVector2Array([
@@ -3139,7 +3725,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 	for si_b in range(4):
 		draw_line(bg_off + Vector2(ba_x + 16 + si_b * 1.5, ba_y - 18), Vector2(ba_x + 12 + si_b * 0.5, ba_y - 66 + ba_bob), Color(0.75, 0.72, 0.40, 0.6), 0.8)
 
-	# ── DREADS (Leadgitarre, rechts von Mitte) mit Combo-Amp ─────────────────
+	# -- DREADS (Leadgitarre, rechts von Mitte) mit Combo-Amp -----------------
 	var dr_x = w * 0.64; var dr_y = sy
 	draw_rect(Rect2(dr_x + 12, dr_y - 44, 40, 40), Color(0.08, 0.06, 0.08))
 	draw_rect(Rect2(dr_x + 14, dr_y - 42, 36, 36), Color(0.05, 0.04, 0.05))
@@ -3176,7 +3762,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 	var whm = sin(t * 8.0 + PI * 0.5) * 2.5
 	draw_line(gr_off + Vector2(dr_x - 8, dr_y - 6), gr_off + Vector2(dr_x - 6, dr_y - 6 + whm), Color(0.55, 0.52, 0.38), 1.5)
 
-	# ── DISTORTION (Rhythmusgitarre links) mit Marshall-Stack ────────────────
+	# -- DISTORTION (Rhythmusgitarre links) mit Marshall-Stack ----------------
 	var di_x = w * 0.21; var di_y = sy
 	for dsi in range(2):
 		draw_rect(Rect2(di_x - 4, di_y - 45 - dsi * 40, 48, 38), Color(0.06, 0.05, 0.06))
@@ -3213,7 +3799,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 	for si_d in range(6):
 		draw_line(dg_off + Vector2(di_x + 52 + si_d, di_y - 18), Vector2(di_x + 30 + si_d * 0.3, di_y - 66 + di_bob), Color(0.78, 0.74, 0.44, 0.55), 0.7)
 
-	# ── RIFF SLICER (Keyboard / Synthesizer, rechts außen) ───────────────────
+	# -- RIFF SLICER (Keyboard / Synthesizer, rechts aussen) -------------------
 	var rs_x = w * 0.76; var rs_y = sy
 	# Keyboard
 	draw_rect(Rect2(rs_x - 30, rs_y - 38, 62, 22), Color(0.10, 0.10, 0.12))
@@ -3224,7 +3810,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		draw_rect(Rect2(kx2, rs_y - 35, 3, 14 if not kb else 9), Color(0.92, 0.90, 0.88) if not kb else Color(0.06, 0.05, 0.06))
 	draw_line(Vector2(rs_x - 22, rs_y - 16), Vector2(rs_x - 18, rs_y + 2), Color(0.35, 0.32, 0.28), 2.5)
 	draw_line(Vector2(rs_x + 22, rs_y - 16), Vector2(rs_x + 18, rs_y + 2), Color(0.35, 0.32, 0.28), 2.5)
-	# Rack / Effektgeräte links neben Keyboard
+	# Rack / Effektgeraete links neben Keyboard
 	draw_rect(Rect2(rs_x - 30, rs_y - 76, 24, 36), Color(0.08, 0.06, 0.08))
 	for ri3 in range(4):
 		draw_rect(Rect2(rs_x - 28, rs_y - 74 + ri3 * 9, 20, 7), Color(0.04, 0.04, 0.05))
@@ -3251,7 +3837,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 	draw_circle(Vector2(rs_x - 14, rs_y - 22 + rs_bob - fp1), 3, skin)
 	draw_circle(Vector2(rs_x + 18, rs_y - 22 + rs_bob - fp2), 3, skin)
 
-	# ── MONITOR-WEDGES (Bühnenboden vor den Musikern) ────────────────────────
+	# -- MONITOR-WEDGES (Buehnenboden vor den Musikern) ------------------------
 	for mwi in range(4):
 		var mwx = w * 0.28 + mwi * (w * 0.44 / 3.0)
 		draw_colored_polygon(PackedVector2Array([
@@ -3260,7 +3846,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		]), Color(0.10, 0.08, 0.08))
 		draw_circle(Vector2(mwx, sy + 9), 5, Color(0.04, 0.03, 0.04))
 
-	# ── KABEL-SCHLANGEN (Bühnenboden) ────────────────────────────────────────
+	# -- KABEL-SCHLANGEN (Buehnenboden) ----------------------------------------
 	var cab_rng = RandomNumberGenerator.new(); cab_rng.seed = 54321
 	for cbi in range(8):
 		var cx1 = cab_rng.randf_range(w * 0.18, w * 0.80)
@@ -3310,7 +3896,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		var refl_c = light_colors_df[ci3 % 6]
 		draw_circle(Vector2(cx3, cy3 - 8), head_sz + 3, Color(refl_c.r, refl_c.g, refl_c.b, 0.06))
 
-	# === DYNAMISCHES EVENT: Crowd-Surfer fliegt über die Menge (alle 19 s) ──
+	# === DYNAMISCHES EVENT: Crowd-Surfer fliegt ueber die Menge (alle 19 s) --
 	var et_cs = fmod(_anim_time, 19.0)
 	if et_cs < 5.5:
 		var ep_cs = et_cs / 5.5
@@ -3334,7 +3920,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 			Vector2(csx + 50, csy - 14), Vector2(csx + 10, csy - 14)
 		]), Color(1.0, 0.90, 0.20, 0.10))
 
-	# === KONFETTI-KANONE (alle 15s schießen zwei Kanonen bunte Schnipsel) ===
+	# === KONFETTI-KANONE (alle 15s schiessen zwei Kanonen bunte Schnipsel) ===
 	var et_kf = fmod(_anim_time, 15.0)
 	if et_kf < 3.5:
 		var kf_p   = et_kf / 3.5
@@ -3343,7 +3929,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 		var kf_cols = [Color(1.0, 0.12, 0.12), Color(1.0, 0.82, 0.0), Color(0.12, 0.82, 0.22),
 			Color(0.22, 0.42, 1.0), Color(0.90, 0.12, 0.90), Color(1.0, 0.55, 0.10)]
 		for kfi in range(55):
-			# Zwei Abschuss-Punkte (linke und rechte Bühnenkante)
+			# Zwei Abschuss-Punkte (linke und rechte Buehnenkante)
 			var cannon_x = w * 0.06 if kfi % 2 == 0 else w * 0.94
 			var spread   = kf_rng.randf_range(-0.5, 0.5)
 			var fall_sp  = 0.55 + kf_rng.randf() * 0.45
@@ -3368,7 +3954,7 @@ func _draw_death_feast(vp: Rect2) -> void:
 					kfy + sin(kf_rot) * kf_half.x - cos(kf_rot) * kf_half.y),
 			]), Color(kfc.r, kfc.g, kfc.b, kf_a))
 
-# ── Helper: Ellipse ───────────────────────────────────────────────────────────
+# -- Helper: Ellipse -----------------------------------------------------------
 func _draw_ellipse(center: Vector2, radii: Vector2, col: Color) -> void:
 	var pts = PackedVector2Array()
 	for i in range(16):
@@ -3379,7 +3965,7 @@ func _draw_ellipse(center: Vector2, radii: Vector2, col: Color) -> void:
 func draw_ellipse_approx(center: Vector2, radii: Vector2, col: Color) -> void:
 	_draw_ellipse(center, radii, col)
 
-# ── Boss-Erkennung ───────────────────────────────────────────────────────────
+# -- Boss-Erkennung -----------------------------------------------------------
 func _is_boss_wave(n: int) -> bool:
 	return n in [4, 7, 8, 9, 11, 13, 15]
 
@@ -3390,6 +3976,7 @@ func _show_boss_warning() -> void:
 	AudioManager.play_boss_siren_sfx()
 	_screen_flash = 3.0
 	_screen_flash_color = Color(1.0, 0.0, 0.0)
+	trigger_screen_shake(14.0, 0.55)  # Starkes Rumpeln beim Boss-Auftritt
 
 	# Dunkler Overlay
 	var overlay = ColorRect.new()
@@ -3430,7 +4017,7 @@ func _show_boss_warning() -> void:
 	title.add_theme_font_size_override("font_size", 54)
 	hud.add_child(title)
 
-	# Boss-Name (gold) – kleinere Schrift damit lange Namen (Rentnerpaar) nicht abgeschnitten werden
+	# Boss-Name (gold) - kleinere Schrift damit lange Namen (Rentnerpaar) nicht abgeschnitten werden
 	var name_lbl = Label.new()
 	name_lbl.name = "BossNameLabel"
 	name_lbl.set_anchors_preset(Control.PRESET_CENTER)
@@ -3447,7 +4034,7 @@ func _show_boss_warning() -> void:
 	name_lbl.add_theme_font_size_override("font_size", 38)
 	hud.add_child(name_lbl)
 
-	# Naht! – nach unten verschoben damit kein Überlapp mit Boss-Name
+	# Naht! - nach unten verschoben damit kein Ueberlapp mit Boss-Name
 	var sub = Label.new()
 	sub.name = "BossSub"
 	sub.set_anchors_preset(Control.PRESET_CENTER)
@@ -3473,7 +4060,7 @@ func _show_boss_warning() -> void:
 		if is_instance_valid(sub):      sub.queue_free()
 	)
 
-# ── Map lookup (inline to avoid class_name scoping issues) ───────────────────
+# -- Map lookup (inline to avoid class_name scoping issues) -------------------
 const _MapDB = preload("res://scripts/systems/map_database.gd")
 
 func _get_map_for_wave(wave: int) -> String:
@@ -3481,22 +4068,13 @@ func _get_map_for_wave(wave: int) -> String:
 		return GameManager.endless_map
 	return _MapDB.get_map_for_wave(wave)
 
-const _MAP_INFO = {
-	"farm":         {"title": "Die Farm",            "subtitle": "Irgendwo in Niedersachsen..."},
-	"prison":       {"title": "Das Gefaengnis",       "subtitle": "3 Jahre wegen Laermbelaestigung"},
-	"proberaum":    {"title": "Der Proberaum",        "subtitle": "Nachbarn wieder sauer..."},
-	"schweinestall":{"title": "Der Schweinestall",    "subtitle": "Riecht nach Musik"},
-	"amerika":      {"title": "Amerika",              "subtitle": "Road Trip from Hell"},
-	"truck":        {"title": "Fahrender Truck",      "subtitle": "270 km/h auf der A31"},
-	"tonstudio":    {"title": "Tonstudio Soundlodge", "subtitle": "Rhauderfehn, Ostfriesland..."},
-	"tv_studio":    {"title": "TV Studio",            "subtitle": "Live on Air"},
-	"meppen":       {"title": "Meppen",               "subtitle": "City of the Damned"},
-	"death_feast":  {"title": "Death Feast",          "subtitle": "Buehne Andernach - letzte Chance!"},
-}
+# Map-Titel/-Untertitel kommen lokalisiert aus dem LocalizationManager
+# (map_title()/map_subtitle()). Die alte deutsche _MAP_INFO-Tabelle wurde
+# in Run #6 entfernt, um doppelte Datenhaltung zu vermeiden.
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # Signal handlers
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 func _on_beat() -> void:
 	_screen_flash = 0.3
 	_screen_flash_color = Color(0.5, 0.3, 0.8)
@@ -3536,6 +4114,12 @@ func _on_player_attacked() -> void:
 func _on_player_ultimate() -> void:
 	_screen_flash = 1.0
 	_screen_flash_color = Color(1.0, 0.5, 0.0)
+	trigger_screen_shake(8.0, 0.35)  # Kurzes Rumpeln beim Ultimate
+
+func _on_player_took_damage(amount: float) -> void:
+	# Shake-Staerke proportional zum erhaltenen Schaden (min 3, max 10 Pixel)
+	var intensity = clamp(amount * 0.18, 3.0, 10.0)
+	trigger_screen_shake(intensity, 0.22)
 
 func _on_crowd_level_changed(_level: int) -> void:
 	for p in _players:
@@ -3544,11 +4128,17 @@ func _on_crowd_level_changed(_level: int) -> void:
 
 func _on_wave_completed(wave_number: int) -> void:
 	_between_waves = true
+	# Client wartet auf Host-RPC fuer Szenen-Wechsel
+	if GameManager.network_mode == 2:
+		return
+	# Host oder Offline: normal fortfahren und ggf. Client informieren
+	if GameManager.network_mode == 1:
+		rpc("_rpc_net_wave_completed", wave_number)
 
 	if GameManager.endless_mode:
 		SaveManager.update_run_results()
-		# Upgrade shop every 5 waves, otherwise auto-continue
 		if wave_number % 5 == 0:
+			await _show_shop_announce()
 			GameManager.go_to_upgrade_shop()
 		else:
 			_show_wave_banner(wave_number + 1)
@@ -3564,23 +4154,87 @@ func _on_wave_completed(wave_number: int) -> void:
 		return
 
 	SaveManager.update_run_results()
+	await _show_shop_announce()
 	GameManager.go_to_upgrade_shop()
 
-func _on_player_died(_player_idx: int = 0) -> void:
-	if _game_over:
+# Kurzes Banner direkt vor dem Shop-Wechsel - signalisiert klar dass Backstage-Shop kommt.
+# Wartet etwa 0.9s damit der Spieler den Hinweis sieht, bevor der Scene-Wechsel passiert.
+func _show_shop_announce() -> void:
+	if not hud:
 		return
-	# Prüfen ob noch ein anderer Spieler lebt
-	var any_alive = false
-	for p in _players:
-		if is_instance_valid(p) and p.is_alive:
-			any_alive = true
-			break
-	if any_alive:
-		# Nur kurzer roter Flash – Mitspielerin noch am Leben
-		_screen_flash = 2.5
-		_screen_flash_color = Color(1.0, 0.1, 0.1)
+	var old = hud.get_node_or_null("ShopAnnounceBanner")
+	if old:
+		old.queue_free()
+	var b = Label.new()
+	b.name = "ShopAnnounceBanner"
+	b.set_anchors_preset(Control.PRESET_CENTER)
+	b.anchor_left = 0.5
+	b.anchor_right = 0.5
+	b.anchor_top = 0.5
+	b.anchor_bottom = 0.5
+	b.position = Vector2(-350, 60)
+	b.size = Vector2(700, 40)
+	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.text = LocalizationManager.t("shop_incoming")
+	b.add_theme_color_override("font_color", Color(0.95, 0.8, 1.0))
+	b.add_theme_color_override("font_outline_color", Color(0.15, 0.05, 0.2, 1.0))
+	b.add_theme_constant_override("outline_size", 4)
+	b.add_theme_font_size_override("font_size", 26)
+	b.pivot_offset = b.size * 0.5
+	b.scale = Vector2(1.4, 1.4)
+	b.modulate.a = 0.0
+	hud.add_child(b)
+	var tw: Tween = create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(b, "modulate:a", 1.0, 0.18)
+	tw.tween_property(b, "scale", Vector2(1.0, 1.0), 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# Kurz sichtbar lassen bevor wir den Scene-Wechsel triggern
+	await get_tree().create_timer(0.9, false).timeout
+
+# -- Netzwerk-RPCs -------------------------------------------------------------
+
+func _net_send_my_pos() -> void:
+	var my_idx = 0 if GameManager.network_mode == 1 else 1
+	for p in get_tree().get_nodes_in_group("players"):
+		if p.player_index == my_idx and not p._is_remote:
+			rpc("_rpc_net_player_pos", my_idx, p.global_position.x, p.global_position.y,
+				p.current_hp, p.max_hp + p.max_hp_bonus)
+			return
+
+@rpc("any_peer", "unreliable_ordered")
+func _rpc_net_player_pos(idx: int, x: float, y: float, hp: int, max_hp: int) -> void:
+	for p in get_tree().get_nodes_in_group("players"):
+		if p.player_index == idx and p._is_remote:
+			p._remote_target_pos = Vector2(x, y)
+			p.current_hp = hp
+			p.max_hp = max_hp
+			return
+
+@rpc("authority", "reliable")
+func _rpc_net_wave_completed(wave_number: int) -> void:
+	# Client: Host hat Wave beendet -> auch hier Szene wechseln
+	_between_waves = true
+	GameManager.current_wave = wave_number
+	if GameManager.endless_mode:
+		SaveManager.update_run_results()
+		if wave_number % 5 == 0:
+			GameManager.go_to_upgrade_shop()
+		else:
+			_show_wave_banner(wave_number + 1)
+			_wave_transition_timer = 3.0
+			_in_transition = true
+			_between_waves = false
 		return
-	# Alle Spieler tot → Game Over
+	if wave_number >= 15:
+		GameManager.run_stats["won"] = true
+		SaveManager.update_run_results()
+		GameManager.go_to_game_over()
+		return
+	SaveManager.update_run_results()
+	GameManager.go_to_upgrade_shop()
+
+@rpc("authority", "reliable")
+func _rpc_net_game_over() -> void:
 	_game_over = true
 	_show_death_effect()
 	SaveManager.update_run_results()
@@ -3590,6 +4244,49 @@ func _on_player_died(_player_idx: int = 0) -> void:
 	else:
 		timer.connect("timeout", GameManager.go_to_game_over)
 
+func _on_player_died(_player_idx: int = 0) -> void:
+	if _game_over:
+		return
+	# Im Netzwerk-Modus: Remote-Spieler koennen nicht "wirklich" sterben (nur Position)
+	if GameManager.network_mode > 0:
+		for p in _players:
+			if is_instance_valid(p) and p._is_remote:
+				p.is_alive = true  # Remote-Figur nie tot erklaeren
+	# Pruefen ob noch ein lokaler Spieler lebt
+	var any_alive = false
+	for p in _players:
+		if is_instance_valid(p) and p.is_alive and not p._is_remote:
+			any_alive = true
+			break
+	if any_alive:
+		_screen_flash = 2.5
+		_screen_flash_color = Color(1.0, 0.1, 0.1)
+		return
+	# Lokaler Spieler tot -> Game Over
+	_game_over = true
+	_show_death_effect()
+	SaveManager.update_run_results()
+	# Host informiert Client ueber Game Over
+	if GameManager.network_mode == 1:
+		rpc("_rpc_net_game_over")
+	var timer = get_tree().create_timer(2.0, false)
+	if GameManager.endless_mode:
+		timer.connect("timeout", GameManager.go_to_endless_leaderboard)
+	else:
+		timer.connect("timeout", GameManager.go_to_game_over)
+
 func _show_death_effect() -> void:
 	_screen_flash = 3.0
 	_screen_flash_color = Color(1.0, 0.0, 0.0)
+
+# -----------------------------------------------------------------------------
+# SCREEN SHAKE
+# -----------------------------------------------------------------------------
+## Loest einen Screen Shake aus. intensity = Pixel-Radius, duration = Sekunden.
+## Bestehender Shake wird nur ueberschrieben wenn der neue staerker ist.
+func trigger_screen_shake(intensity: float, duration: float) -> void:
+	if not _shake_enabled:
+		return
+	if intensity > _shake_intensity or _shake_duration <= 0.0:
+		_shake_intensity = intensity
+	_shake_duration = max(_shake_duration, duration)

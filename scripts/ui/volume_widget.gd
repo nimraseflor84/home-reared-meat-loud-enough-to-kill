@@ -61,7 +61,7 @@ func _build() -> void:
 	_song_label = Label.new()
 	_song_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var current = AudioManager.get_current_song_title()
-	_song_label.text = current if current != "" else "-- kein Song --"
+	_song_label.text = current if current != "" else LocalizationManager.t("no_song")
 	_song_label.add_theme_color_override("font_color", Color(0.8, 0.7, 1.0))
 	_song_label.add_theme_font_size_override("font_size", 13)
 	_song_label.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -90,7 +90,7 @@ func _build() -> void:
 
 	# Mute-Button
 	_mute_btn = Button.new()
-	_mute_btn.text = "AN" if AudioManager.get_music_enabled() else "AUS"
+	_mute_btn.text = LocalizationManager.t("on_label") if AudioManager.get_music_enabled() else LocalizationManager.t("off_label")
 	_mute_btn.custom_minimum_size = Vector2(44, 0)
 	_mute_btn.add_theme_font_size_override("font_size", 13)
 	_mute_btn.pressed.connect(_on_mute_toggled)
@@ -109,7 +109,7 @@ func _build() -> void:
 	sfx_row.add_child(sfx_lbl)
 
 	_proj_sfx_btn = Button.new()
-	_proj_sfx_btn.text = "AN" if AudioManager.get_proj_sfx_enabled() else "AUS"
+	_proj_sfx_btn.text = LocalizationManager.t("on_label") if AudioManager.get_proj_sfx_enabled() else LocalizationManager.t("off_label")
 	_proj_sfx_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_proj_sfx_btn.add_theme_font_size_override("font_size", 13)
 	_proj_sfx_btn.pressed.connect(_on_proj_sfx_toggled)
@@ -121,7 +121,7 @@ func _build() -> void:
 	vbox.add_child(next_row)
 
 	var next_btn = Button.new()
-	next_btn.text = ">> Naechster Song"
+	next_btn.text = LocalizationManager.t("next_song")
 	next_btn.add_theme_font_size_override("font_size", 13)
 	next_btn.pressed.connect(AudioManager.next_song)
 	next_row.add_child(next_btn)
@@ -133,28 +133,28 @@ func _toggle_panel() -> void:
 	_panel.visible = _visible_panel
 	if _visible_panel:
 		var current = AudioManager.get_current_song_title()
-		_song_label.text = current if current != "" else "-- kein Song --"
+		_song_label.text = current if current != "" else LocalizationManager.t("no_song")
 		_slider.value = AudioManager.get_music_volume()
-		_mute_btn.text = "AN" if AudioManager.get_music_enabled() else "AUS"
-		_proj_sfx_btn.text = "AN" if AudioManager.get_proj_sfx_enabled() else "AUS"
+		_mute_btn.text = LocalizationManager.t("on_label") if AudioManager.get_music_enabled() else LocalizationManager.t("off_label")
+		_proj_sfx_btn.text = LocalizationManager.t("on_label") if AudioManager.get_proj_sfx_enabled() else LocalizationManager.t("off_label")
 
 func _on_volume_changed(val: float) -> void:
 	AudioManager.set_music_volume(val)
 	AudioManager.set_music_enabled(val > 0.0)
-	_mute_btn.text = "AN" if val > 0.0 else "AUS"
+	_mute_btn.text = LocalizationManager.t("on_label") if val > 0.0 else LocalizationManager.t("off_label")
 
 func _on_mute_toggled() -> void:
 	var enabled = not AudioManager.get_music_enabled()
 	AudioManager.set_music_enabled(enabled)
-	_mute_btn.text = "AN" if enabled else "AUS"
+	_mute_btn.text = LocalizationManager.t("on_label") if enabled else LocalizationManager.t("off_label")
 	if enabled:
 		_slider.value = max(AudioManager.get_music_volume(), 0.1)
 
 func _on_proj_sfx_toggled() -> void:
 	var enabled = not AudioManager.get_proj_sfx_enabled()
 	AudioManager.set_proj_sfx_enabled(enabled)
-	_proj_sfx_btn.text = "AN" if enabled else "AUS"
+	_proj_sfx_btn.text = LocalizationManager.t("on_label") if enabled else LocalizationManager.t("off_label")
 
-func _on_song_changed(title: String) -> void:
+func _on_song_changed(title: String, _bpm: float = 0.0) -> void:
 	if is_instance_valid(_song_label):
-		_song_label.text = title if title != "" else "-- kein Song --"
+		_song_label.text = title if title != "" else LocalizationManager.t("no_song")

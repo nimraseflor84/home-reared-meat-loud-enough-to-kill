@@ -1,9 +1,9 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # Donald Trump
-# Angriff:   Lügen-Projektile (orange Sprechblasen)
-# Spezial:   Toupet klappt zurück → Gesicht rot → Mr. Epstein im F36 fliegt herein
-#            → Explosion → Trump angekohlt, zerfetzte Klamotten, Speed +20 %
+# Angriff:   Luegen-Projektile (orange Sprechblasen)
+# Spezial:   Toupet klappt zurueck -> Gesicht rot -> Mr. Epstein im F36 fliegt herein
+#            -> Explosion -> Trump angekohlt, zerfetzte Klamotten, Speed +20 %
 
 const LUEGE_CD      = 2.4
 const LUEGE_SPD     = 290.0
@@ -12,7 +12,7 @@ const SPECIAL_CD    = 14.0
 
 # Spezial-Phasen
 const SP_NONE    = 0
-const SP_HAIR    = 1   # Toupet klappt zurück   (0.9 s)
+const SP_HAIR    = 1   # Toupet klappt zurueck   (0.9 s)
 const SP_JET     = 2   # Jet fliegt herein       (variabel)
 const SP_EXPLODE = 3   # Explosion               (0.7 s)
 
@@ -24,7 +24,7 @@ var _sphase_t: float       = 0.0
 var _phase2: bool          = false
 var _charred: bool         = false   # nach Explosion dauerhaft
 var _hair_angle: float     = 0.0    # 0 = normal, PI = umgeklappt
-var _face_red: float       = 0.0    # 0..1 Rotfärbung
+var _face_red: float       = 0.0    # 0..1 Rotfaerbung
 
 # Jet
 var _jet_pos: Vector2      = Vector2.ZERO
@@ -34,7 +34,7 @@ var _jet_alive: bool       = false
 # Explosion
 var _explode_r: float      = 0.0
 
-# Lügen-Projektile
+# Luegen-Projektile
 var _luegens: Array        = []   # {pos, vel, wobble, dmg}
 
 func _ready() -> void:
@@ -47,18 +47,18 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _process(delta: float) -> void:
 	if not is_alive or _dying:
 		super._process(delta)
 		return
 
-	# Phase-2-Trigger bei 50 % HP → 3× Geschwindigkeit
+	# Phase-2-Trigger bei 50 % HP -> 3x Geschwindigkeit
 	if not _phase2 and current_hp <= max_hp * 0.5:
 		_phase2    = true
 		move_speed *= 3.0
 
-	# Lügen bewegen
+	# Luegen bewegen
 	for i in range(_luegens.size() - 1, -1, -1):
 		var l = _luegens[i]
 		l["wobble"] += delta * 4.0
@@ -77,7 +77,7 @@ func _process(delta: float) -> void:
 	_sphase_t += delta
 	match _sphase:
 		SP_HAIR:
-			# Toupet klappt zurück, Gesicht wird rot
+			# Toupet klappt zurueck, Gesicht wird rot
 			_hair_angle = min(_sphase_t / 0.9, 1.0) * PI
 			_face_red   = min(_sphase_t / 0.9, 1.0)
 			if _sphase_t >= 0.9:
@@ -112,18 +112,18 @@ func _physics_process(delta: float) -> void:
 			_start_special()
 		super._physics_process(delta)
 	else:
-		# Während Spezial: langsam oder stehen
+		# Waehrend Spezial: langsam oder stehen
 		if _sphase == SP_EXPLODE:
 			velocity = Vector2.ZERO
 		else:
 			velocity *= 0.85
 		move_and_slide()
 
-# ── Aktionen ──────────────────────────────────────────────────────────────────
+# -- Aktionen ------------------------------------------------------------------
 func _shoot_luege() -> void:
 	if not is_instance_valid(target): return
 	var base_dir = (target.global_position - global_position).normalized()
-	# 3 Lügen in leichtem Fächer
+	# 3 Luegen in leichtem Faecher
 	for a in [-0.22, 0.0, 0.22]:
 		var dir = base_dir.rotated(a)
 		_luegens.append({
@@ -146,7 +146,7 @@ func _start_jet() -> void:
 	_sphase_t    = 0.0
 	_jet_alive   = true
 	_jet_target  = global_position
-	# Jet kommt von zufälligem Bildschirmrand
+	# Jet kommt von zufaelligem Bildschirmrand
 	var vp       = get_viewport().get_visible_rect()
 	var side     = randi() % 4
 	match side:
@@ -186,7 +186,7 @@ func _on_dying_process(_delta: float) -> void:
 	_luegens.clear()
 	_jet_alive = false
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_death()
@@ -194,7 +194,7 @@ func _draw() -> void:
 	if not is_alive:
 		return
 
-	# Jet zeichnen (in Weltkoordinaten → local)
+	# Jet zeichnen (in Weltkoordinaten -> local)
 	if _jet_alive:
 		_draw_jet(to_local(_jet_pos), (_jet_target - _jet_pos).normalized())
 
@@ -204,7 +204,7 @@ func _draw() -> void:
 			Color(1.0, 0.65, 0.1, max(0.0, 1.0 - _explode_r / 220.0)))
 		draw_circle(Vector2.ZERO, _explode_r * 0.6,
 			Color(1.0, 0.95, 0.5, max(0.0, 1.0 - _explode_r / 160.0)))
-		return  # Körper während Explosion nicht zeichnen
+		return  # Koerper waehrend Explosion nicht zeichnen
 
 	var _wc   = sin(_anim_time * 3.5)
 	var bob   = _wc * 1.5
@@ -224,7 +224,7 @@ func _draw_body(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: flo
 	var red    = Color(0.85, 0.06, 0.06)   # Krawatte
 	var yel    = Color(0.92, 0.82, 0.28)   # Haare
 
-	# Gesichtsfarbe: normal orange → rot bei Special
+	# Gesichtsfarbe: normal orange -> rot bei Special
 	var face_c = orange
 	if _face_red > 0.0:
 		face_c = Color(
@@ -279,7 +279,7 @@ func _draw_clean_suit(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_
 	draw_rect(Rect2(3,   14 + leg_r * 0.3 + bob, 11, 16), suit)
 	# Anzug-Jacke
 	draw_rect(Rect2(-16, -12+bob, 32, 28), suit)
-	# Weißes Hemd Kragen
+	# Weisses Hemd Kragen
 	draw_rect(Rect2(-5, -12+bob, 10, 10), white)
 	# Sehr lange rote Krawatte
 	draw_colored_polygon(PackedVector2Array([
@@ -296,22 +296,22 @@ func _draw_clean_suit(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(5, -12+bob), Vector2(14, -4+bob), Vector2(5, 2+bob)
 	]), white)
-	# Knöpfe
+	# Knoepfe
 	for ky in [-2.0, 4.0, 10.0]:
 		draw_circle(Vector2(-6, ky+bob), 2, Color(0.75,0.72,0.68))
 	# Arme
 	draw_rect(Rect2(-24, -8 + arm_l + bob, 8, 20), suit)
 	draw_rect(Rect2(16,  -8 + arm_r + bob, 8, 20), suit)
-	# Kleine Hände
+	# Kleine Haende
 	draw_circle(Vector2(-22, 11 + arm_l + bob), 6, Color(0.88,0.50,0.14))
 	draw_circle(Vector2(22,  11 + arm_r + bob), 6, Color(0.88,0.50,0.14))
 
 func _draw_tattered_suit(bob: float, leg_l: float, leg_r: float, arm_l: float, arm_r: float, charr: Color, suit: Color) -> void:
 	var dsuit = suit.darkened(0.4)
-	# Schuhe – verkohlt
+	# Schuhe - verkohlt
 	draw_rect(Rect2(-16, 28 + leg_l * 0.4 + bob, 14, 7), charr)
 	draw_rect(Rect2(2,   28 + leg_r * 0.4 + bob, 14, 7), charr)
-	# Hosen – zerfetzt (gezackte Unterkante)
+	# Hosen - zerfetzt (gezackte Unterkante)
 	draw_rect(Rect2(-14, 14 + leg_l * 0.3 + bob, 11, 12), dsuit)
 	draw_rect(Rect2(3,   14 + leg_r * 0.3 + bob, 11, 12), dsuit)
 	for tx in [-12.0, -8.0, -4.0, 4.0, 8.0, 12.0]:
@@ -322,7 +322,7 @@ func _draw_tattered_suit(bob: float, leg_l: float, leg_r: float, arm_l: float, a
 	draw_circle(Vector2(-8, 4+bob), 8,  Color(charr.r,charr.g,charr.b,0.75))
 	draw_circle(Vector2(10, -2+bob), 6, Color(charr.r,charr.g,charr.b,0.65))
 	draw_circle(Vector2(-4, 10+bob), 5, Color(charr.r,charr.g,charr.b,0.55))
-	# Krawatte verbrannt – hängendes Stück
+	# Krawatte verbrannt - haengendes Stueck
 	draw_line(Vector2(0, -8+bob), Vector2(2, 14+bob), Color(0.55,0.04,0.04), 5)
 	draw_line(Vector2(2, 14+bob), Vector2(-4, 18+bob), Color(0.35,0.02,0.02), 4)
 	# Arme
@@ -351,11 +351,11 @@ func _draw_hair(bob: float, yel: Color) -> void:
 		# Haarvolumen-Unterlage
 		draw_arc(Vector2(lean, -44+bob), 16, PI, TAU, 10, yel, 8)
 	else:
-		# Toupet klappt zurück – sichtbar als Scheibe
+		# Toupet klappt zurueck - sichtbar als Scheibe
 		var flip  = (ha - PI*0.5) / (PI*0.5)   # 0..1
-		# Kahlköpfiger Schädel sichtbar
+		# Kahlkoepfiger Schaedel sichtbar
 		draw_circle(Vector2(0, -44+bob), 16, Color(0.82,0.50,0.14))
-		# Toupet als Scheibe die sich zurückklappt (perspective-squish)
+		# Toupet als Scheibe die sich zurueckklappt (perspective-squish)
 		var w = (1.0 - flip) * 32.0 + 6.0
 		var tpts = PackedVector2Array([
 			Vector2(-w*0.5,  -38+bob), Vector2(w*0.5, -38+bob),
@@ -380,7 +380,7 @@ func _draw_jet(pos: Vector2, dir: Vector2) -> void:
 		var sa = 0.35 - float(i) * 0.08
 		draw_circle(smoke_pos, 5.0 + float(i)*2.5, Color(0.75,0.72,0.68, sa))
 
-	# Jet-Körper (elongiertes Rechteck in Flugrichtung)
+	# Jet-Koerper (elongiertes Rechteck in Flugrichtung)
 	var right = dir.rotated(PI*0.5)
 	var nose  = pos + dir * 28.0
 	var tail  = pos - dir * 22.0
@@ -395,7 +395,7 @@ func _draw_jet(pos: Vector2, dir: Vector2) -> void:
 	])
 	draw_colored_polygon(body, jet_c)
 
-	# Delta-Flügel
+	# Delta-Fluegel
 	var wing_l = PackedVector2Array([
 		pos - dir * 4.0,
 		pos + right * 22.0 - dir * 18.0,
@@ -426,7 +426,7 @@ func _draw_jet(pos: Vector2, dir: Vector2) -> void:
 		nose - dir * 22.0,
 	]), cockpit)
 
-	# US-Farben auf Flügel (rote Streifen)
+	# US-Farben auf Fluegel (rote Streifen)
 	draw_line(pos + right*10.0 - dir*10.0, pos + right*18.0 - dir*16.0, red_c, 2)
 	draw_line(pos - right*10.0 - dir*10.0, pos - right*18.0 - dir*16.0, red_c, 2)
 
@@ -449,7 +449,7 @@ func _draw_luegens() -> void:
 			lp + Vector2(wobx+4, woby+8),
 			lp + Vector2(wobx+8, woby+16),
 		]), Color(1.0, 0.62, 0.12))
-		# Wellenlinien im Inneren (= Lügen / Blabla)
+		# Wellenlinien im Inneren (= Luegen / Blabla)
 		for wi in range(3):
 			var wy = -4.0 + float(wi) * 4.0
 			draw_line(
@@ -458,7 +458,7 @@ func _draw_luegens() -> void:
 				Color(0.20, 0.10, 0.04, 0.85), 1.5
 			)
 
-# ── Todesanimation ────────────────────────────────────────────────────────────
+# -- Todesanimation ------------------------------------------------------------
 func _draw_death() -> void:
 	var t     = _death_anim_time
 	var suit  = Color(0.08, 0.10, 0.24).darkened(0.3)
@@ -473,7 +473,7 @@ func _draw_death() -> void:
 	if t > 0.3:
 		draw_circle(Vector2(0, 34), min((t-0.3)*38.0, 30.0), Color(blood.r,blood.g,blood.b,0.68))
 
-	# Körper kippt
+	# Koerper kippt
 	draw_rect(Rect2(-14+fall*0.25, 14+fall*0.45, 11, 14), suit)
 	draw_rect(Rect2(3+fall*0.25,   14+fall*0.45, 11, 14), suit)
 	draw_rect(Rect2(-16+fall*0.3*lean, -12+fall*lean, 32, 26), suit)

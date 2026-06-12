@@ -1,6 +1,6 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# Sektierer – wirft Heiligenschriften als Projektile
+# Sektierer - wirft Heiligenschriften als Projektile
 # Teil der Orthodoxen Sekte im Proberaum
 
 const THROW_CD    = 2.8
@@ -87,7 +87,7 @@ func _draw() -> void:
 	draw_rect(Rect2(-11, 28 + leg_l * 0.4 + bob, 10, 5), dark)
 	draw_rect(Rect2(1,   28 + leg_r * 0.4 + bob, 10, 5), dark)
 
-	# Robe (lang, breit) – folgt Torso-Bob
+	# Robe (lang, breit) - folgt Torso-Bob
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-14, -8 + bob), Vector2(14, -8 + bob),
 		Vector2(18, 32 + bob),  Vector2(-18, 32 + bob),
@@ -97,10 +97,10 @@ func _draw() -> void:
 	draw_line(Vector2(0, -2 + bob), Vector2(0, 14 + bob), gold, 3)
 	draw_line(Vector2(-6, 4 + bob), Vector2(6, 4 + bob), gold, 3)
 
-	# Arme (Ärmel)
+	# Arme (Aermel)
 	draw_rect(Rect2(-22, -4 + arm_l + bob, 8, 14), robe)
 	draw_rect(Rect2(14,  -4 + arm_r + bob, 8, 14), robe)
-	# Hände
+	# Haende
 	draw_circle(Vector2(-20, 10 + arm_l + bob), 5, Color(0.78, 0.66, 0.56))
 	draw_circle(Vector2(20,  10 + arm_r + bob), 5, Color(0.78, 0.66, 0.56))
 
@@ -113,7 +113,7 @@ func _draw() -> void:
 	# Kopf
 	draw_circle(Vector2(0, -24 + bob * 0.4), 14, Color(0.80, 0.68, 0.58))
 
-	# Orthodoxe Mütze (Kalimavkion – flacher Zylinder)
+	# Orthodoxe Muetze (Kalimavkion - flacher Zylinder)
 	draw_rect(Rect2(-12, -40 + bob * 0.4, 24, 18), dark)
 	draw_rect(Rect2(-14, -40 + bob * 0.4, 28, 5),  dark)
 	# Goldener Rand
@@ -141,7 +141,7 @@ func _draw_books() -> void:
 			lp + Vector2(-hw,  hh).rotated(ang),
 		])
 		draw_colored_polygon(pts, cover)
-		# Seiten (weiß, leicht geöffnet)
+		# Seiten (weiss, leicht geoeffnet)
 		var ipts = PackedVector2Array([
 			lp + Vector2(-hw + 2, -hh + 1).rotated(ang),
 			lp + Vector2( hw - 1, -hh + 1).rotated(ang),
@@ -178,7 +178,7 @@ func _draw_death() -> void:
 	]), Color(beard.r, beard.g, beard.b, 1.0 - t * 0.8))
 	# Kopf
 	draw_circle(Vector2(t * 18, -24 - t * 20), 14 * (1.0 - t * 0.5), Color(0.80, 0.68, 0.58))
-	# Bücher fliegen aus dem Umhang
+	# Buecher fliegen aus dem Umhang
 	for i in range(5):
 		var a = float(i) * TAU / 5.0
 		var d = 5.0 + t * 60.0

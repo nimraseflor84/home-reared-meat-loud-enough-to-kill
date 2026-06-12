@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
-# CEO der Stille – Herr Böse (Dirigent) – FINALBOSS Welle 15
-# Während des Kampfes: Chaos-Wellen mit ALLEN Bossen und Gegnern der vorherigen Maps
-# Wenn er stirbt → Spiel gewonnen
+# CEO der Stille - Herr Boese (Dirigent) - FINALBOSS Welle 15
+# Waehrend des Kampfes: Chaos-Wellen mit ALLEN Bossen und Gegnern der vorherigen Maps
+# Wenn er stirbt -> Spiel gewonnen
 
 var _spawn_timer: float  = 0.0
 var _chaos_timer: float  = 18.0   # erste Chaos-Welle nach 18 s
@@ -15,12 +15,12 @@ const MINION_INTERVAL    = 4.0
 var _phase: int          = 1
 var _aura_pulse: float   = 0.0
 
-# Alle Bonus-Spawns – werden beim Tod des Dirigenten entfernt
+# Alle Bonus-Spawns - werden beim Tod des Dirigenten entfernt
 var _chaos_spawns: Array = []
 
-# ── Szenen-Pfade ──────────────────────────────────────────────────────────────
+# -- Szenen-Pfade --------------------------------------------------------------
 const _SCENES = {
-	# Reguläre Gegner
+	# Regulaere Gegner
 	"stille":        "res://scenes/entities/enemies/enemy_stille.tscn",
 	"verstimmte":    "res://scenes/entities/enemies/enemy_verstimmte.tscn",
 	"headbanger":    "res://scenes/entities/enemies/enemy_headbanger.tscn",
@@ -59,7 +59,7 @@ func _ready() -> void:
 	add_to_group("bosses")
 	super._ready()
 
-# ── Update ────────────────────────────────────────────────────────────────────
+# -- Update --------------------------------------------------------------------
 func _physics_process(delta: float) -> void:
 	if not is_alive:
 		return
@@ -71,7 +71,7 @@ func _physics_process(delta: float) -> void:
 		_phase     = 2
 		move_speed = 88.0
 
-	# Reguläre Stille-Minions (wie bisher)
+	# Regulaere Stille-Minions (wie bisher)
 	_spawn_timer += delta
 	if _spawn_timer >= MINION_INTERVAL:
 		_spawn_timer = 0.0
@@ -83,7 +83,7 @@ func _physics_process(delta: float) -> void:
 		_chaos_timer = CHAOS_INTERVAL * (0.75 if _phase == 2 else 1.0)
 		_spawn_chaos_wave()
 
-# ── Spawn: reguläre Stille-Minions ────────────────────────────────────────────
+# -- Spawn: regulaere Stille-Minions --------------------------------------------
 func _spawn_minion() -> void:
 	if _minion_count >= MAX_MINIONS:
 		return
@@ -94,12 +94,12 @@ func _spawn_minion() -> void:
 	_add_bonus(e)
 	_minion_count += 1
 
-# ── Spawn: Chaos-Welle ────────────────────────────────────────────────────────
+# -- Spawn: Chaos-Welle --------------------------------------------------------
 func _spawn_chaos_wave() -> void:
 	var parent = get_parent()
 	if not parent: return
 
-	# 1–2 zufällige frühere Bosse
+	# 1-2 zufaellige fruehere Bosse
 	var boss_list = _ALL_BOSSES.duplicate()
 	boss_list.shuffle()
 	var boss_count = 2 if _phase == 2 else 1
@@ -109,7 +109,7 @@ func _spawn_chaos_wave() -> void:
 		e.global_position = _spawn_edge_pos()
 		_add_bonus(e)
 
-	# 4–6 zufällige reguläre Gegner
+	# 4-6 zufaellige regulaere Gegner
 	var enemy_count = 6 if _phase == 2 else 4
 	for i in range(enemy_count):
 		var t = _REGULAR_ENEMIES[randi() % _REGULAR_ENEMIES.size()]
@@ -120,7 +120,7 @@ func _spawn_chaos_wave() -> void:
 
 	AudioManager.play_boss_siren_sfx()
 
-# ── Hilfsfunktionen ───────────────────────────────────────────────────────────
+# -- Hilfsfunktionen -----------------------------------------------------------
 func _make_enemy(type: String) -> Node:
 	var path = _SCENES.get(type, "")
 	if path == "": return null
@@ -131,7 +131,7 @@ func _make_enemy(type: String) -> Node:
 func _add_bonus(e: Node) -> void:
 	var parent = get_parent()
 	if not parent: return
-	# WICHTIG: KEIN connect("died", wave_manager) → zählt nicht für Wellenende
+	# WICHTIG: KEIN connect("died", wave_manager) -> zaehlt nicht fuer Wellenende
 	parent.add_child(e)
 	if is_instance_valid(target) and e.has_method("set_target"):
 		e.set_target(target)
@@ -146,7 +146,7 @@ func _spawn_edge_pos() -> Vector2:
 		2: return Vector2(-mgn, randf_range(0, vp.size.y))
 		_: return Vector2(vp.size.x + mgn, randf_range(0, vp.size.y))
 
-# ── Tod – alle Chaos-Spawns entfernen → Wellenabschluss → Spiel gewonnen ─────
+# -- Tod - alle Chaos-Spawns entfernen -> Wellenabschluss -> Spiel gewonnen -----
 func _die(attacker = null) -> void:
 	is_alive   = false
 	_bullets.clear()
@@ -171,7 +171,7 @@ func _on_dying_process(delta: float) -> void:
 	var s       = max(0.01, 1.0 - t * 0.9)
 	scale       = Vector2(s, s)
 
-# ── Draw ──────────────────────────────────────────────────────────────────────
+# -- Draw ----------------------------------------------------------------------
 func _draw() -> void:
 	if _dying:
 		_draw_dirigent_death()
@@ -189,20 +189,20 @@ func _draw() -> void:
 	var _wc  = sin(_anim_time * 3.5)
 	var bob  = _wc * 1.8
 
-	# Anti-Musik-Aura (pulsierend, tiefes Rot) – statisch, keine bob
+	# Anti-Musik-Aura (pulsierend, tiefes Rot) - statisch, keine bob
 	for i in range(5):
 		var r = 38 + i * 15 + sin(ap + i * 1.4) * 7
 		draw_arc(Vector2.ZERO, r, 0, TAU, 24,
 			Color(0.45 - i * 0.06, 0.0, 0.0, 0.30 - i * 0.05), 4.0 - i * 0.5)
 
-	# Phase 2: zweite Chaos-Aura (größer, schneller pulsierend)
+	# Phase 2: zweite Chaos-Aura (groesser, schneller pulsierend)
 	if _phase == 2:
 		for i in range(4):
 			var r = 70 + i * 22 + sin(ap * 2.0 + i * 1.8) * 10
 			draw_arc(Vector2.ZERO, r, 0, TAU, 20,
 				Color(0.65, 0.08 + i * 0.04, 0.0, 0.20 - i * 0.04), 3.0)
 
-	# Schwebende Anti-Noten (durchgestrichen) – eigene Orbit-Animation
+	# Schwebende Anti-Noten (durchgestrichen) - eigene Orbit-Animation
 	for n in range(6):
 		var na   = n * TAU / 6.0 + ap * 0.7
 		var nr   = 48 + sin(ap * 1.5 + n) * 8
@@ -213,7 +213,7 @@ func _draw() -> void:
 		draw_line(npos + Vector2(-8, -8), npos + Vector2(8, 8),
 			Color(0.75, 0.0, 0.0, 0.80), 1.5)
 
-	# Umhang (bobbt mit dem Körper)
+	# Umhang (bobbt mit dem Koerper)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-18, -14 + bob), Vector2(18, -14 + bob),
 		Vector2(54, 44 + bob), Vector2(-54, 44 + bob)]), cloak_col)
@@ -226,13 +226,13 @@ func _draw() -> void:
 		draw_line(Vector2(fx, 42 + bob), Vector2(fx * 0.22, -10 + bob),
 			Color(0.0, 0.0, 0.0, 0.25), 2.0)
 
-	# Weißer Kragen
+	# Weisser Kragen
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-18, -18 + bob), Vector2(18, -18 + bob),
 		Vector2(13, -8 + bob), Vector2(-13, -8 + bob)]),
 		Color(0.82, 0.80, 0.76) if not flash else Color.WHITE)
 
-	# Skelett-Hände (mit Umhang-bob)
+	# Skelett-Haende (mit Umhang-bob)
 	draw_circle(Vector2(-52, 44 + bob), 8, sk_col)
 	draw_circle(Vector2(52,  44 + bob), 8, sk_col)
 	for fi in range(4):
@@ -317,7 +317,7 @@ func _draw_dirigent_death() -> void:
 		draw_line(npos + Vector2(-16, -10), npos + Vector2(16, 10),
 			Color(0.78, 0.0, 0.0, alpha), 3.0)
 
-	# Taktstock schießt weg
+	# Taktstock schiesst weg
 	var b1 = Vector2(50 + bt * 120, 44 - bt * 130)
 	var b2 = Vector2(88 + bt * 220, -18 - bt * 200)
 	draw_line(b1, b2, Color(0.95, 0.92, 0.80, alpha), 7.0)

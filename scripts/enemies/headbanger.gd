@@ -1,4 +1,4 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 var _charging: bool = false
 var _charge_timer: float = 0.0
@@ -47,7 +47,7 @@ func _physics_process(delta: float) -> void:
 func _draw() -> void:
 	if _dying: _draw_death(); return
 	var flash    = _hit_flash > 0
-	# ── South Park Stil ──
+	# -- South Park Stil --
 	var body_col = Color(0.15, 0.12, 0.10) if not flash else Color.WHITE  # schwarzes Metal-Shirt
 	var skin     = Color(0.88, 0.72, 0.56) if not flash else Color.WHITE
 	var hair_col = Color(0.14, 0.10, 0.06)
@@ -78,14 +78,14 @@ func _draw() -> void:
 	draw_rect(Rect2(-18, -3 + arm_l + bob, 7, 11), skin)
 	draw_rect(Rect2(11,  -3 + arm_r + bob, 7, 11), skin)
 
-	# Mitten-Hände (SP: runde Klumpen)
+	# Mitten-Haende (SP: runde Klumpen)
 	draw_circle(Vector2(-17, 7 + arm_l + bob), 5, skin)
 	draw_circle(Vector2(17,  7 + arm_r + bob), 5, skin)
 
 	# Kopf
 	draw_circle(Vector2(0, -20 + bob * 0.4), 12, skin)
 
-	# LANGE HAAR-STRÄHNEN (schwingen beim Charge – ikonisch)
+	# LANGE HAAR-STRAeHNEN (schwingen beim Charge - ikonisch)
 	var hair_count = 8
 	for i in range(hair_count):
 		var hx    = -10.0 + float(i) / (hair_count - 1) * 20.0
@@ -93,11 +93,11 @@ func _draw() -> void:
 		var hlen  = 24.0 + (i % 3) * 6.0
 		draw_line(Vector2(hx, -30 + bob * 0.4), Vector2(hx + swing, -30 + bob * 0.4 + hlen), hair_col, 3.5)
 
-	# Böse Augenbrauen
+	# Boese Augenbrauen
 	draw_line(Vector2(-8, -24 + bob * 0.4), Vector2(-2, -22 + bob * 0.4), hair_col, 2.5)
 	draw_line(Vector2(2,  -22 + bob * 0.4), Vector2(8,  -24 + bob * 0.4), hair_col, 2.5)
 
-	# Augen (nach innen geneigte Ovale – South Park)
+	# Augen (nach innen geneigte Ovale - South Park)
 	var tilt = 0.25; var ew = 4.0; var eh = 2.8
 	var lepts = PackedVector2Array(); var repts = PackedVector2Array()
 	for i in range(10):
@@ -122,16 +122,16 @@ func _draw_death() -> void:
 	var blood   = Color(0.72, 0.0,  0.02)
 
 	if t < 0.42:
-		# Phase 1: Kopf saust nach UNTEN – fataler Headbang
+		# Phase 1: Kopf saust nach UNTEN - fataler Headbang
 		var pt    = t / 0.42
 		var head_y = -20.0 + pt*pt * 58.0   # beschleunigt nach unten
-		# Körper (leicht vorgebeugt)
+		# Koerper (leicht vorgebeugt)
 		draw_rect(Rect2(-11, -6+pt*4, 22, 18), shirt)
 		draw_rect(Rect2( -9, 12,       7, 12), jean)
 		draw_rect(Rect2(  2, 12,       7, 12), jean)
 		# Kopf donnert nach unten
 		draw_circle(Vector2(pt*4, head_y), 12, skin)
-		# Haar peitscht brutal vorwärts
+		# Haar peitscht brutal vorwaerts
 		for i in range(8):
 			var hx    = -10.0 + float(i)/7.0*20.0
 			var sweep = pt*pt * (28.0 + float(i)*4.0)
@@ -145,7 +145,7 @@ func _draw_death() -> void:
 		# Phase 2: Kopf am Boden, Hals blutet stark
 		var pt     = (t - 0.42) / 0.58
 		var hg     = 36.0   # head on ground y
-		# Körper zusammengesackt
+		# Koerper zusammengesackt
 		draw_rect(Rect2(-11+pt*6, 2,  22, 16), shirt)
 		draw_rect(Rect2( -9,      12,  7, 12), jean)
 		draw_rect(Rect2(  2,      12,  7, 12), jean)
@@ -155,7 +155,7 @@ func _draw_death() -> void:
 		for i in range(8):
 			var hx = float(i)*3.5 - 14.0
 			draw_line(Vector2(hx, hg-4), Vector2(hx+sin(float(i))*6, hg+20+float(i)*2), hair, 4.0)
-		# BLUT FONTÄNE aus dem Halsstumpf
+		# BLUT FONTAeNE aus dem Halsstumpf
 		for k in range(7):
 			var ba  = PI*0.15 + float(k)*PI*0.12 - PI*0.4
 			var bl  = pt * (14.0 + float(k)*5.0)

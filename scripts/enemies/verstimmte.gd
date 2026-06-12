@@ -1,7 +1,15 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
+# Verstimmte: schneller Zigzag-Pulk - alle paar Sekunden ein kurzer Lunge nach
+# vorn (Erratic Lunge). Unterscheidet sich vom Headbanger-Charge dadurch dass
+# der Verstimmte nicht stehen bleibt und nur in kurzen Salven hechtet.
 var _zz_offset: float = 0.0
 var _zz_dir: float = 1.0
+var _lunge_timer: float = 0.0
+var _lunge_active: float = 0.0     # >0 = gerade lunge
+const _LUNGE_COOLDOWN: float = 3.2
+const _LUNGE_DURATION: float = 0.32
+const _LUNGE_SPEED_MULT: float = 2.4
 
 func _ready() -> void:
 	enemy_id = "verstimmte"
@@ -11,11 +19,23 @@ func _ready() -> void:
 	score_value = 80
 	add_to_group("enemies")
 	_death_anim_duration = 0.62
+	# Versetzter Lunge-Start damit nicht alle gleichzeitig hechten
+	_lunge_timer = randf_range(0.0, _LUNGE_COOLDOWN)
 	super._ready()
 
 func _move_toward_target(_delta: float) -> void:
 	if not is_instance_valid(target):
 		return
+	# Lunge-Timer aktualisieren
+	if _lunge_active > 0.0:
+		_lunge_active -= _delta
+	else:
+		_lunge_timer += _delta
+		if _lunge_timer >= _LUNGE_COOLDOWN:
+			_lunge_timer = 0.0
+			# Nur lungen wenn nicht zu nah dran (sonst trivial)
+			if global_position.distance_to(target.global_position) > 80.0:
+				_lunge_active = _LUNGE_DURATION
 	# Zigzag movement
 	_zz_offset += _delta * 3.0
 	if abs(_zz_offset) > 1.5:
@@ -23,13 +43,16 @@ func _move_toward_target(_delta: float) -> void:
 		_zz_offset = _zz_dir * 1.5
 	var dir = (target.global_position - global_position).normalized()
 	var perp = dir.rotated(PI / 2.0)
-	velocity = (dir + perp * sin(_zz_offset) * 1.5).normalized() * move_speed * _slow_factor
+	var speed_mult: float = _LUNGE_SPEED_MULT if _lunge_active > 0.0 else 1.0
+	# Beim Lunge weniger Zigzag - schneurgerade Lunge wirkt klarer
+	var zz_amt: float = 0.0 if _lunge_active > 0.0 else 1.5
+	velocity = (dir + perp * sin(_zz_offset) * zz_amt).normalized() * move_speed * _slow_factor * speed_mult
 	move_and_slide()
 
 func _draw() -> void:
 	if _dying: _draw_death(); return
 	var flash    = _hit_flash > 0
-	# ── South Park Stil ──
+	# -- South Park Stil --
 	var body_col = Color(0.92, 0.88, 0.12) if not flash else Color.WHITE
 	var dark     = Color(0.45, 0.40, 0.05)
 	var _wc   = sin(_anim_time * 7.0)
@@ -47,21 +70,21 @@ func _draw() -> void:
 	draw_rect(Rect2(-9, 12 + leg_l * 0.25 + bob, 7, 10), dark)
 	draw_rect(Rect2(2,  12 + leg_r * 0.25 + bob, 7, 10), dark)
 
-	# Körper (gelb, verrückt)
+	# Koerper (gelb, verrueckt)
 	draw_rect(Rect2(-11, -6 + bob, 22, 18), body_col)
 
 	# Arme
 	draw_rect(Rect2(-18, -3 + arm_l + bob, 7, 11), body_col)
 	draw_rect(Rect2(11,  -3 + arm_r + bob, 7, 11), body_col)
 
-	# Mitten-Hände (SP: runde Klumpen)
+	# Mitten-Haende (SP: runde Klumpen)
 	draw_circle(Vector2(-17, 7 + arm_l + bob), 5, body_col)
 	draw_circle(Vector2(17,  7 + arm_r + bob), 5, body_col)
 
 	# Kopf (rund, gelb)
 	draw_circle(Vector2(0, -20 + bob * 0.4), 13, body_col)
 
-	# SPIKY HAAR (verrückt, zackig – verstimmt)
+	# SPIKY HAAR (verrueckt, zackig - verstimmt)
 	for i in range(10):
 		var angle  = -PI + float(i) / 10.0 * PI + sin(_anim_time * 8.0 + float(i)) * 0.18
 		var spiky  = 11.0 + sin(_anim_time * 5.0 + float(i) * 1.3) * 3.5
@@ -70,13 +93,13 @@ func _draw() -> void:
 			Vector2(cos(angle), sin(angle)) * spiky + Vector2(0, -20 + bob * 0.4),
 			dark, 3.0)
 
-	# Verrückte Augenbrauen (zackig-exzentrisch für SP-Wahnsinnigen)
+	# Verrueckte Augenbrauen (zackig-exzentrisch fuer SP-Wahnsinnigen)
 	draw_line(Vector2(-10, -26 + bob * 0.4), Vector2(-6, -24 + bob * 0.4), dark, 3.0)
 	draw_line(Vector2(-6,  -26 + bob * 0.4), Vector2(-2, -24 + bob * 0.4), dark, 3.0)
 	draw_line(Vector2(2,   -24 + bob * 0.4), Vector2(6,  -26 + bob * 0.4), dark, 3.0)
 	draw_line(Vector2(6,   -24 + bob * 0.4), Vector2(10, -26 + bob * 0.4), dark, 3.0)
 
-	# Quirlaugen (weiterhin verrückt – Charakter-Merkmal)
+	# Quirlaugen (weiterhin verrueckt - Charakter-Merkmal)
 	draw_circle(Vector2(-4, -22 + bob * 0.4), 4.5, Color.WHITE)
 	draw_circle(Vector2(4,  -22 + bob * 0.4), 4.5, Color.WHITE)
 	draw_circle(Vector2(-4, -22 + bob * 0.4), 2.5, dark)
@@ -103,24 +126,24 @@ func _draw_death() -> void:
 		draw_rect(Rect2( -9+jx, 12+jy,  7, 10), dark)
 		draw_rect(Rect2(  2+jx, 12+jy,  7, 10), dark)
 		draw_circle(Vector2(jx, -20+jy), 13, body_col)
-		# Haar – immer größer, irgendwann Meteore
+		# Haar - immer groesser, irgendwann Meteore
 		for i in range(16):
 			var a  = -PI + float(i)/16.0*TAU
 			var sl = 12.0 + pt*42.0 + sin(pt*28.0+float(i)*1.2)*8.0
 			draw_line(Vector2(cos(a)*12+jx, sin(a)*12-20+jy),
 			          Vector2(cos(a)*sl+jx, sin(a)*sl-20+jy), dark, 3.0)
-		# Verrückte Augen (kreisende Pupillen)
+		# Verrueckte Augen (kreisende Pupillen)
 		draw_circle(Vector2(-4+jx, -22+jy), 4.5, Color.WHITE)
 		draw_circle(Vector2( 4+jx, -22+jy), 4.5, Color.WHITE)
 		var sp = pt * TAU * 7.0
 		draw_circle(Vector2(-4+cos(sp)*2+jx,    -22+sin(sp)*2+jy),    2.5, dark)
 		draw_circle(Vector2( 4+cos(sp+PI)*2+jx, -22+sin(sp+PI)*2+jy), 2.5, dark)
 	else:
-		# Phase 2: GELBE EXPLOSION – Körper zerfällt mit Blut
+		# Phase 2: GELBE EXPLOSION - Koerper zerfaellt mit Blut
 		var pt = (t - 0.45) / 0.55
 		# Gelber Blitz
 		draw_circle(Vector2.ZERO, 22*(1.0-pt), Color(1.0, 0.95, 0.3, (1.0-pt)*0.85))
-		# 13 gelbe Körperchunks radial
+		# 13 gelbe Koerperchunks radial
 		for i in range(13):
 			var a  = float(i)*TAU/13.0
 			var d  = 5.0 + pt*70.0

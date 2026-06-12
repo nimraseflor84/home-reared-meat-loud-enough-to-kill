@@ -97,7 +97,7 @@ func _build_entry_section() -> void:
 	stats_lbl.position = Vector2(0, 58)
 	stats_lbl.size     = Vector2(size.x, 32)
 	stats_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_lbl.text = LocalizationManager.t("lb_stats_line") % [wave, score, map_id.capitalize()]
+	stats_lbl.text = LocalizationManager.t("lb_stats_line") % [wave, score, LocalizationManager.map_title(map_id)]
 	stats_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 	stats_lbl.add_theme_font_size_override("font_size", 20)
 	add_child(stats_lbl)
@@ -268,7 +268,8 @@ func _refresh_leaderboard_rows() -> void:
 		var name_str  = e.get("name",  "???").rpad(4)
 		var wave_str  = str(e.get("wave",  0)).lpad(5)
 		var score_str = str(e.get("score", 0)).lpad(10)
-		var map_str   = e.get("map", "").capitalize()
+		# Gespeichert wird die Map-ID, angezeigt der lokalisierte Titel
+		var map_str   = LocalizationManager.map_title(e.get("map", "")) if e.get("map", "") != "" else ""
 		row.text = "%s    %s    %s%s    %s    %s" % [rank_str, name_str, LocalizationManager.t("lb_wave_col"), wave_str, score_str, map_str]
 		row.add_theme_font_size_override("font_size", 17)
 		if i == _new_rank:

@@ -1,10 +1,9 @@
 extends Node
-class_name UpgradeManager
 
 var applied_upgrades: Array = []
-var player_ref: PlayerBase = null
+var player_ref: Node = null
 
-func set_player(player: PlayerBase) -> void:
+func set_player(player: Node) -> void:
 	player_ref = player
 
 func apply_upgrade(upgrade_id: String) -> void:
@@ -25,7 +24,7 @@ func apply_upgrade(upgrade_id: String) -> void:
 		var rhythm = game.get_node_or_null("RhythmSystem")
 		if rhythm:
 			rhythm.apply_upgrade(upgrade)
-		var crowd = game.get_node_or_null("CrowdMeter")
+		var crowd = get_tree().get_first_node_in_group("crowd_meter")
 		if crowd:
 			crowd.apply_upgrade(upgrade)
 

@@ -1,4 +1,13 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
+
+# Waerter: zaeher Tank-Gegner. Hebt periodisch den Schlagstock und blockt -
+# waehrend der Block-Phase nimmt er nur 35% Schaden, bewegt sich aber kaum.
+# Das zwingt den Spieler entweder zu warten oder durch den Block zu pushen.
+const _BLOCK_INTERVAL: float = 4.0
+const _BLOCK_DURATION: float = 1.2
+const _BLOCK_DMG_TAKEN: float = 0.35
+var _block_timer: float = 0.0
+var _block_active: float = 0.0     # >0 = gerade am Blocken
 
 func _ready() -> void:
 	max_hp = 120.0
@@ -7,26 +16,58 @@ func _ready() -> void:
 	score_value = 250
 	enemy_id = "waerter"
 	_death_anim_duration = 0.68
+	# Block-Phasen zwischen Waertern leicht versetzen
+	_block_timer = randf_range(0.0, _BLOCK_INTERVAL)
 	super._ready()
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	if _dying or not is_alive:
+		return
+	if _block_active > 0.0:
+		_block_active -= delta
+	else:
+		_block_timer += delta
+		if _block_timer >= _BLOCK_INTERVAL:
+			_block_timer = 0.0
+			# Nur blocken wenn ein Spieler in der Naehe ist (Reichweite ~150)
+			if is_instance_valid(target) and global_position.distance_to(target.global_position) < 150.0:
+				_block_active = _BLOCK_DURATION
+
+func _move_toward_target(_delta: float) -> void:
+	if not is_instance_valid(target):
+		return
+	var dir = (target.global_position - global_position).normalized()
+	# Beim Blocken bewegt er sich nur halb so schnell
+	var spd_mult: float = 0.4 if _block_active > 0.0 else 1.0
+	velocity = dir * move_speed * _slow_factor * spd_mult
+	move_and_slide()
+
+func take_damage(amount: float, attacker = null) -> void:
+	# Block reduziert eingehenden Schaden deutlich
+	var dmg: float = amount
+	if _block_active > 0.0:
+		dmg = amount * _BLOCK_DMG_TAKEN
+	super.take_damage(dmg, attacker)
 
 func _on_dying_process(_delta: float) -> void:
 	var t = clamp(_death_anim_time / _death_anim_duration, 0.0, 1.0)
-	# Fällt steif rückwärts um
+	# Faellt steif rueckwaerts um
 	rotation = -t * PI * 0.48
 
 func _draw() -> void:
 	if _dying: _draw_death(); return
 	var flash     = _hit_flash > 0
-	# ── South Park Stil (Gefängniswärter) ──
+	# -- South Park Stil (Gefaengniswaerter) --
 	var body_col  = Color(0.10, 0.14, 0.42) if not flash else Color.WHITE
 	var badge_col = Color(0.90, 0.76, 0.10)
 	var skin_col  = Color(0.98, 0.82, 0.66)
 
 	# Lauf-Animation
 	var bob      = sin(_anim_time * 6.5) * 2.2
-	var leg_r    = sin(_anim_time * 6.5) * 9.0   # rechtes Bein vor/zurück
+	var leg_r    = sin(_anim_time * 6.5) * 9.0   # rechtes Bein vor/zurueck
 	var leg_l    = -leg_r                          # linkes Bein entgegengesetzt
-	var arm_r    = -leg_r * 0.7                    # Arme gegenläufig
+	var arm_r    = -leg_r * 0.7                    # Arme gegenlaeufig
 	var arm_l    = leg_r * 0.7
 
 	# Schuhe (animiert mit Beinen)
@@ -37,10 +78,10 @@ func _draw() -> void:
 	draw_rect(Rect2(-11, 14 + leg_l * 0.3 + bob, 9, 14), Color(0.06, 0.09, 0.30))
 	draw_rect(Rect2(2,   14 + leg_r * 0.3 + bob, 9, 14), Color(0.06, 0.09, 0.30))
 
-	# Uniform-Körper
+	# Uniform-Koerper
 	draw_rect(Rect2(-12, -8 + bob, 24, 22), body_col)
 
-	# Gürtel
+	# Guertel
 	draw_rect(Rect2(-12, 10 + bob, 24, 5), Color(0.14, 0.10, 0.04))
 	draw_rect(Rect2(-4,   9 + bob,  8, 7), Color(0.60, 0.50, 0.10))
 
@@ -53,18 +94,18 @@ func _draw() -> void:
 	draw_rect(Rect2(-20, -3 + arm_l + bob, 8, 15), body_col)
 	draw_rect(Rect2(12,  -3 + arm_r + bob, 8, 15), body_col)
 
-	# Hände
+	# Haende
 	draw_circle(Vector2(-19, 11 + arm_l + bob), 6, Color(0.88, 0.72, 0.56))
 	draw_circle(Vector2(19,  11 + arm_r + bob), 6, Color(0.88, 0.72, 0.56))
 
-	# Knüppel rechts (schwingt mit Arm)
+	# Knueppel rechts (schwingt mit Arm)
 	draw_line(Vector2(20, 6 + arm_r + bob), Vector2(28, 20 + arm_r + bob), Color(0.35, 0.20, 0.05), 5)
 	draw_circle(Vector2(28, 20 + arm_r + bob), 4, Color(0.35, 0.20, 0.05))
 
-	# Kopf (groß, South Park) – bleibt relativ stabil
+	# Kopf (gross, South Park) - bleibt relativ stabil
 	draw_circle(Vector2(0, -22 + bob * 0.4), 15, skin_col)
 
-	# Dienstmütze
+	# Dienstmuetze
 	draw_rect(Rect2(-16, -36 + bob * 0.4, 32, 12), body_col)
 	draw_rect(Rect2(-18, -26 + bob * 0.4, 36,  4), body_col)
 	draw_circle(Vector2(0, -30 + bob * 0.4), 4, badge_col)
@@ -85,7 +126,7 @@ func _draw() -> void:
 	draw_circle(Vector2(-6, -24 + bob * 0.4), 2.0, Color(0.08, 0.08, 0.08))
 	draw_circle(Vector2(6,  -24 + bob * 0.4), 2.0, Color(0.08, 0.08, 0.08))
 
-	# Dünner, strenger Mund
+	# Duenner, strenger Mund
 	draw_line(Vector2(-5, -16 + bob * 0.4), Vector2(5, -16 + bob * 0.4), Color(0.20, 0.10, 0.08), 2.0)
 
 func _draw_death() -> void:
@@ -95,7 +136,7 @@ func _draw_death() -> void:
 	var skin_col  = Color(0.98, 0.82, 0.66)
 	var blood     = Color(0.72, 0.0,  0.02)
 
-	# Körper (Rotation durch _on_dying_process)
+	# Koerper (Rotation durch _on_dying_process)
 	draw_rect(Rect2(-12, -8,  24, 22), body_col)
 	draw_rect(Rect2(-11, 14,   9, 14), Color(0.06,0.09,0.30))
 	draw_rect(Rect2(  2, 14,   9, 14), Color(0.06,0.09,0.30))
@@ -105,23 +146,23 @@ func _draw_death() -> void:
 	draw_rect(Rect2( 12, -3, 8, 15), body_col)
 	draw_circle(Vector2(-19, 11), 6, Color(0.88,0.72,0.56))
 	draw_circle(Vector2( 19, 11), 6, Color(0.88,0.72,0.56))
-	# Kopf (rückwärts fallend)
+	# Kopf (rueckwaerts fallend)
 	draw_circle(Vector2(0, -22), 15, skin_col)
-	# Mütze
+	# Muetze
 	draw_rect(Rect2(-16, -36, 32, 12), body_col)
 	draw_rect(Rect2(-18, -26, 36,  4), body_col)
-	# Abzeichen FLIEGT ab (nimmt an Rotation nicht teil – bewegt sich in lokalem Raum)
+	# Abzeichen FLIEGT ab (nimmt an Rotation nicht teil - bewegt sich in lokalem Raum)
 	var bx = -5.0 + t*28.0
 	var by =  1.0 - t*32.0
 	draw_circle(Vector2(bx, by), 6*(1.0-t*0.7), badge_col)
 	draw_circle(Vector2(bx, by), 4*(1.0-t*0.7), body_col)
 	draw_circle(Vector2(bx, by), 2*(1.0-t*0.7), badge_col)
-	# Knüppel fliegt weg
+	# Knueppel fliegt weg
 	var kx = 20.0 + t*40.0
 	var ky =  6.0 + t*25.0
 	draw_line(Vector2(kx, ky), Vector2(kx+7, ky+12*(1.0-t)), Color(0.35,0.20,0.05), 5)
 	draw_circle(Vector2(kx+7, ky+12*(1.0-t)), 4, Color(0.35,0.20,0.05))
-	# BLUT – Kopfwunde (platzt beim Aufprall)
+	# BLUT - Kopfwunde (platzt beim Aufprall)
 	for k in range(6):
 		var ba  = -PI*0.6 + float(k)*PI*0.24
 		var bl  = t*(10.0 + float(k)*4.0)

@@ -1,8 +1,8 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 # Erzbischof Viktor Stummbert
-# Angriff:   Heiligenschriften werfen (Fächer aus 2-3 Büchern)
-# Spezial:   Tornado-Gebet – alle Sektierer beten zusammen →
+# Angriff:   Heiligenschriften werfen (Faecher aus 2-3 Buechern)
+# Spezial:   Tornado-Gebet - alle Sektierer beten zusammen ->
 #            gewaltiger Tornado fliegt auf den Spieler zu
 
 const BOOK_CD       = 2.2
@@ -16,13 +16,13 @@ var _gebet_timer:  float = 10.0   # erstes Gebet nach 10 s
 var _phase2:       bool  = false
 var _praying:      bool  = false
 var _pray_time:    float = 0.0
-var _pray_duration: float = 2.8   # Sekunden Aufwärmen
+var _pray_duration: float = 2.8   # Sekunden Aufwaermen
 
 # Tornado: {pos, vel, radius, dmg}
 var _tornado: Dictionary = {}
 var _tornado_active: bool = false
 
-# Bücher: {pos, vel, angle, angle_vel, dmg}
+# Buecher: {pos, vel, angle, angle_vel, dmg}
 var _books: Array = []
 
 func _ready() -> void:
@@ -40,7 +40,7 @@ func _process(delta: float) -> void:
 		super._process(delta)
 		return
 
-	# Bücher bewegen
+	# Buecher bewegen
 	for i in range(_books.size() - 1, -1, -1):
 		var bk = _books[i]
 		bk["pos"]   += bk["vel"] * delta
@@ -96,7 +96,7 @@ func _physics_process(delta: float) -> void:
 			_gebet_timer = GEBET_CD
 			_start_gebet()
 	else:
-		# Während des Gebets: Erzbischof bleibt stehen und betet
+		# Waehrend des Gebets: Erzbischof bleibt stehen und betet
 		_pray_time += delta
 		# Sektierer zur Mitte locken
 		_call_sektierer()
@@ -134,7 +134,7 @@ func _start_gebet() -> void:
 	AudioManager.play_boss_siren_sfx()
 
 func _call_sektierer() -> void:
-	# Sektierer auf dem Bildschirm bewegen sich für kurze Zeit zum Erzbischof
+	# Sektierer auf dem Bildschirm bewegen sich fuer kurze Zeit zum Erzbischof
 	var sects = get_tree().get_nodes_in_group("enemies")
 	for s in sects:
 		if s.has_method("_move_toward_target") and s.enemy_id == "sektierer":
@@ -152,7 +152,7 @@ func _fire_tornado() -> void:
 		"dmg":    damage * 1.4,
 	}
 	_tornado_active = true
-	# Sektierer bekommen ihren echten Target zurück
+	# Sektierer bekommen ihren echten Target zurueck
 	var sects = get_tree().get_nodes_in_group("enemies")
 	for s in sects:
 		if s.has_method("_move_toward_target") and s.enemy_id == "sektierer":
@@ -179,7 +179,7 @@ func _draw() -> void:
 	draw_line(Vector2(22, -64 + bob), Vector2(34, -64 + bob), gold, 4)
 	draw_line(Vector2(28, -64 + bob), Vector2(28, -72 + bob), gold, 4)
 
-	# Schuhe (groß)
+	# Schuhe (gross)
 	draw_rect(Rect2(-16, 36 + bob, 14, 6), dark)
 	draw_rect(Rect2(2,   36 + bob, 14, 6), dark)
 
@@ -191,7 +191,7 @@ func _draw() -> void:
 	# Goldene Borte an der Robe
 	draw_line(Vector2(-18, -12 + bob), Vector2(-24, 42 + bob), gold, 2)
 	draw_line(Vector2(18,  -12 + bob), Vector2(24,  42 + bob), gold, 2)
-	# Großes Kreuz auf der Brust
+	# Grosses Kreuz auf der Brust
 	draw_line(Vector2(0, -6 + bob), Vector2(0, 18 + bob),  gold, 4)
 	draw_line(Vector2(-9, 4 + bob), Vector2(9,  4 + bob),  gold, 4)
 
@@ -202,11 +202,11 @@ func _draw() -> void:
 	# Arme
 	draw_rect(Rect2(-28, -10 + bob, 10, 18), robe)
 	draw_rect(Rect2(18,  -10 + bob, 10, 18), robe)
-	# Hände
+	# Haende
 	draw_circle(Vector2(-25, 8 + bob), 7, Color(0.78, 0.66, 0.56))
 	draw_circle(Vector2(25,  8 + bob), 7, Color(0.78, 0.66, 0.56))
 
-	# Langer weißer Bart
+	# Langer weisser Bart
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-10, -18 + bob), Vector2(10, -18 + bob),
 		Vector2(8,   8 + bob),   Vector2(-8,  8 + bob),
@@ -304,7 +304,7 @@ func _draw_tornado_local() -> void:
 			Color(0.7, 0.6, 0.2, 0.65), 3.0)
 	# Kern (goldenes Auge)
 	draw_circle(lp, r * 0.25, Color(0.92, 0.80, 0.20, 0.85))
-	# Äußerer Kreis
+	# Aeusserer Kreis
 	draw_arc(lp, r, 0, TAU, 20, Color(0.5, 0.4, 0.1, 0.5), 5)
 
 func _draw_death() -> void:
@@ -332,10 +332,10 @@ func _draw_death() -> void:
 		Vector2(12  + t*18, -70 - t*60), Vector2(-12 + t*18, -70 - t*60),
 	]), Color(robe.r, robe.g, robe.b, 1.0 - min(t * 0.8, 1.0)))
 
-	# Stab fällt
+	# Stab faellt
 	draw_line(Vector2(28 + t*30, 40 - t*20), Vector2(28 + t*60, -60 + t*80), gold, 5)
 
-	# Bücher aus dem Umhang
+	# Buecher aus dem Umhang
 	for i in range(8):
 		var a = float(i) * TAU / 8.0
 		var d = 6.0 + t * 80.0

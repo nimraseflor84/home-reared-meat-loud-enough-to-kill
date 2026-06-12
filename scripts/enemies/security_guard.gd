@@ -1,4 +1,4 @@
-extends EnemyBase
+extends "res://scripts/enemies/enemy_base.gd"
 
 var _push_timer: float = 0.0
 const PUSH_INTERVAL = 1.8
@@ -33,13 +33,13 @@ func _push_player() -> void:
 
 func _on_dying_process(_delta: float) -> void:
 	var t = clamp(_death_anim_time / _death_anim_duration, 0.0, 1.0)
-	# Kippt wie ein Baum vorwärts
+	# Kippt wie ein Baum vorwaerts
 	rotation = t * PI * 0.50
 
 func _draw() -> void:
 	if _dying: _draw_death(); return
 	var flash    = _hit_flash > 0
-	# ── South Park Stil (Security Guard) ──
+	# -- South Park Stil (Security Guard) --
 	var body_col = Color(0.08, 0.08, 0.10) if not flash else Color.WHITE
 	var skin_col = Color(0.95, 0.78, 0.62) if not flash else Color.WHITE
 
@@ -59,7 +59,7 @@ func _draw() -> void:
 	draw_rect(Rect2(-12, 18 + leg_l * 0.3 + bob, 10, 14), Color(0.10, 0.10, 0.12))
 	draw_rect(Rect2(2,   18 + leg_r * 0.3 + bob, 10, 14), Color(0.10, 0.10, 0.12))
 
-	# Breiter schwarzer Körper (South Park: Klotz)
+	# Breiter schwarzer Koerper (South Park: Klotz)
 	draw_rect(Rect2(-16, -10 + bob, 32, 28), body_col)
 
 	# High-Vis Westen-Streifen (gelb)
@@ -74,17 +74,17 @@ func _draw() -> void:
 	draw_rect(Rect2(-28, -8 + arm_l + bob, 12, 22), body_col)
 	draw_rect(Rect2(16,  -8 + arm_r + bob, 12, 22), body_col)
 
-	# Mitten-Hände (SP: runde Klumpen)
+	# Mitten-Haende (SP: runde Klumpen)
 	draw_circle(Vector2(-24, 13 + arm_l + bob), 7, Color(0.88, 0.72, 0.56))
 	draw_circle(Vector2(24,  13 + arm_r + bob), 7, Color(0.88, 0.72, 0.56))
 
-	# Kopf (geschorener Schädel)
+	# Kopf (geschorener Schaedel)
 	draw_circle(Vector2(0, -24 + bob * 0.4), 16, skin_col)
 
 	# Glanz auf Glatze
 	draw_arc(Vector2(-4, -32 + bob * 0.4), 7, -PI, 0, 6, Color(1.0, 1.0, 1.0, 0.15), 3.0)
 
-	# Ohrhörer (Erkennungsmerkmal)
+	# Ohrhoerer (Erkennungsmerkmal)
 	draw_circle(Vector2(16, -22 + bob * 0.4), 4, Color(0.2, 0.2, 0.2))
 	draw_line(Vector2(16, -18 + bob * 0.4), Vector2(18, -8 + bob * 0.4), Color(0.3, 0.3, 0.3), 1.5)
 
@@ -102,7 +102,7 @@ func _draw_death() -> void:
 	var skin_col = Color(0.95, 0.78, 0.62)
 	var blood    = Color(0.72, 0.0,  0.02)
 
-	# Massiver Körper (Rotation durch _on_dying_process – kippt wie ein Turm)
+	# Massiver Koerper (Rotation durch _on_dying_process - kippt wie ein Turm)
 	draw_rect(Rect2(-16, -10, 32, 28), body_col)
 	draw_rect(Rect2(-12,  18, 10, 14), Color(0.10,0.10,0.12))
 	draw_rect(Rect2(  2,  18, 10, 14), Color(0.10,0.10,0.12))
@@ -114,12 +114,12 @@ func _draw_death() -> void:
 	draw_circle(Vector2( 24, 13), 7, Color(0.88,0.72,0.56))
 	# Kopf (Glatze)
 	draw_circle(Vector2(0, -24), 16, skin_col)
-	# Sonnenbrille – ZERSPLITTERT (Fragmente fliegen)
+	# Sonnenbrille - ZERSPLITTERT (Fragmente fliegen)
 	for i in range(4):
 		var fx = (-12.0 + float(i)*6.0) + (float(i)-1.5)*t*22.0
 		var fy = -28.0 - t*(8.0 + float(i)*6.0)
 		draw_rect(Rect2(fx, fy, 5, 4), Color(0.04,0.04,0.06))
-	# Ohrhörer fliegt weg
+	# Ohrhoerer fliegt weg
 	draw_circle(Vector2(16+t*35, -22-t*28), 4*(1.0-t*0.6), Color(0.2,0.2,0.2))
 	draw_line(Vector2(16+t*35, -18-t*28), Vector2(18+t*38, -8-t*20), Color(0.3,0.3,0.3), 1.5)
 	# Aufprall-Impulsring (erscheint wenn er trifft)
@@ -127,7 +127,7 @@ func _draw_death() -> void:
 		var it = (t-0.55)/0.45
 		draw_arc(Vector2.ZERO, it*55.0, 0, TAU, 18, Color(0.65,0.65,0.65,(1.0-it)*0.50), 4.0)
 		draw_arc(Vector2.ZERO, it*35.0, 0, TAU, 14, Color(0.50,0.50,0.50,(1.0-it)*0.35), 2.5)
-	# RIESIGE Blutlache (massiver Körper = viel Blut)
+	# RIESIGE Blutlache (massiver Koerper = viel Blut)
 	draw_circle(Vector2(0, 20), t*38.0, Color(0.52,0.0,0.01,0.82))
 	# Blut spritzt radial bei Aufprall
 	if t > 0.50:

@@ -1,13 +1,18 @@
 extends Node
 
 const SAVE_PATH = "user://save_data.json"
+const SAVE_TMP_PATH = "user://save_data.json.tmp"
+const SAVE_VERSION = 2
 
 var save_data: Dictionary = {
+	"version": SAVE_VERSION,
 	"high_score": 0,
 	"unlocked_characters": ["manni"],
 	"best_wave": 0,
 	"total_kills": 0,
 	"endless_leaderboard": [],
+	"tutorial_seen": false,
+	"seen_enemy_lore": [],
 	"settings": {
 		"sfx_volume": 1.0,
 		"music_volume": 0.8,
@@ -20,9 +25,6 @@ var save_data: Dictionary = {
 		"vsync": true,
 		"show_fps": false,
 		"controller_deadzone": 0.15,
-		"master_vol": 1.0,
-		"music_vol": 0.8,
-		"sfx_vol": 1.0,
 	}
 }
 
@@ -30,25 +32,56 @@ func _ready() -> void:
 	load_game()
 
 func save_game() -> void:
-	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	# Atomic save: erst in .tmp schreiben, dann umbenennen.
+	# Verhindert korrupte JSON wenn das Spiel während des Writes crasht.
+	save_data["version"] = SAVE_VERSION
+	var file = FileAccess.open(SAVE_TMP_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(save_data))
 		file.close()
+		DirAccess.rename_absolute(
+			ProjectSettings.globalize_path(SAVE_TMP_PATH),
+			ProjectSettings.globalize_path(SAVE_PATH)
+		)
 
 func load_game() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return
-	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file:
-		var json_text = file.get_as_text()
-		file.close()
-		var json = JSON.new()
-		if json.parse(json_text) == OK:
-			var loaded = json.get_data()
-			# Merge with defaults to handle missing keys
-			for key in save_data:
-				if loaded.has(key):
-					save_data[key] = loaded[key]
+	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
+		return
+	var json_text: String = file.get_as_text()
+	file.close()
+	var json: JSON = JSON.new()
+	if json.parse(json_text) != OK:
+		# Corrupt JSON: Defaults beibehalten, alte Datei nicht ueberschreiben
+		push_warning("SaveManager: save_data.json corrupt, using defaults")
+		return
+	var loaded = json.get_data()
+	if not (loaded is Dictionary):
+		push_warning("SaveManager: save_data.json is not a dictionary, using defaults")
+		return
+	# Top-level merge: uebernimmt geladene Werte, behaelt neue Default-Keys
+	for key in save_data:
+		if loaded.has(key) and typeof(loaded[key]) == typeof(save_data[key]):
+			save_data[key] = loaded[key]
+	# Deep merge fuer "settings": neue Setting-Keys behalten ihren Default
+	if loaded.has("settings") and loaded["settings"] is Dictionary:
+		for skey in save_data["settings"]:
+			if loaded["settings"].has(skey):
+				save_data["settings"][skey] = loaded["settings"][skey]
+	# Save-Versioning: alte Saves migrieren statt zu crashen
+	var loaded_version: int = int(loaded.get("version", 1))
+	if loaded_version < SAVE_VERSION:
+		_migrate_save(loaded_version)
+
+func _migrate_save(from_version: int) -> void:
+	# Fehlende Keys mit Defaults setzen. save_data hält bereits die Defaults
+	# aus der Initialisierung; die obige Merge-Logik hat nur existierende
+	# Keys überschrieben. Wir stellen sicher, dass die Datei nach Migration
+	# in der neuen Version geschrieben wird.
+	save_data["version"] = SAVE_VERSION
+	save_game()
 
 func update_run_results() -> void:
 	var gm = GameManager
@@ -81,11 +114,19 @@ func is_character_unlocked(char_id: String) -> bool:
 func get_high_score() -> int:
 	return save_data["high_score"]
 
+func is_tutorial_seen() -> bool:
+	return bool(save_data.get("tutorial_seen", false))
+
+func mark_tutorial_seen() -> void:
+	save_data["tutorial_seen"] = true
+	save_game()
+
 func reset_highscore() -> void:
+	# Setzt nur Highscore-Stats zurück. best_wave, endless_leaderboard und
+	# unlocked_characters bleiben erhalten, damit freigeschaltete Charaktere
+	# nicht verloren gehen.
 	save_data["high_score"] = 0
-	save_data["best_wave"] = 0
 	save_data["total_kills"] = 0
-	save_data["endless_leaderboard"] = []
 	save_game()
 
 func add_endless_score(entry_name: String, entry_score: int, entry_wave: int, map_id: String) -> void:

@@ -1,5 +1,5 @@
-extends EnemyBase
-# Konfigurierbarer Boss – jeder Boss hat einzigartiges Aussehen per enemy_id
+extends "res://scripts/enemies/enemy_base.gd"
+# Konfigurierbarer Boss - jeder Boss hat einzigartiges Aussehen per enemy_id
 
 @export var body_color: Color = Color(0.7, 0.1, 0.1)
 @export var accent_color: Color = Color(1.0, 0.4, 0.4)
@@ -61,7 +61,7 @@ func _die(attacker = null) -> void:
 	emit_signal("died", self)
 	_dying = true
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 func _on_dying_process(delta: float) -> void:
 	var t = _death_anim_time / _death_anim_duration
 	modulate.a = 1.0 - t
@@ -106,7 +106,7 @@ func _draw_boss_death_particles() -> void:
 	var alpha = 1.0 - t
 	match enemy_id:
 		"grossbauer":
-			# Große Heu-Brocken fliegen weit heraus
+			# Grosse Heu-Brocken fliegen weit heraus
 			for i in range(12):
 				var angle = i * TAU / 12.0
 				var dist = bs * (1.2 + t * 7.5)
@@ -132,7 +132,7 @@ func _draw_boss_death_particles() -> void:
 				var p1 = Vector2(cos(angle), sin(angle)) * dist1
 				var p2 = Vector2(cos(angle + bend), sin(angle + bend)) * dist2
 				draw_line(p1, p2, Color(0.25, 0.55, 1.0, alpha), bs * 0.18)
-			# Großes Abzeichen dreht sich weit heraus
+			# Grosses Abzeichen dreht sich weit heraus
 			var badge_a = t * TAU * 3.5
 			var badge_d = bs * (0.5 + t * 6.0)
 			_draw_star(Vector2(cos(badge_a), sin(badge_a)) * badge_d,
@@ -210,12 +210,12 @@ func _draw_boss_death_particles() -> void:
 				var prev_d = bs * (1.5 + max(0.0, t - 0.05) * 8.0)
 				draw_line(cpos, Vector2(cos(prev_a), sin(prev_a)) * prev_d,
 					Color(0.55, 0.44, 0.12, alpha * 0.85), bs * 0.14)
-			# Kappe schießt nach oben
+			# Kappe schiesst nach oben
 			draw_rect(Rect2(-bs * 0.65, -(bs * 1.65 + t * t * bs * 10.0), bs * 1.30, bs * 0.72 * alpha),
 				Color(0.12, 0.08, 0.06, alpha))
 		"tvstar":
 			if t < 0.32:
-				# Weißer Statik-Burst
+				# Weisser Statik-Burst
 				var nt = t / 0.32
 				for i in range(18):
 					var angle = float(i) * TAU / 18.0
@@ -236,7 +236,7 @@ func _draw_boss_death_particles() -> void:
 						Vector2(bs * 3.5 * (1.0 - nt * 0.9), ly),
 						Color(1.0, 1.0, 1.0, gw * alpha), bs * 0.20)
 		"buergermeister":
-			# Zylinder schießt senkrecht nach oben mit Schweif
+			# Zylinder schiesst senkrecht nach oben mit Schweif
 			var hat_y = -(bs * 1.62 + t * t * bs * 12.0)
 			draw_rect(Rect2(-bs * 0.78, hat_y, bs * 1.56, bs * 0.22), Color(0.04, 0.02, 0.06, alpha))
 			draw_rect(Rect2(-bs * 0.56, hat_y - bs * 1.0, bs * 1.12, bs * 1.0), Color(0.04, 0.02, 0.06, alpha))
@@ -245,7 +245,7 @@ func _draw_boss_death_particles() -> void:
 				var trail_y = hat_y + bs * (0.6 + float(i) * 1.0)
 				draw_circle(Vector2(0, trail_y), bs * (0.28 - float(i) * 0.04) * alpha,
 					Color(0.38, 0.10, 0.60, (1.0 - float(i) / 6.0) * alpha))
-			# Konfetti-Fontäne
+			# Konfetti-Fontaene
 			for i in range(20):
 				var angle = float(i) * TAU / 20.0 + t * TAU * 0.6
 				var dist = bs * (0.5 + t * 8.0)
@@ -261,7 +261,7 @@ func _draw_boss_death_particles() -> void:
 				var r = bs * (2.0 + float(i) * 2.5 + t * 6.0)
 				draw_arc(Vector2.ZERO, r, 0, TAU, 20, Color(1.0, 0.5, 0.0, alpha * 0.65), bs * 0.45)
 
-	# ── Blut – gilt für alle Bosse ──────────────────────────────
+	# -- Blut - gilt fuer alle Bosse ------------------------------
 	var bt = clamp(t * 1.4, 0.0, 1.0)
 	var b_alpha = 1.0 - bt
 	# 16 Bluttropfen fliegen weit heraus
@@ -282,7 +282,7 @@ func _draw_boss_death_particles() -> void:
 	# Blutlache am Boden
 	draw_circle(Vector2(0.0, bs * 0.6), bs * (0.6 + t * 2.5), Color(0.52, 0.0, 0.01, (1.0 - t) * 0.55))
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 func _draw() -> void:
 	var flash = _hit_flash > 0
 	var bs    = body_size
@@ -309,9 +309,9 @@ func _draw() -> void:
 	else:
 		_draw_boss_death_particles()
 
-# ─────────────────────────────────────────────────────────────
-# GROSSBAUER – South Park Stil: fetter Bauer mit Strohhut
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# GROSSBAUER - South Park Stil: fetter Bauer mit Strohhut
+# -------------------------------------------------------------
 func _draw_grossbauer(flash: bool, bs: float, ap: float) -> void:
 	var sk = Color(0.92, 0.72, 0.52) if not flash else Color.WHITE
 	var ov = Color(0.12, 0.14, 0.40) if not flash else Color.WHITE  # dunkelblaue Latzhose
@@ -336,13 +336,13 @@ func _draw_grossbauer(flash: bool, bs: float, ap: float) -> void:
 	draw_rect(Rect2(-bs * 0.95, -bs * 0.20 + bob, bs * 1.90, bs * 1.14), ov)
 	# Hemd (oberer Teil sichtbar)
 	draw_rect(Rect2(-bs * 0.85, -bs * 0.90 + bob, bs * 1.70, bs * 0.72), sh)
-	# Träger (Y-Form)
+	# Traeger (Y-Form)
 	draw_rect(Rect2(-bs * 0.32, -bs * 0.90 + bob, bs * 0.22, bs * 0.72), ov)
 	draw_rect(Rect2(bs * 0.10, -bs * 0.90 + bob, bs * 0.22, bs * 0.72), ov)
 	# Arme (kurze SP-Stubs)
 	draw_rect(Rect2(-bs * 1.55, -bs * 0.80 + arm_l + bob, bs * 0.62, bs * 1.05), sh)
 	draw_rect(Rect2(bs * 0.93, -bs * 0.80 + arm_r + bob, bs * 0.62, bs * 1.05), sh)
-	# Fäuste
+	# Faeuste
 	draw_circle(Vector2(-bs * 1.20, bs * 0.30 + arm_l + bob), bs * 0.30, sk)
 	draw_circle(Vector2(bs * 1.20, bs * 0.30 + arm_r + bob), bs * 0.30, sk)
 	# Heugabel (halten, folgt rechtem Arm)
@@ -351,12 +351,12 @@ func _draw_grossbauer(flash: bool, bs: float, ap: float) -> void:
 	for td in [-1, 0, 1]:
 		draw_line(Vector2(fx + td * bs * 0.26, -bs * 2.10 + arm_r + bob),
 				  Vector2(fx + td * bs * 0.24, -bs * 1.55 + arm_r + bob), Color(0.52, 0.35, 0.10), 4.0)
-	# Großer runder Kopf (South Park)
+	# Grosser runder Kopf (South Park)
 	draw_circle(Vector2(0, -bs * 1.05 + bob * 0.4), bs * 0.62, sk)
-	# Böse Augenbrauen (V-Form)
+	# Boese Augenbrauen (V-Form)
 	draw_line(Vector2(-bs * 0.50, -bs * 1.36 + bob * 0.4), Vector2(-bs * 0.12, -bs * 1.20 + bob * 0.4), Color(0.10, 0.05, 0.0), 5.0)
 	draw_line(Vector2(bs * 0.12, -bs * 1.20 + bob * 0.4), Vector2(bs * 0.50, -bs * 1.36 + bob * 0.4), Color(0.10, 0.05, 0.0), 5.0)
-	# Augen (South Park: weiß + Pupille, rot glühend)
+	# Augen (South Park: weiss + Pupille, rot gluehend)
 	draw_circle(Vector2(-bs * 0.26, -bs * 1.06 + bob * 0.4), bs * 0.14, Color.WHITE)
 	draw_circle(Vector2(bs * 0.26, -bs * 1.06 + bob * 0.4), bs * 0.14, Color.WHITE)
 	draw_circle(Vector2(-bs * 0.26, -bs * 1.06 + bob * 0.4), bs * 0.08, Color(0.9, 0.05, 0.05))
@@ -372,16 +372,16 @@ func _draw_grossbauer(flash: bool, bs: float, ap: float) -> void:
 		var p = abs(sin(ap * 5))
 		draw_arc(Vector2.ZERO, bs * 1.18, 0, TAU, 32, Color(1.0, 0.42, 0.0, p * 0.85), 5.0)
 
-# ─────────────────────────────────────────────────────────────
-# GEFÄNGNISCHEF – Kalter Wärter-Boss mit Knüppel und Abzeichen
-# ─────────────────────────────────────────────────────────────
-# GEFÄNGNISCHEF – South Park Stil: Knastwächter Boss
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# GEFAeNGNISCHEF - Kalter Waerter-Boss mit Knueppel und Abzeichen
+# -------------------------------------------------------------
+# GEFAeNGNISCHEF - South Park Stil: Knastwaechter Boss
+# -------------------------------------------------------------
 func _draw_gefchef(flash: bool, bs: float, ap: float) -> void:
 	var uc = Color(0.08, 0.12, 0.42) if not flash else Color.WHITE
 	var gc = Color(0.88, 0.74, 0.10) if not flash else Color.WHITE
 	var sk = Color(0.98, 0.82, 0.66) if not flash else Color.WHITE
-	var _wc   = sin(_anim_time * 3.5)   # schwerer Wächter-Boss
+	var _wc   = sin(_anim_time * 3.5)   # schwerer Waechter-Boss
 	var bob   = _wc * bs * 0.06
 	var leg_r = _wc * bs * 0.22
 	var leg_l = -leg_r
@@ -397,9 +397,9 @@ func _draw_gefchef(flash: bool, bs: float, ap: float) -> void:
 	# Beine
 	draw_rect(Rect2(-bs * 0.85, bs * 0.92 + leg_l * 0.3 + bob, bs * 0.70, bs * 0.82), uc.darkened(0.2))
 	draw_rect(Rect2(bs * 0.15, bs * 0.92 + leg_r * 0.3 + bob, bs * 0.70, bs * 0.82), uc.darkened(0.2))
-	# Uniform-Körper (South Park: breites Rechteck)
+	# Uniform-Koerper (South Park: breites Rechteck)
 	draw_rect(Rect2(-bs * 0.95, -bs * 0.22 + bob, bs * 1.90, bs * 1.16), uc)
-	# Gürtel + Schlüsselbund
+	# Guertel + Schluesselbund
 	draw_rect(Rect2(-bs * 0.95, bs * 0.78 + bob, bs * 1.90, bs * 0.20), Color(0.14, 0.10, 0.04))
 	draw_rect(Rect2(-bs * 0.14, bs * 0.76 + bob, bs * 0.28, bs * 0.26), gc)
 	for k in range(4):
@@ -415,7 +415,7 @@ func _draw_gefchef(flash: bool, bs: float, ap: float) -> void:
 	# Schlagstock rechts (folgt rechtem Arm)
 	draw_line(Vector2(bs * 1.60, bs * 0.30 + arm_r + bob), Vector2(bs * 1.58, bs * 1.40 + arm_r + bob), Color(0.18, 0.10, 0.04), bs * 0.22)
 	draw_circle(Vector2(bs * 1.59, bs * 0.35 + arm_r + bob), bs * 0.18, Color(0.24, 0.14, 0.06))
-	# Großer runder Kopf (South Park)
+	# Grosser runder Kopf (South Park)
 	draw_circle(Vector2(0, -bs * 0.95 + bob * 0.4), bs * 0.60, sk)
 	# Eiskalte blaue Augen + Brauen
 	draw_line(Vector2(-bs * 0.46, -bs * 1.20 + bob * 0.4), Vector2(-bs * 0.10, -bs * 1.07 + bob * 0.4), Color(0.06, 0.04, 0.01), 5.0)
@@ -426,26 +426,26 @@ func _draw_gefchef(flash: bool, bs: float, ap: float) -> void:
 	draw_circle(Vector2(bs * 0.26,  -bs * 0.96 + bob * 0.4), bs * 0.08, Color(0.12, 0.38, 0.90))
 	draw_circle(Vector2(-bs * 0.26, -bs * 0.96 + bob * 0.4), bs * 0.04, Color(0.0, 0.0, 0.0))
 	draw_circle(Vector2(bs * 0.26,  -bs * 0.96 + bob * 0.4), bs * 0.04, Color(0.0, 0.0, 0.0))
-	# Dünner Mund (streng)
+	# Duenner Mund (streng)
 	draw_line(Vector2(-bs * 0.22, -bs * 0.76 + bob * 0.4), Vector2(bs * 0.22, -bs * 0.76 + bob * 0.4), Color(0.15, 0.08, 0.04), 3.5)
-	# Polizeimütze (South Park: großes Rechteck auf Kopf)
+	# Polizeimuetze (South Park: grosses Rechteck auf Kopf)
 	draw_rect(Rect2(-bs * 0.82, -bs * 1.60 + bob * 0.4, bs * 1.64, bs * 0.26), uc)
 	draw_rect(Rect2(-bs * 0.98, -bs * 1.38 + bob * 0.4, bs * 1.96, bs * 0.16), uc)
 	draw_rect(Rect2(-bs * 0.58, -bs * 2.12 + bob * 0.4, bs * 1.16, bs * 0.58), uc)
-	draw_circle(Vector2(0, -bs * 1.84 + bob * 0.4), bs * 0.22, gc)  # Abzeichen auf Mütze
+	draw_circle(Vector2(0, -bs * 1.84 + bob * 0.4), bs * 0.22, gc)  # Abzeichen auf Muetze
 	if _phase == 2:
 		var p = abs(sin(ap * 6))
 		draw_arc(Vector2.ZERO, bs * 1.15, 0, TAU, 32, Color(0.2, 0.4, 1.0, p * 0.90), 5.0)
 
-# ─────────────────────────────────────────────────────────────
-# MEGA-SCHWEIN – Monster-Wildschwein mit Hauern und Schlammradius
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# MEGA-SCHWEIN - Monster-Wildschwein mit Hauern und Schlammradius
+# -------------------------------------------------------------
 func _draw_mega_schwein(flash: bool, bs: float, ap: float) -> void:
-	# ── South Park Stil: Riesiges Monster-Schwein ──
+	# -- South Park Stil: Riesiges Monster-Schwein --
 	var pc  = Color(0.78, 0.40, 0.32) if not flash else Color.WHITE
 	var pnk = Color(0.95, 0.62, 0.55) if not flash else Color.WHITE
 	var dk  = Color(0.40, 0.20, 0.12) if not flash else Color.WHITE
-	# 4-Bein Laufzyklus für das riesige Schwein
+	# 4-Bein Laufzyklus fuer das riesige Schwein
 	var _wc  = sin(_anim_time * 4.0)   # schweres Boss-Tier, mittellangsam
 	var bob  = _wc * bs * 0.05
 	var huf0 = _wc * bs * 0.15         # hinten-links
@@ -461,7 +461,7 @@ func _draw_mega_schwein(flash: bool, bs: float, ap: float) -> void:
 		var mx = sin(float(i) * 2.1 + ap * 0.5) * bs * 0.90
 		var my = bs * 0.85 + abs(sin(float(i) * 1.7 + ap * 1.2)) * bs * 0.20
 		draw_circle(Vector2(mx, my), bs * 0.11 + sin(float(i) + ap) * bs * 0.04, Color(0.22, 0.12, 0.03, 0.80))
-	# 4 Hufe (kurze Stubs) – abwechselnd animiert
+	# 4 Hufe (kurze Stubs) - abwechselnd animiert
 	var huf_offsets = [huf0, huf1, huf2, huf3]
 	var huf_xs = [-bs * 0.62, -bs * 0.20, bs * 0.20, bs * 0.62]
 	for hi in range(4):
@@ -469,9 +469,9 @@ func _draw_mega_schwein(flash: bool, bs: float, ap: float) -> void:
 		var hy = huf_offsets[hi]
 		draw_rect(Rect2(hx - bs * 0.18, bs * 0.90 + hy, bs * 0.36, bs * 0.50), dk)
 		draw_rect(Rect2(hx - bs * 0.16, bs * 1.36 + hy, bs * 0.32, bs * 0.12), Color(0.10, 0.05, 0.02))
-	# Riesiger runder Körper (South Park)
+	# Riesiger runder Koerper (South Park)
 	draw_circle(Vector2(0, bs * 0.12 + bob), bs * 1.05, pc)
-	# Rückenborsten (kurze Stacheln)
+	# Rueckenborsten (kurze Stacheln)
 	for brs in range(7):
 		var ba = -PI * 0.88 + float(brs) * PI * 0.30
 		draw_line(Vector2(cos(ba) * bs * 0.80, bs * 0.12 + bob + sin(ba) * bs * 0.80),
@@ -487,7 +487,7 @@ func _draw_mega_schwein(flash: bool, bs: float, ap: float) -> void:
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(bs * 0.28, -bs * 0.92 + bob * 0.4), Vector2(bs * 0.54, -bs * 1.42 + bob * 0.4), Vector2(bs * 0.78, -bs * 0.92 + bob * 0.4)]),
 		Color(0.88, 0.52, 0.50))
-	# Großer runder Kopf (SP)
+	# Grosser runder Kopf (SP)
 	draw_circle(Vector2(0, -bs * 0.60 + bob * 0.4), bs * 0.80, pc)
 	# Riesige Schnauze
 	draw_circle(Vector2(0, -bs * 0.25 + bob * 0.4), bs * 0.50, pnk)
@@ -500,7 +500,7 @@ func _draw_mega_schwein(flash: bool, bs: float, ap: float) -> void:
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(bs * 0.20, bs * 0.10 + bob * 0.4), Vector2(bs * 0.50, bs * 0.10 + bob * 0.4), Vector2(bs * 0.35, bs * 0.72 + bob * 0.4)]),
 		Color(0.96, 0.92, 0.82))
-	# Böse Augen (South Park: weiß + rot)
+	# Boese Augen (South Park: weiss + rot)
 	draw_circle(Vector2(-bs * 0.46, -bs * 0.62 + bob * 0.4), bs * 0.18, Color.WHITE)
 	draw_circle(Vector2(bs * 0.46,  -bs * 0.62 + bob * 0.4), bs * 0.18, Color.WHITE)
 	draw_circle(Vector2(-bs * 0.46, -bs * 0.62 + bob * 0.4), bs * 0.10, Color(0.90, 0.05, 0.05))
@@ -511,15 +511,15 @@ func _draw_mega_schwein(flash: bool, bs: float, ap: float) -> void:
 		var p = abs(sin(ap * 4))
 		draw_arc(Vector2.ZERO, bs * 1.22, 0, TAU, 32, Color(0.65, 0.38, 0.05, p), 6.0)
 
-# ─────────────────────────────────────────────────────────────
-# SHERIFF – Wild-West-Killer mit Revolvern und Stern
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# SHERIFF - Wild-West-Killer mit Revolvern und Stern
+# -------------------------------------------------------------
 func _draw_sheriff(flash: bool, bs: float, ap: float) -> void:
 	var bc = Color(0.68, 0.50, 0.20) if not flash else Color.WHITE
 	var sk = Color(0.88, 0.70, 0.52) if not flash else Color.WHITE
 	var gc = Color(0.92, 0.78, 0.18) if not flash else Color.WHITE
 	var dc = Color(0.22, 0.14, 0.06) if not flash else Color.WHITE
-	var _wc   = sin(_anim_time * 3.8)   # Cowboy-Boss, gemächliches Schreiten
+	var _wc   = sin(_anim_time * 3.8)   # Cowboy-Boss, gemaechliches Schreiten
 	var bob   = _wc * bs * 0.06
 	var leg_r = _wc * bs * 0.20
 	var leg_l = -leg_r
@@ -536,7 +536,7 @@ func _draw_sheriff(flash: bool, bs: float, ap: float) -> void:
 	# Beine (Jeans)
 	draw_rect(Rect2(-bs * 0.78, bs * 0.72 + leg_l * 0.3 + bob, bs * 0.62, bs * 0.88), Color(0.18, 0.25, 0.48))
 	draw_rect(Rect2(bs * 0.16, bs * 0.72 + leg_r * 0.3 + bob, bs * 0.62, bs * 0.88), Color(0.18, 0.25, 0.48))
-	# Körper (Weste)
+	# Koerper (Weste)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 0.88, -bs * 0.18 + bob), Vector2(bs * 0.88, -bs * 0.18 + bob),
 		Vector2(bs * 0.92, bs * 0.80 + bob), Vector2(-bs * 0.92, bs * 0.80 + bob)]), bc)
@@ -553,7 +553,7 @@ func _draw_sheriff(flash: bool, bs: float, ap: float) -> void:
 				   bs * 0.07, Color(0.55, 0.42, 0.10))
 	# GOLD-SHERIFF-STERN (Hauptmerkmal!)
 	_draw_star(Vector2(bs * 0.42, bs * 0.22 + bob), bs * 0.35, gc)
-	# Gürtel
+	# Guertel
 	draw_rect(Rect2(-bs * 0.92, bs * 0.65 + bob, bs * 1.84, bs * 0.18), dc)
 	draw_rect(Rect2(-bs * 0.16, bs * 0.62 + bob, bs * 0.32, bs * 0.24), gc)
 	# Arme breit ausgestreckt
@@ -586,9 +586,9 @@ func _draw_sheriff(flash: bool, bs: float, ap: float) -> void:
 		var p = abs(sin(ap * 5))
 		draw_arc(Vector2.ZERO, bs * 1.18, 0, TAU, 32, Color(1.0, 0.65, 0.0, p * 0.90), 5.0)
 
-# ─────────────────────────────────────────────────────────────
-# TRUCKER – Muskelkoloss mit Kette, Vollbart und Tattoos
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# TRUCKER - Muskelkoloss mit Kette, Vollbart und Tattoos
+# -------------------------------------------------------------
 func _draw_trucker(flash: bool, bs: float, ap: float) -> void:
 	var bc = Color(0.40, 0.20, 0.12) if not flash else Color.WHITE
 	var sk = Color(0.82, 0.62, 0.46) if not flash else Color.WHITE
@@ -634,7 +634,7 @@ func _draw_trucker(flash: bool, bs: float, ap: float) -> void:
 	draw_line(Vector2(-bs * 1.52, bs * 0.28 + arm_l + bob), Vector2(-bs * 1.05, bs * 0.50 + arm_l + bob), ac, 1.8)
 	draw_line(Vector2(bs * 1.05, bs * 0.05 + arm_r + bob), Vector2(bs * 1.58, bs * 0.35 + arm_r + bob), ac, 2.5)
 	draw_line(Vector2(bs * 1.05, bs * 0.28 + arm_r + bob), Vector2(bs * 1.55, bs * 0.50 + arm_r + bob), ac, 1.8)
-	# Fäuste mit Knöcheln
+	# Faeuste mit Knoecheln
 	draw_circle(Vector2(-bs * 1.42, bs * 0.82 + arm_l + bob), bs * 0.32, sk)
 	draw_circle(Vector2(bs * 1.42, bs * 0.82 + arm_r + bob), bs * 0.32, sk)
 	for kn in range(4):
@@ -666,7 +666,7 @@ func _draw_trucker(flash: bool, bs: float, ap: float) -> void:
 		draw_line(Vector2(-bs * 0.42 + bl * bs * 0.21, -bs * 0.55 + bob * 0.4),
 				  Vector2(-bs * 0.38 + bl * bs * 0.21, -bs * 0.46 + bob * 0.4),
 				  Color(0.06, 0.04, 0.01), 1.5)
-	# Tiefe wütende Augen
+	# Tiefe wuetende Augen
 	draw_line(Vector2(-bs * 0.50, -bs * 1.10 + bob * 0.4), Vector2(-bs * 0.12, -bs * 1.18 + bob * 0.4),
 			  Color(0.10, 0.05, 0.02), 5.0)
 	draw_line(Vector2(bs * 0.12, -bs * 1.18 + bob * 0.4), Vector2(bs * 0.50, -bs * 1.10 + bob * 0.4),
@@ -685,9 +685,9 @@ func _draw_trucker(flash: bool, bs: float, ap: float) -> void:
 		var p = abs(sin(ap * 5))
 		draw_arc(Vector2.ZERO, bs * 1.25, 0, TAU, 32, Color(1.0, 0.32, 0.0, p), 6.0)
 
-# ─────────────────────────────────────────────────────────────
-# TV-STAR – Fernsehkopf-Monster mit Halo und Glitch-Effekten
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# TV-STAR - Fernsehkopf-Monster mit Halo und Glitch-Effekten
+# -------------------------------------------------------------
 func _draw_tvstar(flash: bool, bs: float, ap: float) -> void:
 	var bc  = Color(0.82, 0.62, 0.04) if not flash else Color.WHITE
 	var sc  = Color(0.04, 0.05, 0.15) if not flash else Color.WHITE
@@ -738,7 +738,7 @@ func _draw_tvstar(flash: bool, bs: float, ap: float) -> void:
 			  Color(0.25, 0.25, 0.25), 3.5)
 	draw_circle(Vector2(-bs * 1.22, bs * 1.55 + arm_l + bob), bs * 0.24, Color(0.20, 0.20, 0.20))
 	draw_circle(Vector2(-bs * 1.22, bs * 1.55 + arm_l + bob), bs * 0.16, Color(0.35, 0.35, 0.35))
-	# TV-KOPF Gehäuse (folgt Bob)
+	# TV-KOPF Gehaeuse (folgt Bob)
 	draw_rect(Rect2(-bs * 0.96, -bs * 2.08 + bob * 0.4, bs * 1.92, bs * 1.52), Color(0.22, 0.18, 0.12))
 	# Bildschirm
 	draw_rect(Rect2(-bs * 0.88, -bs * 2.00 + bob * 0.4, bs * 1.76, bs * 1.36), sc)
@@ -748,7 +748,7 @@ func _draw_tvstar(flash: bool, bs: float, ap: float) -> void:
 		var glw = 0.30 + sin(ap * 12 + gl) * 0.25
 		draw_line(Vector2(-bs * 0.78, gy), Vector2(bs * 0.78, gy),
 				  Color(0.08, 0.42, 0.90, glw), 2.0)
-	# Böses Lächeln
+	# Boeses Laecheln
 	draw_arc(Vector2(0, -bs * 1.12 + bob * 0.4), bs * 0.44, 0.12, PI - 0.12, 12,
 			 Color(0.90, 0.90, 0.12), 4.0)
 	# Augen als X-Kreuze
@@ -774,19 +774,19 @@ func _draw_tvstar(flash: bool, bs: float, ap: float) -> void:
 		draw_arc(Vector2(0, -bs * 1.32 + bob * 0.4), bs * 1.10, 0, TAU, 32,
 				Color(1.0, 0.22, 0.88, p * 0.85), 5.0)
 
-# ─────────────────────────────────────────────────────────────
-# BÜRGERMEISTER – Aufgeblasener Korruptions-Despot mit Zylinder
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# BUeRGERMEISTER - Aufgeblasener Korruptions-Despot mit Zylinder
+# -------------------------------------------------------------
 func _draw_buergermeister(flash: bool, bs: float, ap: float) -> void:
 	var pc  = Color(0.24, 0.14, 0.44) if not flash else Color.WHITE
 	var ac2 = Color(0.65, 0.40, 0.90) if not flash else Color.WHITE
 	var sk  = Color(0.88, 0.70, 0.55) if not flash else Color.WHITE
 	var gc  = Color(0.88, 0.72, 0.08) if not flash else Color.WHITE
-	var _wc   = sin(_anim_time * 3.0)   # pompöser Despot, würdevoll langsam
+	var _wc   = sin(_anim_time * 3.0)   # pompoeser Despot, wuerdevoll langsam
 	var bob   = _wc * bs * 0.06
 	var leg_r = _wc * bs * 0.18
 	var leg_l = -leg_r
-	var arm_r = -leg_r * 0.5   # Arme auf Hüfte, weniger Schwung
+	var arm_r = -leg_r * 0.5   # Arme auf Huefte, weniger Schwung
 	var arm_l = leg_r * 0.5
 	for i in range(3):
 		var r = bs + 8 + i * 12 + sin(ap + i) * 5
@@ -803,20 +803,20 @@ func _draw_buergermeister(flash: bool, bs: float, ap: float) -> void:
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 1.05, -bs * 0.25 + bob), Vector2(bs * 1.05, -bs * 0.25 + bob),
 		Vector2(bs * 1.08, bs * 0.42 + bob), Vector2(-bs * 1.08, bs * 0.42 + bob)]), pc)
-	# Grüne Schärpe diagonal
+	# Gruene Schaerpe diagonal
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 1.05, -bs * 0.25 + bob), Vector2(-bs * 0.62, -bs * 0.25 + bob),
 		Vector2(bs * 0.85, bs * 0.88 + bob), Vector2(bs * 0.42, bs * 0.88 + bob)]),
 		Color(0.06, 0.45, 0.12))
 	draw_line(Vector2(-bs * 1.05, -bs * 0.25 + bob), Vector2(bs * 0.85, bs * 0.88 + bob), gc, 2.5)
 	draw_line(Vector2(-bs * 0.62, -bs * 0.25 + bob), Vector2(bs * 0.42, bs * 0.88 + bob), gc, 2.5)
-	# Orden auf Schärpe
+	# Orden auf Schaerpe
 	for med in range(4):
 		var mt = med / 3.0
 		var mp = Vector2(-bs * 0.95 + mt * bs * 1.82, -bs * 0.25 + mt * bs * 1.15 + bob)
 		draw_circle(mp, bs * 0.15, gc)
 		draw_circle(mp, bs * 0.08, Color(0.65, 0.06, 0.06))
-	# Arme auf Hüfte (pompöse Pose)
+	# Arme auf Huefte (pompoese Pose)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 1.05, -bs * 0.22 + arm_l + bob), Vector2(-bs * 0.88, -bs * 0.22 + arm_l + bob),
 		Vector2(-bs * 0.62, bs * 0.65 + arm_l + bob), Vector2(-bs * 1.62, bs * 0.65 + arm_l + bob)]), pc)
@@ -855,16 +855,16 @@ func _draw_buergermeister(flash: bool, bs: float, ap: float) -> void:
 		var p = abs(sin(ap * 5))
 		draw_arc(Vector2.ZERO, bs * 1.30, 0, TAU, 32, Color(0.65, 0.0, 0.95, p * 0.90), 6.0)
 
-# ─────────────────────────────────────────────────────────────
-# DONALD TRUMP – Oranger Präsident mit Combover und langer Krawatte
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
+# DONALD TRUMP - Oranger Praesident mit Combover und langer Krawatte
+# -------------------------------------------------------------
 func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 	var sk  = Color(0.88, 0.54, 0.22) if not flash else Color.WHITE   # orange Haut
 	var su  = Color(0.10, 0.12, 0.38) if not flash else Color.WHITE   # dunkelblauer Anzug
 	var tie = Color(0.85, 0.06, 0.06) if not flash else Color.WHITE   # rote lange Krawatte
 	var hr  = Color(0.88, 0.78, 0.32) if not flash else Color.WHITE   # goldblondes Haar
-	var wh  = Color(0.96, 0.95, 0.92) if not flash else Color.WHITE   # Hemd (weiß)
-	# Patriotische Aura (Rot-Weiß-Blau)
+	var wh  = Color(0.96, 0.95, 0.92) if not flash else Color.WHITE   # Hemd (weiss)
+	# Patriotische Aura (Rot-Weiss-Blau)
 	for i in range(3):
 		var r = bs + 8 + i * 12 + sin(ap + i) * 5
 		var ac3 = [Color(0.85, 0.10, 0.10, 0.20 - i * 0.05),
@@ -877,12 +877,12 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 	# Beine (Anzughose)
 	draw_rect(Rect2(-bs * 0.84, bs * 0.90, bs * 0.70, bs * 0.90), su.darkened(0.18))
 	draw_rect(Rect2(bs * 0.14, bs * 0.90, bs * 0.70, bs * 0.90), su.darkened(0.18))
-	# Körper – dicker Anzugbauch
+	# Koerper - dicker Anzugbauch
 	draw_circle(Vector2(0, bs * 0.30), bs * 1.08, su)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 1.05, -bs * 0.22), Vector2(bs * 1.05, -bs * 0.22),
 		Vector2(bs * 1.10, bs * 0.44), Vector2(-bs * 1.10, bs * 0.44)]), su)
-	# Weißes Hemd Mitte
+	# Weisses Hemd Mitte
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 0.26, -bs * 0.22), Vector2(bs * 0.26, -bs * 0.22),
 		Vector2(bs * 0.20, bs * 0.90), Vector2(-bs * 0.20, bs * 0.90)]), wh)
@@ -899,7 +899,7 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 		draw_rect(Rect2(-bs * 0.76, bs * 0.02 + fi * bs * 0.055, bs * 0.24, bs * 0.053),
 				  Color(1.0, 1.0, 1.0, 0.8) if fi % 2 == 0 else Color(0.85, 0.10, 0.10))
 	draw_rect(Rect2(-bs * 0.76, bs * 0.02, bs * 0.10, bs * 0.10), Color(0.12, 0.18, 0.65))
-	# LANGE ROTE KRAWATTE (Trump-Markenzeichen – zu lang!)
+	# LANGE ROTE KRAWATTE (Trump-Markenzeichen - zu lang!)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 0.14, -bs * 0.20), Vector2(bs * 0.14, -bs * 0.20),
 		Vector2(bs * 0.18, bs * 0.50), Vector2(bs * 0.22, bs * 1.80),
@@ -921,7 +921,7 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(bs * 0.85, -bs * 0.20), Vector2(bs * 1.05, -bs * 0.20),
 		Vector2(bs * 1.50, bs * 0.80), Vector2(bs * 0.60, bs * 0.80)]), su)
-	# Kleine Hände (Trump-Merkmal!)
+	# Kleine Haende (Trump-Merkmal!)
 	draw_circle(Vector2(-bs * 0.95, bs * 0.82), bs * 0.22, sk)
 	draw_circle(Vector2(bs * 0.95, bs * 0.82), bs * 0.22, sk)
 	for fn in range(3):
@@ -934,7 +934,7 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 	draw_rect(Rect2(-bs * 0.28, -bs * 0.28, bs * 0.56, bs * 0.28), sk)
 	# Kopf (rund, orange)
 	draw_circle(Vector2(0, -bs * 0.95), bs * 0.68, sk)
-	# Weiße Augen-Bereiche (Sonnenbrille-Tan-Linie um Augen)
+	# Weisse Augen-Bereiche (Sonnenbrille-Tan-Linie um Augen)
 	draw_circle(Vector2(-bs * 0.28, -bs * 1.05), bs * 0.22, Color(0.95, 0.82, 0.65))
 	draw_circle(Vector2(bs * 0.28, -bs * 1.05), bs * 0.22, Color(0.95, 0.82, 0.65))
 	# Kleine blaue Augen
@@ -942,14 +942,14 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 	draw_circle(Vector2(bs * 0.28, -bs * 1.05), bs * 0.12, Color(0.30, 0.48, 0.78))
 	draw_circle(Vector2(-bs * 0.28, -bs * 1.05), bs * 0.05, Color(0.05, 0.05, 0.08))
 	draw_circle(Vector2(bs * 0.28, -bs * 1.05), bs * 0.05, Color(0.05, 0.05, 0.08))
-	# Kleine mürrische Lippen
+	# Kleine muerrische Lippen
 	draw_arc(Vector2(0, -bs * 0.74), bs * 0.20, 0.20, PI - 0.20, 8, Color(0.65, 0.32, 0.28), 4.5)
 	draw_line(Vector2(-bs * 0.18, -bs * 0.74), Vector2(bs * 0.18, -bs * 0.74),
 			  Color(0.55, 0.24, 0.20), 3.0)
-	# TRUMP-COMBOVER – Goldblondes übergeschwungenes Haar
+	# TRUMP-COMBOVER - Goldblondes uebergeschwungenes Haar
 	# Seiten (kahl, wenig Haar)
 	draw_arc(Vector2(0, -bs * 0.95), bs * 0.68, PI * 1.0, PI * 0.0, 16, hr, 6.0)
-	# Combover-Strähnen (charakteristisch: von rechts nach links geschwungen)
+	# Combover-Straehnen (charakteristisch: von rechts nach links geschwungen)
 	for st in range(6):
 		var t_st = float(st) / 5.0
 		var sx   = bs * (0.58 - t_st * 1.10)
@@ -957,7 +957,7 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 		var ex   = bs * (-0.55 + t_st * 0.10)
 		var ey   = -bs * 1.58 + t_st * bs * 0.05
 		draw_line(Vector2(sx, sy), Vector2(ex, ey), hr, 5.0 - t_st * 1.5)
-	# Haarbüschel oben (Volumen-Illusion)
+	# Haarbueschel oben (Volumen-Illusion)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-bs * 0.60, -bs * 1.55), Vector2(-bs * 0.20, -bs * 1.72),
 		Vector2(bs * 0.45, -bs * 1.68), Vector2(bs * 0.65, -bs * 1.52),
@@ -971,9 +971,9 @@ func _draw_trump(flash: bool, bs: float, ap: float) -> void:
 		draw_rect(Rect2(-bs * 0.72, -bs * 1.06, bs * 1.05, bs * 0.22), Color(0.60, 0.04, 0.04))
 		draw_rect(Rect2(-bs * 0.70, -bs * 1.70, bs * 1.40, bs * 0.12), Color(0.92, 0.78, 0.10))
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # DEFAULT (Fallback)
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 func _draw_default(flash: bool, bs: float, ap: float) -> void:
 	var bc = body_color if not flash else Color.WHITE
 	for i in range(3):
@@ -988,9 +988,9 @@ func _draw_default(flash: bool, bs: float, ap: float) -> void:
 		var p = abs(sin(ap * 4.0))
 		draw_arc(Vector2.ZERO, bs + 3, 0, TAU, 32, Color(1.0, 0.4, 0.0, p), 3.0)
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 # Hilfsfunktionen
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 func _draw_star(center: Vector2, radius: float, col: Color) -> void:
 	var pts = PackedVector2Array()
 	for i in range(12):

@@ -385,6 +385,18 @@ const TRANSLATIONS: Dictionary = {
 	"upgrades_lbl": {
 		"de": "Upgrades:", "en": "Upgrades:", "fr": "Améliorations:", "es": "Mejoras:", "uk": "Апгрейди:",
 	},
+	"stat_damage_dealt": {
+		"de": "Schaden ausgeteilt", "en": "Damage Dealt",
+		"fr": "Dégâts infligés", "es": "Daño causado", "uk": "Завдано шкоди",
+	},
+	"stat_time_played": {
+		"de": "Spielzeit", "en": "Time Played",
+		"fr": "Temps de jeu", "es": "Tiempo jugado", "uk": "Час гри",
+	},
+	"new_high_score": {
+		"de": "★ NEUER HIGHSCORE ★", "en": "* NEW HIGH SCORE *",
+		"fr": "* NOUVEAU RECORD *", "es": "* NUEVO RÉCORD *", "uk": "* НОВИЙ РЕКОРД *",
+	},
 
 	# ── Pause ─────────────────────────────────────────────────────────────────
 	"pause_title": {
@@ -397,6 +409,28 @@ const TRANSLATIONS: Dictionary = {
 	"esc_hint": {
 		"de": "oder  ESC  drücken", "en": "or press ESC",
 		"fr": "ou appuyer sur ESC", "es": "o pulsar ESC", "uk": "або натиснути ESC",
+	},
+	"options_btn": {
+		"de": "OPTIONEN", "en": "OPTIONS",
+		"fr": "OPTIONS", "es": "OPCIONES", "uk": "НАЛАШТУВАННЯ",
+	},
+	"restart_run": {
+		"de": "RUN NEUSTARTEN", "en": "RESTART RUN",
+		"fr": "REDÉMARRER", "es": "REINICIAR PARTIDA", "uk": "ПЕРЕЗАПУСТИТИ",
+	},
+	"next_wave_enemies": {
+		"de": "GEGNER IN DER NÄCHSTEN WELLE: %d",
+		"en": "ENEMIES IN NEXT WAVE: %d",
+		"fr": "ENNEMIS DANS LA PROCHAINE VAGUE : %d",
+		"es": "ENEMIGOS EN LA PRÓXIMA OLEADA: %d",
+		"uk": "ВОРОГІВ У НАСТУПНІЙ ХВИЛІ: %d",
+	},
+	"shop_incoming": {
+		"de": "★ BACKSTAGE-SHOP ÖFFNET ★",
+		"en": "* BACKSTAGE SHOP OPENS *",
+		"fr": "* LA BOUTIQUE BACKSTAGE OUVRE *",
+		"es": "* LA TIENDA BACKSTAGE ABRE *",
+		"uk": "* БЕКСТЕЙДЖ-МАГАЗИН ВІДКРИВАЄТЬСЯ *",
 	},
 
 	# ── Upgrade Shop ──────────────────────────────────────────────────────────
@@ -553,7 +587,172 @@ const TRANSLATIONS: Dictionary = {
 		"de": "Highscore: ", "en": "High Score: ",
 		"fr": "Meilleur score: ", "es": "Mejor puntuación: ", "uk": "Рекорд: ",
 	},
+
+	# ── HUD: Dash & Ultimate ──────────────────────────────────────────────────
+	"dash_hint": {
+		"de": "DASH: SHIFT / RECHTE MAUSTASTE", "en": "DASH: SHIFT / RIGHT MOUSE",
+		"fr": "DASH: MAJ / CLIC DROIT", "es": "DASH: SHIFT / CLIC DERECHO", "uk": "РИВОК: SHIFT / ПРАВА КНОПКА",
+	},
+	"hud_ult_cd": {
+		"de": "E: Ultimate [%.1fs]", "en": "E: Ultimate [%.1fs]",
+		"fr": "E: Ultime [%.1fs]", "es": "E: Último [%.1fs]", "uk": "E: Ульт [%.1fs]",
+	},
+
+	# ── Co-op / Netzwerk ──────────────────────────────────────────────────────
+	"p2_label": {
+		"de": "SPIELER 2:", "en": "PLAYER 2:", "fr": "JOUEUR 2:", "es": "JUGADOR 2:", "uk": "ГРАВЕЦЬ 2:",
+	},
+	"net_title": {
+		"de": "WiFi CO-OP", "en": "WiFi CO-OP", "fr": "CO-OP WiFi", "es": "CO-OP WiFi", "uk": "WiFi КООП",
+	},
+	"net_host": {
+		"de": "HOSTEN", "en": "HOST", "fr": "HÉBERGER", "es": "CREAR", "uk": "СТВОРИТИ",
+	},
+	"net_join": {
+		"de": "BEITRETEN", "en": "JOIN", "fr": "REJOINDRE", "es": "UNIRSE", "uk": "ПРИЄДНАТИСЯ",
+	},
+	"net_waiting": {
+		"de": "Deine IP: %s   Port: 7777   –   Warte auf Spieler …",
+		"en": "Your IP: %s   Port: 7777   –   Waiting for player …",
+		"fr": "Ton IP: %s   Port: 7777   –   En attente d'un joueur …",
+		"es": "Tu IP: %s   Puerto: 7777   –   Esperando jugador …",
+		"uk": "Твоя IP: %s   Порт: 7777   –   Очікування гравця …",
+	},
+	"net_enter_ip": {
+		"de": "Bitte Host-IP eingeben!", "en": "Please enter the host IP!",
+		"fr": "Entre l'IP de l'hôte!", "es": "¡Introduce la IP del host!", "uk": "Введіть IP хоста!",
+	},
+	"net_connecting": {
+		"de": "Verbinde mit %s …", "en": "Connecting to %s …",
+		"fr": "Connexion à %s …", "es": "Conectando con %s …", "uk": "З'єднання з %s …",
+	},
+	"net_conn_error": {
+		"de": "Verbindungsfehler %d – IP korrekt?", "en": "Connection error %d – IP correct?",
+		"fr": "Erreur de connexion %d – IP correcte?", "es": "Error de conexión %d – ¿IP correcta?", "uk": "Помилка з'єднання %d – IP вірна?",
+	},
+	"net_conn_failed": {
+		"de": "Verbindung fehlgeschlagen – Host erreichbar?", "en": "Connection failed – host reachable?",
+		"fr": "Connexion échouée – hôte joignable?", "es": "Conexión fallida – ¿host accesible?", "uk": "З'єднання не вдалося – хост доступний?",
+	},
+	"net_p2_connected": {
+		"de": "Spieler 2 verbunden!", "en": "Player 2 connected!",
+		"fr": "Joueur 2 connecté!", "es": "¡Jugador 2 conectado!", "uk": "Гравець 2 підключився!",
+	},
+	"net_connected_wait": {
+		"de": "Verbunden! Warte auf Host …", "en": "Connected! Waiting for host …",
+		"fr": "Connecté! En attente de l'hôte …", "es": "¡Conectado! Esperando al host …", "uk": "Підключено! Очікування хоста …",
+	},
+
+	# ── Upgrade Shop ──────────────────────────────────────────────────────────
+	"take_it": {
+		"de": "NIMM ES!", "en": "TAKE IT!", "fr": "PRENDS-LE!", "es": "¡TÓMALO!", "uk": "БЕРИ!",
+	},
+
+	# ── Tutorial ──────────────────────────────────────────────────────────────
+	"how_to_play": {
+		"de": "SO WIRD GESPIELT", "en": "HOW TO PLAY",
+		"fr": "COMMENT JOUER", "es": "CÓMO JUGAR", "uk": "ЯК ГРАТИ",
+	},
+	"btn_prev": {
+		"de": "< ZURÜCK", "en": "< PREV", "fr": "< PRÉC.", "es": "< ANTERIOR", "uk": "< НАЗАД",
+	},
+	"btn_next": {
+		"de": "WEITER >", "en": "NEXT >", "fr": "SUIVANT >", "es": "SIGUIENTE >", "uk": "ДАЛІ >",
+	},
+	"btn_start": {
+		"de": "START", "en": "START", "fr": "GO!", "es": "EMPEZAR", "uk": "СТАРТ",
+	},
+	"lore_new": {
+		"de": "NEU: ", "en": "NEW: ", "fr": "NOUVEAU: ", "es": "NUEVO: ", "uk": "НОВЕ: ",
+	},
+	"no_song": {
+		"de": "-- kein Song --", "en": "-- no song --", "fr": "-- aucun titre --",
+		"es": "-- sin canción --", "uk": "-- немає пісні --",
+	},
+	"next_song": {
+		"de": ">> Nächster Song", "en": ">> Next song", "fr": ">> Titre suivant",
+		"es": ">> Siguiente canción", "uk": ">> Наступна пісня",
+	},
+
+	# ── Maps (Titel + Untertitel) ─────────────────────────────────────────────
+	"map_farm_title": {
+		"de": "Die Farm", "en": "The Farm", "fr": "La Ferme", "es": "La Granja", "uk": "Ферма",
+	},
+	"map_farm_sub": {
+		"de": "Irgendwo in Niedersachsen...", "en": "Somewhere in Lower Saxony...",
+		"fr": "Quelque part en Basse-Saxe...", "es": "En algún lugar de Baja Sajonia...", "uk": "Десь у Нижній Саксонії...",
+	},
+	"map_prison_title": {
+		"de": "Das Gefängnis", "en": "The Prison", "fr": "La Prison", "es": "La Prisión", "uk": "В'язниця",
+	},
+	"map_prison_sub": {
+		"de": "3 Jahre wegen Lärmbelästigung", "en": "3 years for noise violations",
+		"fr": "3 ans pour tapage nocturne", "es": "3 años por ruido excesivo", "uk": "3 роки за порушення тиші",
+	},
+	"map_proberaum_title": {
+		"de": "Der Proberaum", "en": "The Rehearsal Room", "fr": "Le Local de Répèt", "es": "La Sala de Ensayo", "uk": "Репетиційна",
+	},
+	"map_proberaum_sub": {
+		"de": "Nachbarn wieder sauer...", "en": "Neighbors angry again...",
+		"fr": "Les voisins sont fâchés...", "es": "Los vecinos enfadados otra vez...", "uk": "Сусіди знову злі...",
+	},
+	"map_schweinestall_title": {
+		"de": "Der Schweinestall", "en": "The Pigsty", "fr": "La Porcherie", "es": "La Pocilga", "uk": "Свинарник",
+	},
+	"map_schweinestall_sub": {
+		"de": "Riecht nach Musik", "en": "Smells like music",
+		"fr": "Ça sent la musique", "es": "Huele a música", "uk": "Пахне музикою",
+	},
+	"map_amerika_title": {
+		"de": "Amerika", "en": "America", "fr": "L'Amérique", "es": "América", "uk": "Америка",
+	},
+	"map_amerika_sub": {
+		"de": "Road Trip from Hell", "en": "Road Trip from Hell",
+		"fr": "Road trip infernal", "es": "Viaje infernal", "uk": "Пекельна подорож",
+	},
+	"map_truck_title": {
+		"de": "Fahrender Truck", "en": "Moving Truck", "fr": "Camion en Route", "es": "Camión en Marcha", "uk": "Вантажівка на ходу",
+	},
+	"map_truck_sub": {
+		"de": "270 km/h auf der A31", "en": "270 km/h on the A31",
+		"fr": "270 km/h sur l'A31", "es": "270 km/h por la A31", "uk": "270 км/год по A31",
+	},
+	"map_tonstudio_title": {
+		"de": "Tonstudio Soundlodge", "en": "Soundlodge Studio", "fr": "Studio Soundlodge", "es": "Estudio Soundlodge", "uk": "Студія Soundlodge",
+	},
+	"map_tonstudio_sub": {
+		"de": "Rhauderfehn, Ostfriesland...", "en": "Rhauderfehn, East Frisia...",
+		"fr": "Rhauderfehn, Frise orientale...", "es": "Rhauderfehn, Frisia Oriental...", "uk": "Раудерфен, Східна Фризія...",
+	},
+	"map_tv_studio_title": {
+		"de": "TV Studio", "en": "TV Studio", "fr": "Studio TV", "es": "Estudio de TV", "uk": "Телестудія",
+	},
+	"map_tv_studio_sub": {
+		"de": "Live auf Sendung", "en": "Live on Air",
+		"fr": "En direct", "es": "En directo", "uk": "У прямому ефірі",
+	},
+	"map_meppen_title": {
+		"de": "Meppen", "en": "Meppen", "fr": "Meppen", "es": "Meppen", "uk": "Меппен",
+	},
+	"map_meppen_sub": {
+		"de": "Stadt der Verdammten", "en": "City of the Damned",
+		"fr": "Ville des damnés", "es": "Ciudad de los condenados", "uk": "Місто проклятих",
+	},
+	"map_death_feast_title": {
+		"de": "Death Feast", "en": "Death Feast", "fr": "Death Feast", "es": "Death Feast", "uk": "Death Feast",
+	},
+	"map_death_feast_sub": {
+		"de": "Bühne Andernach – letzte Chance!", "en": "Andernach stage – last chance!",
+		"fr": "Scène d'Andernach – dernière chance!", "es": "Escenario Andernach – ¡última oportunidad!", "uk": "Сцена Андернах – останній шанс!",
+	},
 }
+
+# Liefert Map-Titel und -Untertitel in der aktiven Sprache
+func map_title(map_id: String) -> String:
+	return t("map_%s_title" % map_id)
+
+func map_subtitle(map_id: String) -> String:
+	return t("map_%s_sub" % map_id)
 
 func _ready() -> void:
 	var saved_lang = SaveManager.get_setting("language")

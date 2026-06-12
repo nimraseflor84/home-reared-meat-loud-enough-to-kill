@@ -11,12 +11,12 @@ var current_wave: int = 0
 var score: int = 0
 var run_stats: Dictionary = {}
 
-# ── Endless Mode ──────────────────────────────────────────────────────────────
+# -- Endless Mode --------------------------------------------------------------
 var endless_mode: bool = false
 var endless_map: String = "farm"
 
-# ── Difficulty ────────────────────────────────────────────────────────────────
-var difficulty: int = 2  # 0=VeryEasy … 4=VeryHard
+# -- Difficulty ----------------------------------------------------------------
+var difficulty: int = 2  # 0=VeryEasy ... 4=VeryHard
 
 const DIFFICULTY_NAMES = [
 	"Access Denied",
@@ -26,20 +26,25 @@ const DIFFICULTY_NAMES = [
 	"Bolognese Bloodbath",
 ]
 const DIFFICULTY_COLORS = [
-	Color(0.20, 0.90, 0.30),   # grün
-	Color(0.75, 0.90, 0.10),   # gelbgrün
+	Color(0.20, 0.90, 0.30),   # gruen
+	Color(0.75, 0.90, 0.10),   # gelbgruen
 	Color(1.00, 0.55, 0.05),   # orange
 	Color(0.95, 0.15, 0.10),   # rot
 	Color(0.60, 0.00, 0.10),   # dunkelblutrot
 ]
 # HP-Multiplikator pro Schwierigkeitsgrad
-const DIFFICULTY_HP   = [0.35, 0.65, 1.0, 1.6, 2.8]
-# Schaden-Multiplikator
-const DIFFICULTY_DMG  = [0.35, 0.65, 1.0, 1.4, 2.0]
-# Gegneranzahl-Multiplikator
-const DIFFICULTY_COUNT = [0.45, 0.70, 1.0, 1.45, 2.1]
-# Wahrscheinlichkeit dass ein Gegner fernkämpft (0=nie)
-const DIFFICULTY_SHOOT = [0.0, 0.0, 0.0, 0.40, 0.80]
+# Very Easy bewusst niedrig (Tutorial-Tier), Very Hard fordernd aber nicht
+# absurd: 2.4x reicht aus weil HP zusaetzlich mit Wave skaliert (1.07^wave).
+const DIFFICULTY_HP   = [0.35, 0.65, 1.0, 1.5, 2.4]
+# Schaden-Multiplikator - Hard/Very Hard etwas entschaerft
+const DIFFICULTY_DMG  = [0.35, 0.65, 1.0, 1.35, 1.85]
+# Gegneranzahl-Multiplikator - leicht nach unten korrigiert um Lag und
+# unfaire Spike-Waves zu vermeiden
+const DIFFICULTY_COUNT = [0.45, 0.72, 1.0, 1.4, 1.9]
+# Wahrscheinlichkeit dass ein Gegner fernkaempft (0=nie). Very Hard von 0.80
+# auf 0.55 reduziert - 0.80 fuehlte sich an als wuerde jeder Gegner schiessen,
+# das war oppressiv. Hard bleibt bei 0.40 als spuerbarer Sprung.
+const DIFFICULTY_SHOOT = [0.0, 0.0, 0.0, 0.40, 0.55]
 
 # Character scene paths
 const CHARACTER_SCENES = {
@@ -51,14 +56,54 @@ const CHARACTER_SCENES = {
 	"bassist": "res://scenes/entities/players/player_bassist.tscn",
 }
 
+# Charakter-Beschreibungen als Sprach-Dictionaries (de/en/fr/es/uk).
+# Aufloesung ueber char_desc() weiter unten.
 const CHARACTER_INFO = {
-	"manni": {"name": "Manny", "desc": "Drumstick master. Kills increase attack speed.", "color": Color(0.2, 0.4, 0.9)},
-	"shouter": {"name": "Chicken", "desc": "Growler. Low-frequency death beams. High precision.", "color": Color(0.9, 0.2, 0.2)},
-	"dreads": {"name": "Nik", "desc": "Inhale Screamer. Dreadlock whip. Can grab & throw enemies.", "color": Color(0.2, 0.8, 0.3)},
-	"riff_slicer": {"name": "Andz", "desc": "String blades pierce multiple enemies.", "color": Color(0.9, 0.5, 0.1)},
-	"distortion": {"name": "Grindhouse", "desc": "Distortion fields slow nearby enemies.", "color": Color(0.6, 0.2, 0.9)},
-	"bassist": {"name": "Armin", "desc": "Sub-bass waves. Ground shockwaves on kills.", "color": Color(0.1, 0.2, 0.6)},
+	"manni": {"name": "Manny", "color": Color(0.2, 0.4, 0.9), "desc": {
+		"de": "Drumstick-Meister. Kills erhöhen das Angriffstempo.",
+		"en": "Drumstick master. Kills increase attack speed.",
+		"fr": "Maître des baguettes. Les kills augmentent la vitesse d'attaque.",
+		"es": "Maestro de las baquetas. Las bajas aumentan la velocidad de ataque.",
+		"uk": "Майстер барабанних паличок. Вбивства прискорюють атаку."}},
+	"shouter": {"name": "Chicken", "color": Color(0.9, 0.2, 0.2), "desc": {
+		"de": "Growler. Niederfrequente Todesstrahlen. Hohe Präzision.",
+		"en": "Growler. Low-frequency death beams. High precision.",
+		"fr": "Growler. Rayons mortels à basse fréquence. Haute précision.",
+		"es": "Growler. Rayos mortales de baja frecuencia. Alta precisión.",
+		"uk": "Гроулер. Низькочастотні промені смерті. Висока точність."}},
+	"dreads": {"name": "Nik", "color": Color(0.2, 0.8, 0.3), "desc": {
+		"de": "Inhale-Screamer. Dreadlock-Peitsche. Packt und wirft Gegner.",
+		"en": "Inhale Screamer. Dreadlock whip. Can grab & throw enemies.",
+		"fr": "Inhale screamer. Fouet de dreadlocks. Attrape et projette les ennemis.",
+		"es": "Inhale screamer. Látigo de rastas. Agarra y lanza enemigos.",
+		"uk": "Інхейл-скрімер. Батіг із дредів. Хапає і кидає ворогів."}},
+	"riff_slicer": {"name": "Andz", "color": Color(0.9, 0.5, 0.1), "desc": {
+		"de": "Saiten-Klingen durchbohren mehrere Gegner.",
+		"en": "String blades pierce multiple enemies.",
+		"fr": "Des lames-cordes transpercent plusieurs ennemis.",
+		"es": "Cuchillas de cuerda atraviesan a varios enemigos.",
+		"uk": "Леза зі струн пронизують кількох ворогів."}},
+	"distortion": {"name": "Grindhouse", "color": Color(0.6, 0.2, 0.9), "desc": {
+		"de": "Verzerrungsfelder verlangsamen Gegner in der Nähe.",
+		"en": "Distortion fields slow nearby enemies.",
+		"fr": "Des champs de distorsion ralentissent les ennemis proches.",
+		"es": "Campos de distorsión ralentizan a los enemigos cercanos.",
+		"uk": "Поля дисторшну сповільнюють ворогів поруч."}},
+	"bassist": {"name": "Armin", "color": Color(0.1, 0.2, 0.6), "desc": {
+		"de": "Sub-Bass-Wellen. Boden-Schockwellen bei Kills.",
+		"en": "Sub-bass waves. Ground shockwaves on kills.",
+		"fr": "Ondes sub-basses. Ondes de choc au sol à chaque kill.",
+		"es": "Ondas de subgraves. Ondas de choque al matar.",
+		"uk": "Суб-басові хвилі. Ударні хвилі від вбивств."}},
 }
+
+# Liefert die Charakter-Beschreibung in der aktiven Sprache.
+# Akzeptiert auch das alte String-Format als Fallback.
+func char_desc(char_id: String) -> String:
+	var d = CHARACTER_INFO.get(char_id, {}).get("desc", "")
+	if d is Dictionary:
+		return d.get(LocalizationManager.current_language, d.get("en", ""))
+	return str(d)
 
 signal state_changed(new_state)
 signal wave_started(wave_number)
@@ -74,7 +119,7 @@ func _ready() -> void:
 	reset_run_stats()
 
 func _setup_controller_bindings() -> void:
-	# UI-Aktionen mit Joypad belegen (Menü-Navigation & Bestätigung)
+	# UI-Aktionen mit Joypad belegen (Menue-Navigation & Bestaetigung)
 	var ui_joy = {
 		"ui_accept": JOY_BUTTON_A,
 		"ui_cancel": JOY_BUTTON_B,
@@ -95,7 +140,7 @@ func _setup_controller_bindings() -> void:
 			ev.button_index = ui_joy[action]
 			InputMap.action_add_event(action, ev)
 
-	# Linken Analog-Stick ebenfalls für UI-Navigation nutzen
+	# Linken Analog-Stick ebenfalls fuer UI-Navigation nutzen
 	var ui_axis = {
 		"ui_left":  [JOY_AXIS_LEFT_X, -1.0],
 		"ui_right": [JOY_AXIS_LEFT_X,  1.0],
@@ -147,7 +192,7 @@ func _setup_controller_bindings() -> void:
 				InputMap.action_add_event(action, ev)
 
 func _setup_global_theme() -> void:
-	# SystemFont mit fettem Rock/Metal-Stil – Impact als Hauptfont, Fallbacks für alle Plattformen
+	# SystemFont mit fettem Rock/Metal-Stil - Impact als Hauptfont, Fallbacks fuer alle Plattformen
 	var font = SystemFont.new()
 	font.font_names = PackedStringArray([
 		"Impact",
@@ -161,14 +206,14 @@ func _setup_global_theme() -> void:
 	font.antialiasing = TextServer.FONT_ANTIALIASING_GRAY
 	game_font = font
 
-	# Theme auf Root-Window setzen → alle Controls erben den Font automatisch
+	# Theme auf Root-Window setzen -> alle Controls erben den Font automatisch
 	var theme = Theme.new()
 	theme.default_font = font
 	theme.set_font("font", "Label",    font)
 	theme.set_font("font", "Button",   font)
 	theme.set_font("font", "LineEdit", font)
 	theme.set_font("font", "RichTextLabel", font)
-	# Schriftgrößen aus dem Theme übernehmen (individuelle Overrides bleiben erhalten)
+	# Schriftgroessen aus dem Theme uebernehmen (individuelle Overrides bleiben erhalten)
 	theme.set_font_size("font_size", "Label",    20)
 	theme.set_font_size("font_size", "Button",   20)
 	theme.default_font_size = 20
@@ -180,13 +225,51 @@ func _apply_theme(theme: Theme) -> void:
 		get_tree().root.theme = theme
 
 func reset_run_stats() -> void:
+	# Highscore VOR dem Run speichern, damit der Game-Over-Screen entscheiden
+	# kann ob die Score-Anzeige ein neuer Rekord ist (SaveManager.update_run_results
+	# wird vor dem Wechsel zu game_over aufgerufen und ueberschreibt sonst den Vergleichswert).
+	# Beim ersten Aufruf in _ready() ist SaveManager als Autoload evtl. noch nicht im
+	# Baum - dann faellt prev_high auf 0 zurueck. Vor jedem echten Run-Start wird
+	# reset_run_stats nochmal aus start_new_run() aufgerufen wo SaveManager bereit ist.
+	var prev_high: int = 0
+	if get_tree() != null and get_tree().root.has_node("SaveManager"):
+		prev_high = SaveManager.get_high_score()
 	run_stats = {
 		"kills": 0,
 		"rhythm_hits": 0,
 		"damage_dealt": 0,
 		"waves_cleared": 0,
 		"upgrades_taken": [],
+		"start_time": Time.get_ticks_msec(),
+		"end_time": 0,
+		"high_score_before_run": prev_high,
 	}
+
+func add_damage_dealt(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	# Defensiv: damage_dealt koennte als int oder float gespeichert sein
+	var cur = run_stats.get("damage_dealt", 0)
+	run_stats["damage_dealt"] = float(cur) + amount
+
+func get_run_time_seconds() -> float:
+	var start_ms = run_stats.get("start_time", 0)
+	if start_ms == 0:
+		return 0.0
+	var end_ms = run_stats.get("end_time", 0)
+	if end_ms == 0:
+		end_ms = Time.get_ticks_msec()
+	return max(0.0, float(end_ms - start_ms) / 1000.0)
+
+func mark_run_ended() -> void:
+	if run_stats.get("end_time", 0) == 0:
+		run_stats["end_time"] = Time.get_ticks_msec()
+
+func format_time_seconds(total_seconds: float) -> String:
+	var s: int = int(total_seconds)
+	var minutes: int = s / 60
+	var seconds: int = s % 60
+	return "%02d:%02d" % [minutes, seconds]
 
 func start_new_run() -> void:
 	current_wave = 0
@@ -208,16 +291,19 @@ func set_state(new_state: GameState) -> void:
 	emit_signal("state_changed", new_state)
 
 func get_wave_difficulty_multiplier() -> float:
-	return pow(1.08, current_wave)
+	# HP-Skalierung pro Welle. 1.07 statt 1.08 glaettet Wave 10+ ein wenig -
+	# 1.07^15 = 2.76 (vorher 3.17), 1.07^20 = 3.87 (vorher 4.66).
+	return pow(1.07, current_wave)
 
 func get_wave_damage_multiplier() -> float:
-	return pow(1.04, current_wave)
+	# Schaden-Skalierung pro Welle. 1.035 statt 1.04 - gleicher Grund.
+	return pow(1.035, current_wave)
 
 func change_scene(path: String) -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file(path)
 
-# Lautstärke-Widget in eine Szene einbetten (CanvasLayer damit immer im Vordergrund)
+# Lautstaerke-Widget in eine Szene einbetten (CanvasLayer damit immer im Vordergrund)
 func add_volume_widget(parent: Node) -> void:
 	var canvas = CanvasLayer.new()
 	canvas.layer = 10
@@ -240,7 +326,10 @@ func start_game() -> void:
 	start_new_run()
 	endless_mode = false
 	set_state(GameState.GAME)
-	change_scene("res://scenes/game.tscn")
+	# Story-Mode startet mit Akt I. Vorher wurde act1_intro.tscn nie angezeigt,
+	# weil direkt in game.tscn gewechselt wurde - der Spieler bekam den
+	# Story-Einstieg (SoundCorp, Mutationsakkord) nie zu sehen.
+	change_scene("res://scenes/story/act1_intro.tscn")
 
 func start_endless_game() -> void:
 	start_new_run()
@@ -269,9 +358,93 @@ func go_to_game_over() -> void:
 func go_to_options() -> void:
 	change_scene("res://scenes/options.tscn")
 
+func go_to_tutorial() -> void:
+	change_scene("res://scenes/tutorial.tscn")
+
+func go_to_credits() -> void:
+	change_scene("res://scenes/credits.tscn")
+
 func get_story_scene_for_wave(wave: int) -> String:
+	# Story-Akte gibt es nur im Story-Mode. Ohne diesen Guard spielten die
+	# Akte im Endless-Mode faelschlich nach Welle 5/10/15 ab.
+	if endless_mode:
+		return ""
 	match wave:
 		5: return "res://scenes/story/act2_intro.tscn"
 		10: return "res://scenes/story/act3_intro.tscn"
 		15: return "res://scenes/story/finale.tscn"
 		_: return ""
+
+# -- Netzwerk Co-op ------------------------------------------------------------
+var network_mode: int = 0  # 0=aus, 1=host, 2=client
+var _net_peer: ENetMultiplayerPeer = null
+
+signal net_peer_connected
+signal net_connected_to_host
+
+func net_start_host() -> String:
+	_net_peer = ENetMultiplayerPeer.new()
+	_net_peer.create_server(7777, 1)
+	multiplayer.multiplayer_peer = _net_peer
+	multiplayer.peer_connected.connect(_on_net_peer_connected)
+	network_mode = 1
+	player_count = 2
+	for ip in IP.get_local_addresses():
+		if ip.begins_with("192.168.") or ip.begins_with("10.") or ip.begins_with("172.16."):
+			return ip
+	return "0.0.0.0"
+
+func net_join(ip: String) -> Error:
+	_net_peer = ENetMultiplayerPeer.new()
+	var err = _net_peer.create_client(ip, 7777)
+	if err != OK:
+		_net_peer = null
+		return err
+	multiplayer.multiplayer_peer = _net_peer
+	multiplayer.connected_to_server.connect(_on_net_connected_to_host)
+	network_mode = 2
+	return OK
+
+func net_stop() -> void:
+	if _net_peer:
+		_net_peer.close()
+		_net_peer = null
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	network_mode = 0
+	player_count = 1
+
+func _on_net_peer_connected(_id: int) -> void:
+	emit_signal("net_peer_connected")
+
+func _on_net_connected_to_host() -> void:
+	emit_signal("net_connected_to_host")
+
+var net_seed: int = 0
+
+# -- Telemetrie fuer den Client-Bildschirm (network_remote.tscn) ---------------
+# Werden vom Host ueber RPC aktualisiert; Defaults verhindern dass das
+# Remote-UI auf undefinierte Variablen zugreift.
+var net_current_wave: int = 0
+var net_p2_hp: int = 0
+var net_p2_max_hp: int = 1
+
+@rpc("any_peer", "unreliable_ordered")
+func _rpc_recv_p2_input(_dx: float, _dy: float, _buttons: int) -> void:
+	# Wird vom Client-Geraet aufgerufen; Host wendet Input auf P2 an.
+	# Tatsaechliche Logik laeuft im game_scene-Script ueber Player._apply_net_input.
+	pass
+
+func net_start_game_as_host() -> void:
+	net_seed = randi()
+	player_count = 2
+	rpc("_rpc_client_start_game", net_seed,
+		selected_characters[0], selected_characters[1])
+	start_game()
+
+@rpc("authority", "reliable")
+func _rpc_client_start_game(seed: int, p1_char: String, p2_char: String) -> void:
+	net_seed = seed
+	selected_characters[0] = p1_char
+	selected_characters[1] = p2_char
+	player_count = 2
+	start_game()

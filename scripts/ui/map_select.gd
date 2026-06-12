@@ -5,17 +5,18 @@ var _selected_map: String = "farm"
 var _selected_diff: int = 2
 var _selected_char: String = "manni"
 
+# Map-Namen kommen lokalisiert aus LocalizationManager.map_title(id)
 const MAPS = [
-	{"id": "proberaum",     "name": "Proberaum",         "color": Color(0.18, 0.12, 0.24)},
-	{"id": "prison",        "name": "Gefängnis",         "color": Color(0.30, 0.29, 0.34)},
-	{"id": "farm",          "name": "Die Farm",         "color": Color(0.22, 0.44, 0.12)},
-	{"id": "schweinestall", "name": "Schweinestall",     "color": Color(0.42, 0.26, 0.08)},
-	{"id": "amerika",       "name": "Amerika",           "color": Color(0.10, 0.20, 0.55)},
-	{"id": "truck",         "name": "Truck",             "color": Color(0.08, 0.12, 0.24)},
-	{"id": "tonstudio",     "name": "Soundlodge",        "color": Color(0.10, 0.08, 0.16)},
-	{"id": "tv_studio",     "name": "TV Studio",         "color": Color(0.12, 0.10, 0.20)},
-	{"id": "meppen",        "name": "Meppen",            "color": Color(0.46, 0.44, 0.42)},
-	{"id": "death_feast",   "name": "Death Feast",       "color": Color(0.06, 0.02, 0.08)},
+	{"id": "proberaum",     "color": Color(0.18, 0.12, 0.24)},
+	{"id": "prison",        "color": Color(0.30, 0.29, 0.34)},
+	{"id": "farm",          "color": Color(0.22, 0.44, 0.12)},
+	{"id": "schweinestall", "color": Color(0.42, 0.26, 0.08)},
+	{"id": "amerika",       "color": Color(0.10, 0.20, 0.55)},
+	{"id": "truck",         "color": Color(0.08, 0.12, 0.24)},
+	{"id": "tonstudio",     "color": Color(0.10, 0.08, 0.16)},
+	{"id": "tv_studio",     "color": Color(0.12, 0.10, 0.20)},
+	{"id": "meppen",        "color": Color(0.46, 0.44, 0.42)},
+	{"id": "death_feast",   "color": Color(0.06, 0.02, 0.08)},
 ]
 
 var _map_buttons: Array = []
@@ -69,7 +70,7 @@ func _build_ui() -> void:
 		var by   = grid_y + row * (tile_h + gap)
 
 		var btn  = Button.new()
-		btn.text = m["name"]
+		btn.text = LocalizationManager.map_title(m["id"])
 		btn.position = Vector2(bx, by)
 		btn.size     = Vector2(tile_w, tile_h)
 		btn.add_theme_font_size_override("font_size", 17)
