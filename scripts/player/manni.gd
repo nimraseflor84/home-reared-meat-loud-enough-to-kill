@@ -27,7 +27,9 @@ func _ready() -> void:
 	character_id = "manni"
 	max_hp = 110
 	move_speed = 185.0
-	base_damage = 22.0
+	# 22 -> 27: Manni war als Default-Charakter 42% unter dem DPS-Median
+	# (Balancing-Simulation Run #11)
+	base_damage = 27.0
 	attack_speed = 1.2
 	ultimate_cooldown = 12.0
 	add_to_group("players")
@@ -224,6 +226,25 @@ func _auto_attack() -> void:
 	emit_signal("attacked")
 	AudioManager.play_hit_sfx()
 
+# Signature: Blast Beat Barrage - Doppelschlaege nach vorne UND hinten, im Takt.
+# Mehr Abdeckung, dafuer pro Stick weniger Schaden und kuerzere Reichweite.
+func _auto_attack_signature() -> void:
+	var dir = get_direction_to_nearest_enemy()
+	var d: float = get_total_damage() * 0.6
+	spawn_projectile(dir.rotated(-0.09), d, 300.0)
+	spawn_projectile(dir.rotated(0.09), d, 300.0)
+	spawn_projectile(-dir, d, 300.0)
+	if randf() < double_strike_chance:
+		spawn_projectile(dir, d, 300.0)
+	if _frenzy_timer > 0.0 and randf() < FRENZY_KNOCKBACK_CHANCE:
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if is_instance_valid(e):
+				var to_e: Vector2 = e.global_position - global_position
+				if to_e.length() < 220.0 and e.has_method("apply_knockback"):
+					e.apply_knockback(to_e.normalized() * 420.0)
+	emit_signal("attacked")
+	AudioManager.play_hit_sfx()
+
 func _use_ultimate() -> void:
 	# Blast Beat Frenzy: 3s lang verdreifachte Angriffsgeschwindigkeit
 	# Mechanik: temporaerer attack_speed_bonus-Boost (Faktor 3 = +200%)
@@ -237,7 +258,11 @@ func _use_ultimate() -> void:
 	var main_sw = _SW_SCENE.instantiate()
 	main_sw.global_position = global_position
 	main_sw.radius = 140.0 * (1.0 + aoe_radius_bonus)
-	main_sw.damage = get_total_damage() * 1.5
+	var sw_damage: float = get_total_damage() * 1.5
+	# power_chord wirkte bei Manni als einzigem Charakter nicht (Audit Run #11)
+	if has_upgrade("power_chord"):
+		sw_damage *= 1.5
+	main_sw.damage = sw_damage
 	main_sw.shooter = self
 	if has_upgrade("distortion_pedal"):
 		main_sw.slow_factor = 0.4
