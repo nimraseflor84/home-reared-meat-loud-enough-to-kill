@@ -5,6 +5,7 @@ var _won: bool = false
 var _is_high_score: bool = false
 var _high_score_banner: Label = null
 var _quote_label: Label = null
+var _quote_target_x: float = 0.0
 
 func _ready() -> void:
 	_won = GameManager.run_stats.get("won", false)
@@ -30,11 +31,20 @@ func _process(delta: float) -> void:
 		var s: float = 1.0 + 0.05 * sin(_anim_time * 4.0)
 		_high_score_banner.scale = Vector2(s, s)
 		_high_score_banner.pivot_offset = _high_score_banner.size * 0.5
-	# Spruch nach dem Reinfahren dezent pulsieren lassen, damit er auffaellt
+	# Spruch faehrt von links rein (deterministisch, Ease-Out), blendet ein und
+	# pulsiert danach, damit man ihn auf jeden Fall bemerkt.
 	if is_instance_valid(_quote_label):
-		var qs: float = 1.0 + 0.04 * sin(_anim_time * 3.5)
-		_quote_label.pivot_offset = _quote_label.size * 0.5
-		_quote_label.scale = Vector2(qs, qs)
+		var qt: float = _anim_time - 0.35
+		if qt < 0.0:
+			qt = 0.0
+		var p: float = clamp(qt / 0.6, 0.0, 1.0)
+		var eased: float = 1.0 - pow(1.0 - p, 3.0)
+		_quote_label.position.x = lerp(_quote_target_x - 1400.0, _quote_target_x, eased)
+		_quote_label.modulate.a = clamp(qt / 0.4, 0.0, 1.0)
+		if p >= 1.0:
+			var qs: float = 1.0 + 0.05 * sin(_anim_time * 4.0)
+			_quote_label.pivot_offset = _quote_label.size * 0.5
+			_quote_label.scale = Vector2(qs, qs)
 	queue_redraw()
 
 func _build_ui() -> void:
@@ -79,13 +89,10 @@ func _build_ui() -> void:
 		quote.add_theme_font_size_override("font_size", 22)
 		add_child(quote)
 		_quote_label = quote
-		# Spruch faehrt von links rein und blendet ein, damit er auffaellt
-		quote.position = Vector2(quote_target.x - 1500.0, quote_target.y)
+		_quote_target_x = quote_target.x
+		# Startet weit links ausserhalb und faehrt in _process deterministisch rein
+		quote.position = Vector2(quote_target.x - 1400.0, quote_target.y)
 		quote.modulate = Color(1, 1, 1, 0)
-		var tw := create_tween()
-		tw.set_parallel(true)
-		tw.tween_property(quote, "position:x", quote_target.x, 0.7).set_delay(0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tw.tween_property(quote, "modulate:a", 1.0, 0.45).set_delay(0.45)
 
 	# NEW HIGH SCORE banner - direkt unter dem Titel pulsierend
 	if _is_high_score:
@@ -101,10 +108,16 @@ func _build_ui() -> void:
 		_high_score_banner.add_theme_font_size_override("font_size", 30)
 		add_child(_high_score_banner)
 
-	# Signature-Waffe in diesem Run freigeschaltet (Sieg auf Stufe 3+)
+	# Freischalt-Hinweis bei Sieg: Bonus (schwerster Grad) hat Vorrang vor der Waffe
+	var bonus_unlocked: String = String(GameManager.run_stats.get("bonus_unlocked", ""))
 	var unlocked_weapon: String = String(GameManager.run_stats.get("weapon_just_unlocked", ""))
-	if unlocked_weapon != "":
-		var de: bool = LocalizationManager.current_language == "de"
+	var de: bool = LocalizationManager.current_language == "de"
+	var unlock_msg: String = ""
+	if bonus_unlocked != "":
+		unlock_msg = "BONUS: Toxic-Held + Giftstadt freigeschaltet!" if de else "BONUS: Toxic hero + Toxic City unlocked!"
+	elif unlocked_weapon != "":
+		unlock_msg = "Signature-Waffe freigeschaltet!" if de else "Signature weapon unlocked!"
+	if unlock_msg != "":
 		var wl = Label.new()
 		wl.set_anchors_preset(PRESET_CENTER_TOP)
 		wl.anchor_left = 0.5
@@ -112,8 +125,8 @@ func _build_ui() -> void:
 		wl.position = Vector2(-450, 168)
 		wl.size = Vector2(900, 30)
 		wl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		wl.text = "Signature-Waffe freigeschaltet!" if de else "Signature weapon unlocked!"
-		wl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+		wl.text = unlock_msg
+		wl.add_theme_color_override("font_color", Color(0.6, 1.0, 0.3) if bonus_unlocked != "" else Color(1.0, 0.85, 0.2))
 		wl.add_theme_color_override("font_outline_color", Color.BLACK)
 		wl.add_theme_constant_override("outline_size", 3)
 		wl.add_theme_font_size_override("font_size", 22)
