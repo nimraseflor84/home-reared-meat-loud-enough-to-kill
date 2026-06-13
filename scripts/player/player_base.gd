@@ -427,7 +427,7 @@ func apply_upgrade_by_id(id: String) -> void:
 const _PROJ_VARIETY = {
 	"manni": 0, "shouter": 1, "dreads": 2,
 	"riff_slicer": 3, "distortion": 4, "bassist": 5,
-	"pimmel": 6, "theo": 7,
+	"pimmel": 6, "theo": 7, "toxo": 8,
 }
 
 func spawn_projectile(direction: Vector2, damage: float = -1, speed: float = 400.0, pierce: int = 0) -> void:
