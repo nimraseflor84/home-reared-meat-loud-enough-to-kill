@@ -1,160 +1,75 @@
 # HOME REARED MEAT – Loud Enough to Kill
 
-> **Brotato-style Roguelite Rhythm Game** · Entwickelt mit Godot 4.6 · Metal & Chaos
+> Brotato-artiges Roguelite-Rhythm-Game. Entwickelt mit Godot 4.6. Metal und Chaos.
 
-**Deutsch:** diese Datei · **English:** [README.en.md](README.en.md)
+**PC / Windows / macOS / Linux Version.** Die Android-Version liegt im eigenen Repo: [home-reared-meat-mobile](https://github.com/nimraseflor84/home-reared-meat-mobile).
 
-Ein Wave-Survival-Roguelite in dem du als Mitglied der Metal-Band **Home Reared Meat** gegen Wellen von Feinden kämpfst – im Takt der Musik. 15 Story-Waves, Endless Mode, 6 spielbare Charaktere und lokaler Co-op für 2 Spieler.
+Ein Wave-Survival-Roguelite, in dem du als Mitglied der Metal-Band **Home Reared Meat** im Takt der Musik gegen Wellen von Feinden kämpfst. 15 Story-Wellen mit durchgehender Handlung, Endless-Mode, 6 spielbare Charaktere plus 2 versteckte Geheimcharaktere, 10 Maps plus 2 Geheim-Maps, lokaler Co-op und 5 Sprachen.
 
 ---
 
 ## Inhalt
 
-- [Spielen (fertig gebaute Version)](#spielen-fertig-gebaute-version)
+- [Worum geht es](#worum-geht-es)
+- [Spielen (fertige Version)](#spielen-fertige-version)
 - [Aus dem Quellcode starten](#aus-dem-quellcode-starten)
-- [Spiel exportieren (eigene .exe bauen)](#spiel-exportieren-eigene-exe-bauen)
-- [Systemvoraussetzungen](#systemvoraussetzungen)
 - [Steuerung](#steuerung)
 - [Charaktere](#charaktere)
 - [Spielmodi](#spielmodi)
+- [Schwierigkeitsgrade](#schwierigkeitsgrade)
+- [Bosse](#bosse)
+- [Easter Eggs und Geheimnisse](#easter-eggs-und-geheimnisse)
+- [Was zuletzt gemacht wurde](#was-zuletzt-gemacht-wurde)
+- [Spiel exportieren](#spiel-exportieren)
+- [Systemvoraussetzungen](#systemvoraussetzungen)
 - [Bekannte Probleme](#bekannte-probleme)
 
 ---
 
-## Spielen (fertig gebaute Version)
+## Worum geht es
 
-Wenn jemand bereits eine fertige `.exe` / ausführbare Datei weitergegeben hat:
+Die Band Home Reared Meat gerät ins Visier von **SoundCorp** und dessen Chef **Dr. Victor Stille**, der mit einem Mutationsakkord die Welt zum Schweigen bringen will. Über vier Akte und 15 Wellen spielt ihr euch durch SoundCorps Tonstudios, Dörfer und Bühnen, bis zum Showdown gegen den CEO selbst.
+
+Die Story wird in Zwischensequenzen bei Welle 5, 10 und 15 erzählt und durch kurze Band-Funk-Dialoge vor jeder Welle weitergetragen. Bei Erstkontakt mit einem neuen Gegnertyp erscheint ein kleiner Lore-Hinweis mit Namen und Hintergrund (alle 21 Gegnertypen).
+
+---
+
+## Spielen (fertige Version)
+
+Wenn dir jemand eine fertig gebaute Datei weitergegeben hat:
 
 ### Windows
-1. ZIP entpacken (Rechtsklick → Alle extrahieren)
-2. `HRM-LoudEnoughToKill.exe` doppelklicken
-3. Falls Windows Defender warnt: **„Weitere Informationen" → „Trotzdem ausführen"**
-   *(Das Spiel ist kein Virus – Windows warnt bei unbekannten Entwicklern)*
+1. ZIP entpacken (Rechtsklick, Alle extrahieren)
+2. `HomeRearedMeat.exe` doppelklicken
+3. Falls Windows Defender warnt: "Weitere Informationen", dann "Trotzdem ausführen". Das Spiel ist kein Virus, Windows warnt nur bei unbekannten Entwicklern.
 
 ### macOS
 1. ZIP entpacken
-2. `HRM-LoudEnoughToKill.app` in den Programme-Ordner ziehen *(optional)*
-3. Beim ersten Start: **Rechtsklick → Öffnen** (nicht Doppelklick!)
-4. Im Dialog „Von unbekanntem Entwickler" → **Öffnen** klicken
-5. Falls das nicht klappt: Systemeinstellungen → Datenschutz & Sicherheit → **„Trotzdem öffnen"**
+2. App in den Programme-Ordner ziehen (optional)
+3. Beim ersten Start: Rechtsklick, Öffnen (nicht Doppelklick)
+4. Im Dialog "Von unbekanntem Entwickler" auf Öffnen klicken
+5. Falls das nicht klappt: Systemeinstellungen, Datenschutz und Sicherheit, "Trotzdem öffnen"
 
 ### Linux
 ```bash
-chmod +x HRM-LoudEnoughToKill.x86_64
-./HRM-LoudEnoughToKill.x86_64
+chmod +x HomeRearedMeat.x86_64
+./HomeRearedMeat.x86_64
 ```
 
 ---
 
 ## Aus dem Quellcode starten
 
-### Was du brauchst
-
-| Tool | Version | Download |
-|------|---------|----------|
-| **Godot Engine** | 4.3 oder neuer (4.6 empfohlen) | [godotengine.org/download](https://godotengine.org/download) |
-
-Kein weiteres Tool nötig. Kein npm, kein Python, kein Compiler.
-
-### Schritte
+Du brauchst nur die **Godot Engine 4.3 oder neuer** (4.6 empfohlen): [godotengine.org/download](https://godotengine.org/download). Kein npm, kein Python, kein Compiler.
 
 ```bash
-# 1. Repository klonen
 git clone https://github.com/nimraseflor84/home-reared-meat-loud-enough-to-kill.git
-
-# 2. In den Ordner wechseln
 cd "home-reared-meat-loud-enough-to-kill"
 ```
 
-3. **Godot öffnen**
-4. Im Godot Project Manager: **„Importieren"** → den geklonten Ordner auswählen → `project.godot` wählen → **Öffnen**
-5. Oben rechts im Editor: **▶ Spielen** (F5) drücken
+Dann Godot öffnen, im Project Manager auf "Importieren", den Ordner und die `project.godot` wählen, öffnen, und oben rechts auf Spielen (F5) drücken. Das Spiel läuft direkt, ohne weitere Abhängigkeiten.
 
-Das war's. Das Spiel läuft direkt – keine Abhängigkeiten, keine Setup-Schritte.
-
-> **Hinweis zu Musik-Dateien:** Die MP3-Dateien im `assets/music/`-Ordner sind aus urheberrechtlichen Gründen möglicherweise nicht im Repository enthalten. Ohne sie startet das Spiel trotzdem – nur ohne Hintergrundmusik. Die Soundeffekte werden prozedural generiert und funktionieren immer.
-
----
-
-## Spiel exportieren (eigene .exe bauen)
-
-So baust du eine eigenständige Datei die ohne Godot läuft:
-
-### Export-Templates installieren (einmalig)
-
-1. Godot öffnen
-2. Menü: **Editor → Manage Export Templates**
-3. Im Dialog: **Download** neben der aktuellen Godot-Version klicken
-4. Warten bis der Download fertig ist (~200 MB)
-
-### Windows-Export
-
-1. Menü: **Project → Export**
-2. **„Add..."** → **Windows Desktop** wählen
-3. Pfad wählen z.B. `export/windows/HRM-LoudEnoughToKill.exe`
-4. **„Export Project"** klicken
-
-**Wichtig:** Die erzeugte `.exe` muss zusammen mit der `.pck`-Datei im selben Ordner bleiben (oder als „Embedded" exportieren).
-
-### macOS-Export
-
-1. **Project → Export → Add → macOS**
-2. Pfad wählen: `export/macos/HRM-LoudEnoughToKill.zip`
-3. **„Export Project"** klicken
-4. Die `.app`-Datei ist im ZIP enthalten
-
-> Für einen signierten macOS-Build (ohne Sicherheitswarnungen) wird ein Apple Developer Account benötigt. Für privaten Gebrauch ist das nicht nötig.
-
-### macOS Code-Signing & Notarisierung (für Veröffentlichung)
-
-Für die Verteilung an andere (Steam, itch.io, eigene Webseite) sollte die App signiert und notarisiert werden:
-
-1. **Apple Developer Account** anlegen (99 USD/Jahr): [developer.apple.com](https://developer.apple.com)
-2. In Xcode oder über developer.apple.com ein **„Developer ID Application"-Zertifikat** erstellen und in den Schlüsselbund importieren
-3. In Godot unter **Project → Export → macOS**:
-   - `codesign/enable` aktivieren, als Identität den Namen des Developer-ID-Zertifikats eintragen
-   - `notarization/enable` aktivieren, Apple-ID, Team-ID und ein App-spezifisches Passwort (erstellbar unter appleid.apple.com) eintragen
-4. Exportieren – Godot signiert und reicht den Build automatisch zur Notarisierung ein
-5. Status prüfen: `xcrun notarytool history --apple-id DEINE_APPLE_ID`
-
-> Für den **Mac App Store** wird stattdessen ein „Apple Distribution"-Zertifikat plus Provisioning Profile benötigt. Für Steam reicht Developer ID + Notarisierung.
-
-### Linux-Export
-
-1. **Project → Export → Add → Linux/X11**
-2. Pfad: `export/linux/HRM-LoudEnoughToKill.x86_64`
-3. **„Export Project"** klicken
-
-### Compatibility-Renderer (für ältere GPUs)
-
-Falls das Spiel auf einem älteren PC nicht startet (GPU unterstützt kein Vulkan):
-
-1. Im Export-Dialog: **„Embed PCK"** aktivieren
-2. Unter **„Rendering Method"**: `gl_compatibility` wählen
-3. Neu exportieren → läuft dann auf praktisch jeder Hardware seit 2012
-
----
-
-## Systemvoraussetzungen
-
-### Minimum
-
-| | Windows | macOS | Linux |
-|---|---|---|---|
-| **OS** | Windows 10 64-bit | macOS 10.15 (Catalina) | Ubuntu 20.04 / äquivalent |
-| **CPU** | Dual-Core 2 GHz | Intel/Apple Silicon | x86_64 Dual-Core |
-| **RAM** | 2 GB | 2 GB | 2 GB |
-| **GPU** | Vulkan-fähig (GTX 600 / RX 400 +) | Metal-fähig | Vulkan oder OpenGL 3.3 |
-| **Speicher** | ~200 MB | ~200 MB | ~200 MB |
-
-### Mit Compatibility-Renderer (OpenGL)
-
-| | Windows | macOS | Linux |
-|---|---|---|---|
-| **OS** | Windows 8.1+ | macOS 10.12+ | Ubuntu 18.04+ |
-| **GPU** | OpenGL 3.3 fähig (GTX 400 / HD 4000 +) | Beliebig | OpenGL 3.3 |
-
-> **Windows 7:** Wird von Godot 4 offiziell nicht mehr unterstützt.
+> Hinweis zur Musik: Die MP3-Dateien in `assets/music/` sind aus urheberrechtlichen Gründen eventuell nicht im Repository. Ohne sie startet das Spiel trotzdem, nur ohne Hintergrundmusik. Die Soundeffekte werden prozedural erzeugt und funktionieren immer.
 
 ---
 
@@ -162,97 +77,150 @@ Falls das Spiel auf einem älteren PC nicht startet (GPU unterstützt kein Vulka
 
 ### Spieler 1
 
-| Aktion | Tastatur | Controller (Joypad 1) |
-|--------|----------|----------------------|
+| Aktion | Tastatur | Controller |
+|--------|----------|------------|
 | Bewegen | WASD oder Pfeiltasten | Linker Stick / D-Pad |
 | Angriff | Automatisch | Automatisch |
 | Dash | Shift oder rechte Maustaste | B |
 | Ultimate | E | X |
 | Pause | ESC | B |
 
+Der Dash hat unten links eine Cooldown-Anzeige (blau bedeutet bereit, orange bedeutet lädt).
+
 ### Spieler 2 (Local Co-op)
 
-| Aktion | Controller (Joypad 2) |
-|--------|----------------------|
+| Aktion | Controller |
+|--------|------------|
 | Bewegen | Linker Stick / D-Pad |
 | Angriff | Automatisch |
 | Ultimate | X |
 
-> Spieler 2 benötigt zwingend einen **zweiten Controller**. Tastatur-Steuerung für P2 ist nicht verfügbar.
-
-### Controller-Belegung anpassen
-
-Im Hauptmenü: **Optionen → Gameplay → Controller** – dort können alle Joypad-Buttons neu belegt werden.
+Spieler 2 braucht zwingend einen zweiten Controller, eine Tastatur-Steuerung für P2 gibt es nicht. Belegung anpassbar im Hauptmenü unter Optionen, Gameplay, Controller.
 
 ---
 
 ## Charaktere
 
-| Charakter | Instrument | Fähigkeit |
-|-----------|-----------|-----------|
-| **Manny** | Schlagzeug | Kills erhöhen Angriffsgeschwindigkeit |
-| **Chicken** | Growler/Vocals | Präzisions-Todesstrahl, niedrige Frequenz |
-| **Nik** | Inhale Screamer | Dreadlock-Peitsche, Feinde greifen & werfen |
-| **Andz** | Lead Guitar | Klingen durchdringen mehrere Feinde |
-| **Grindhouse** | Rhythm Guitar | Verzerrungsfelder verlangsamen Feinde |
-| **Armin** | Bass | Sub-Bass-Wellen, Erdbebenstöße bei Kills |
+Die sechs Bandmitglieder. Angriff läuft bei allen automatisch, der Charakter bestimmt Waffe, Ultimate und eine Kill-Passive.
 
-Weitere Charaktere werden durch das Abschließen von Story-Waves freigeschaltet.
+| Charakter | Instrument | Waffe / Stil | Kill-Passive |
+|-----------|-----------|--------------|--------------|
+| **Manny** | Schlagzeug | Schockwellen | Kills erhöhen die Angriffsgeschwindigkeit |
+| **Chicken** | Growl-Vocals | Präzisions-Todesstrahl | Precision Focus: Kill setzt den Angriffstimer zurück (sofort nächster Schuss) |
+| **Nik** | Inhale-Scream | Dreadlock-Peitsche, greift und wirft Feinde (max 4 Ziele) | Adrenalin-Schub: Kill gibt 35 Prozent Tempo für 2,2s |
+| **Andz** | Lead-Gitarre | Klingen, durchdringen mehrere Feinde | Blade Momentum: Kill feuert 2 extra Klingen |
+| **Grindhouse** | Rhythmus-Gitarre | Verzerrungsfelder, verlangsamen Feinde | Distortion Field: Kill verlangsamt Feinde im Umkreis um 55 Prozent für 2,5s |
+| **Armin** | Bass | Sub-Bass-Wellen, Erdbebenstöße | Low End Theory: jeder 4. Treffer löst eine Mini-Schockwelle aus |
+
+Dazu kommen zwei versteckte Charaktere, siehe [Easter Eggs](#easter-eggs-und-geheimnisse).
 
 ---
 
 ## Spielmodi
 
-### Story Mode (15 Waves)
-- Wave 1–15 mit steigender Schwierigkeit
-- Nach jeder Wave: Upgrade-Shop (3 zufällige Upgrades)
-- Bei Wave 5, 10 und 15: Story-Zwischensequenzen
-- Bosse bei bestimmten Waves
+**Story-Mode (15 Wellen).** Beginnt mit dem Intro (Akt I). Nach jeder Welle ein Upgrade-Shop mit 3 zufälligen Upgrades. Story-Sequenzen bei Welle 5, 10 und 15, Bosse an festen Wellen. Local Co-op für 2 Spieler nur hier verfügbar (im Charakterwählen den 2-Spieler-Modus aktivieren, Game Over erst wenn beide tot sind).
 
-### Endless Mode
-- Unendliche Waves auf einer wählbaren Map
-- Alle 5 Waves: Upgrade-Shop
-- Jede 5. Wave: Boss-Rotation (10 verschiedene Bosse)
-- Highscore-Bestenliste
+**Endless-Mode.** Unendliche Wellen auf einer wählbaren Map. Alle 5 Wellen ein Shop, jede 5. Welle ein Boss aus der Rotation (10 verschiedene). Eigene Highscore-Bestenliste. Die Geheim-Maps sind nur hier wählbar.
 
-### Local Co-op (2 Spieler)
-- Nur im Story Mode verfügbar
-- Im Charakter-Auswahl-Bildschirm: **„👥 2 SPIELER"** Button aktivieren
-- Spieler 2 wählt seinen Charakter mit `<` / `>`
-- Spieler 2 **muss** einen zweiten Controller angeschlossen haben
-- Game Over erst wenn **beide** Spieler tot sind
+**Netzwerk-Co-op.** Co-op-UI für das Spielen über Netzwerk ist im Spiel vorhanden.
 
 ---
 
 ## Schwierigkeitsgrade
 
-| Stufe | Name | HP-Multiplikator | Schaden | Gegneranzahl |
-|-------|------|-----------------|---------|--------------|
-| 0 | Access Denied | ×0.35 | ×0.35 | ×0.45 |
-| 1 | Vomit Blood | ×0.65 | ×0.65 | ×0.70 |
-| 2 | Brootal Destroy | ×1.0 | ×1.0 | ×1.0 |
-| 3 | Drink Fight Die! | ×1.6 | ×1.4 | ×1.45 |
-| 4 | Bolognese Bloodbath | ×2.8 | ×2.0 | ×2.1 |
+| Stufe | Name | HP | Schaden | Gegneranzahl |
+|-------|------|----|---------|--------------|
+| 0 | Access Denied | x0.35 | x0.35 | x0.45 |
+| 1 | Vomit Blood | x0.65 | x0.65 | x0.70 |
+| 2 | Brootal Destroy | x1.0 | x1.0 | x1.0 |
+| 3 | Drink Fight Die! | x1.6 | x1.4 | x1.45 |
+| 4 | Bolognese Bloodbath | x2.8 | x2.0 | x2.1 |
+
+---
+
+## Bosse
+
+Zur Boss-Riege gehören unter anderem Willi, der Großbauer, der Dirigent (beschwört frühere Bosse), der Trucker, der TV-Star und mehr. Der Endboss von Akt IV ist **Dr. Victor Stille, CEO von SoundCorp**. Im Endless-Mode rotieren zehn Bosse durch.
+
+---
+
+## Easter Eggs und Geheimnisse
+
+Das Spiel hat zwei versteckte Charaktere, zwei Geheim-Maps und zufällige Spott-Sprüche beim Tod. Geheimcharaktere und Geheim-Maps tauchen vor der Freischaltung nicht auf, auch nicht als "???". Wer sich überraschen lassen will, klappt den Spoiler unten nicht auf.
+
+<details>
+<summary><b>Spoiler: So schaltest du alles frei</b></summary>
+
+### Geheimcharakter Pimmel (der Merch-Mann)
+Sombrero, Sonnenbrille, Schnauzer, gelbes Hawaiihemd, Becher in der Hand. Waffe: Merch-Shirts als Bumerang, prallen einmal von der Bildschirmkante ab. Ultimate "Bauchladen-Rausch": Becher-Salve im Kreis plus Slow-Welle. Passive "Verkaufsschlager": jeder 6. Kill lässt ein Merch-Paket fallen und heilt 5 LP.
+**Freischaltung:** in einem einzigen Run 12 Upgrades nehmen.
+
+### Geheimcharakter Theo (der Stagehand)
+Geheimratsecken, Kinnbart, rotes Flanellhemd, Gaffa-Rolle am Gürtel. Waffe: Gaffa-Tape-Rollen, durchdringen 2 Feinde. Ultimate "PA-Drop": eine Lautsprecherbox fällt auf die dichteste Gegnergruppe. Passive "Schnelle Bühne": jeder Kill verkürzt den Ultimate-Cooldown um 0,5s.
+**Freischaltung:** eine Boss-Welle ohne einen einzigen Treffer überstehen.
+
+### Geheim-Map Nikolausdorf
+Schneeboden, zugefrorener Dorfteich, schneebedeckte Häuser mit Lichterketten, großer Weihnachtsbaum, Schneemann, fallende Flocken.
+**Freischaltung:** insgesamt 1.000 Kills über alle Runs, oder automatisch, wenn im Dezember gespielt wird.
+
+### Geheim-Map Der Strand
+Die Strand-Szene aus dem Pausenmenü als spielbare Map: Meer, Palmen, Handtücher, Sonnenschirm, Krebse und mitten im Sand der Fahrstuhl aus dem Pausenmenü.
+**Freischaltung:** das Spiel insgesamt 30-mal pausieren.
+
+### Spott-Sprüche beim Tod
+Stirbt man (nicht beim Sieg), erscheint einer von 10 zufälligen Sprüchen, die auf die Easter Eggs und die Spielwelt anspielen (Pimmels Merch, Theos Gaffa, Willi und Gerlinde, Dr. Stille, das umgekippte Bier).
+
+</details>
+
+---
+
+## Was zuletzt gemacht wurde
+
+Eine Kurzfassung der letzten Entwicklungsschritte (Details in `IMPROVEMENT_LOG.md`):
+
+- **Story-Paket:** Akt I wird jetzt korrekt angezeigt, durchgehender roter Faden um SoundCorp und Dr. Stille, Band-Funk-Dialoge vor jeder Welle, Gegner-Lore bei Erstkontakt, einheitlicher Endboss-Name.
+- **Komplette Lokalisierung:** Deutsch, Englisch, Französisch, Spanisch und Ukrainisch durchgängig, inklusive aller 37 Upgrade-Beschreibungen, Boss- und Map-Namen, Tutorial und Story.
+- **Zwei Geheimcharaktere** (Pimmel und Theo) und **zwei Geheim-Maps** (Nikolausdorf und Der Strand) als Easter Eggs.
+- **PC-Dash sichtbar gemacht:** Cooldown-Anzeige und zweite Belegung auf der rechten Maustaste.
+- **Großes Audit mit Balancing:** rund 70 Befunde aus 12 Prüf-Durchläufen, davon viele direkt gefixt (Save-System, Boss-Erkennung, Rhythm- und Crowd-Upgrades, Co-op-Targeting und mehr).
+
+---
+
+## Spiel exportieren
+
+Einmalig die Export-Templates installieren: in Godot unter Editor, Manage Export Templates, Download neben der passenden Version (rund 200 MB).
+
+Dann unter Project, Export das gewünschte Preset wählen (Windows, macOS, Linux sind angelegt) und auf Export Project klicken.
+
+> **Compatibility-Renderer für ältere GPUs oder für Mobile:** Unter Project Settings, Rendering, Renderer die Rendering-Methode auf "Compatibility" stellen (für Mobile als Mobile-Override). Das läuft auf praktisch jeder Hardware. Für die Android-Version ist das zwingend nötig, siehe das [Mobile-Repo](https://github.com/nimraseflor84/home-reared-meat-mobile).
+
+Hinweise zu macOS Code-Signing und Notarisierung für eine Veröffentlichung stehen in `RELEASE-CHECKLISTE.md`.
+
+---
+
+## Systemvoraussetzungen
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| OS | Windows 10 64-bit | macOS 10.15 | Ubuntu 20.04 |
+| RAM | 2 GB | 2 GB | 2 GB |
+| GPU | Vulkan-fähig | Metal-fähig | Vulkan oder OpenGL 3.3 |
+| Speicher | rund 200 MB | rund 200 MB | rund 200 MB |
+
+Mit dem Compatibility-Renderer (OpenGL 3.3) läuft das Spiel auch auf deutlich älterer Hardware.
 
 ---
 
 ## Bekannte Probleme
 
-- **Musik fehlt beim Klonen:** MP3-Dateien eventuell nicht im Repository enthalten – Spiel läuft ohne Musik
-- **Controller wird nicht erkannt:** Joypad muss **vor** dem Spielstart angeschlossen sein; USB-Controller funktionieren zuverlässiger als Bluetooth
-- **macOS Sicherheitswarnung:** Beim ersten Start Rechtsklick → Öffnen verwenden (siehe oben)
-- **Schwarzer Screen unter Linux:** `libvulkan` installieren: `sudo apt install libvulkan1`
+- **Musik fehlt beim Klonen:** MP3-Dateien eventuell nicht im Repository, das Spiel läuft dann ohne Musik.
+- **Controller wird nicht erkannt:** Joypad vor dem Spielstart anschließen, USB läuft zuverlässiger als Bluetooth.
+- **Schwarzer Screen unter Linux:** `sudo apt install libvulkan1`.
 
 ---
 
 ## Entwickelt mit
 
-- **Engine:** [Godot 4.6](https://godotengine.org)
-- **Sprache:** GDScript
-- **Grafik:** Vollständig prozedural gezeichnet (keine externen Sprites)
-- **Audio:** Prozedurale WAV-Generierung + MP3-Musik
-- **Lokalisierung:** Deutsch, Englisch, Französisch, Spanisch, Ukrainisch
+Godot 4.6, GDScript. Grafik vollständig prozedural gezeichnet (keine externen Sprites). Audio aus prozeduraler WAV-Erzeugung plus MP3-Musik. Lokalisierung in 5 Sprachen.
 
----
-
-*Home Reared Meat – Loud Enough to Kill © 2026 Home Reared Meat*
+*Home Reared Meat, Loud Enough to Kill, Copyright 2026 Armin Rolfes / Home Reared Meat*
