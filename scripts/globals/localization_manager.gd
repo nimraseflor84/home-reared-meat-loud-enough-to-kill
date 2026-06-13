@@ -334,7 +334,7 @@ const TRANSLATIONS: Dictionary = {
 	},
 	"boss_wave_banner": {
 		"de": "BOSS WELLE %d!", "en": "BOSS WAVE %d!", "fr": "VAGUE BOSS %d!",
-		"es": "¡OLEADA JEFA %d!", "uk": "БОSS ХВИЛЯ %d!",
+		"es": "¡OLEADA JEFA %d!", "uk": "БОС-ХВИЛЯ %d!",
 	},
 	"naht": {
 		"de": "NAHT!  KEIN ENTKOMMEN!", "en": "IT APPROACHES!  NO ESCAPE!",
@@ -665,6 +665,13 @@ const TRANSLATIONS: Dictionary = {
 	"lore_new": {
 		"de": "NEU: ", "en": "NEW: ", "fr": "NOUVEAU: ", "es": "NUEVO: ", "uk": "НОВЕ: ",
 	},
+	"secret_unlocked": {
+		"de": "GEHEIMER CHARAKTER FREIGESCHALTET: %s",
+		"en": "SECRET CHARACTER UNLOCKED: %s",
+		"fr": "PERSONNAGE SECRET DÉBLOQUÉ: %s",
+		"es": "PERSONAJE SECRETO DESBLOQUEADO: %s",
+		"uk": "ТАЄМНИЙ ПЕРСОНАЖ ВІДКРИТИЙ: %s",
+	},
 	"no_song": {
 		"de": "-- kein Song --", "en": "-- no song --", "fr": "-- aucun titre --",
 		"es": "-- sin canción --", "uk": "-- немає пісні --",
@@ -745,7 +752,118 @@ const TRANSLATIONS: Dictionary = {
 		"de": "Bühne Andernach – letzte Chance!", "en": "Andernach stage – last chance!",
 		"fr": "Scène d'Andernach – dernière chance!", "es": "Escenario Andernach – ¡última oportunidad!", "uk": "Сцена Андернах – останній шанс!",
 	},
+
+	# ── Geheime Maps (Eastereggs) ─────────────────────────────────────────────
+	"map_nikolausdorf_title": {
+		"de": "Nikolausdorf", "en": "Santa's Village", "fr": "Village du Père Noël",
+		"es": "La Aldea de Papá Noel", "uk": "Село Миколая",
+	},
+	"map_nikolausdorf_sub": {
+		"de": "Stille Nacht? Nicht mit uns.", "en": "Silent night? Not on our watch.",
+		"fr": "Douce nuit? Pas avec nous.", "es": "¿Noche de paz? No con nosotros.",
+		"uk": "Тиха ніч? Не з нами.",
+	},
+	"map_strand_title": {
+		"de": "Der Strand", "en": "The Beach", "fr": "La Plage", "es": "La Playa", "uk": "Пляж",
+	},
+	"map_strand_sub": {
+		"de": "Direkt aus dem Pausenmenü", "en": "Straight out of the pause menu",
+		"fr": "Tout droit sorti du menu pause", "es": "Directo del menú de pausa",
+		"uk": "Прямо з меню паузи",
+	},
+	"map_giftstadt_title": {
+		"de": "Giftstadt", "en": "Toxic City", "fr": "Ville Toxique",
+		"es": "Ciudad Tóxica", "uk": "Токсичне місто",
+	},
+	"map_giftstadt_sub": {
+		"de": "Willkommen im Sondermüll", "en": "Welcome to the toxic waste",
+		"fr": "Bienvenue dans les déchets toxiques", "es": "Bienvenido a los residuos tóxicos",
+		"uk": "Ласкаво просимо у відходи",
+	},
+	"secret_map_unlocked": {
+		"de": "GEHEIME MAP FREIGESCHALTET: %s",
+		"en": "SECRET MAP UNLOCKED: %s",
+		"fr": "MAP SECRÈTE DÉBLOQUÉE: %s",
+		"es": "MAPA SECRETO DESBLOQUEADO: %s",
+		"uk": "ТАЄМНУ МАПУ ВІДКРИТО: %s",
+	},
+
+	# ── Game-Over-Sprüche (zufällig einer von 10 beim Tod) ───────────────────
+	"death_quote_0": {
+		"de": "Das wäre dir nicht passiert, wenn du mehr Merch bei Pimmel gekauft hättest. :)",
+		"en": "This wouldn't have happened if you'd bought more merch from Pimmel. :)",
+		"fr": "Ça ne serait pas arrivé si tu avais acheté plus de merch chez Pimmel. :)",
+		"es": "Esto no habría pasado si hubieras comprado más merch a Pimmel. :)",
+		"uk": "Цього б не сталося, якби ти купив більше мерчу в Піммеля. :)",
+	},
+	"death_quote_1": {
+		"de": "Hättest du mehr lauten Redneck-Metal gehört, hättest du es bestimmt geschafft.",
+		"en": "If you'd listened to more loud redneck metal, you definitely would have made it.",
+		"fr": "Avec plus de redneck metal bien fort dans les oreilles, tu y serais arrivé.",
+		"es": "Si hubieras escuchado más redneck metal a todo volumen, seguro que lo lograbas.",
+		"uk": "Якби ти слухав більше гучного реднек-металу, точно б упорався.",
+	},
+	"death_quote_2": {
+		"de": "Theo hätte das mit Gaffa wieder hingeklebt.",
+		"en": "Theo would have fixed that with gaffer tape.",
+		"fr": "Theo aurait réparé ça au gaffer.",
+		"es": "Theo lo habría arreglado con cinta americana.",
+		"uk": "Тео заклеїв би це скотчем.",
+	},
+	"death_quote_3": {
+		"de": "Das Publikum ruft nach einer Zugabe. Du liegst dafür gerade ziemlich ungünstig.",
+		"en": "The crowd wants an encore. You're lying in a pretty bad position for that.",
+		"fr": "Le public réclame un rappel. T'es plutôt mal placé pour ça, là.",
+		"es": "El público pide un bis. Estás tirado en mala postura para eso.",
+		"uk": "Натовп вимагає біс. Але ти лежиш якось не дуже зручно для цього.",
+	},
+	"death_quote_4": {
+		"de": "Dein Bier ist umgekippt. Deine Prioritäten offenbar auch.",
+		"en": "Your beer tipped over. Apparently so did your priorities.",
+		"fr": "Ta bière s'est renversée. Tes priorités aussi, visiblement.",
+		"es": "Se te ha caído la cerveza. Y por lo visto también las prioridades.",
+		"uk": "Твоє пиво перекинулося. Схоже, твої пріоритети теж.",
+	},
+	"death_quote_5": {
+		"de": "Die Verstimmten singen jetzt dein Lied. Schief, versteht sich.",
+		"en": "The Detuned are singing your song now. Off-key, of course.",
+		"fr": "Les Désaccordés chantent ta chanson maintenant. Faux, évidemment.",
+		"es": "Los Desafinados cantan ahora tu canción. Desafinando, claro.",
+		"uk": "Розстроєні тепер співають твою пісню. Фальшиво, звісно.",
+	},
+	"death_quote_6": {
+		"de": "Selbst Willi und Gerlinde hätten länger durchgehalten.",
+		"en": "Even Willi and Gerlinde would have lasted longer.",
+		"fr": "Même Willi et Gerlinde auraient tenu plus longtemps.",
+		"es": "Hasta Willi y Gerlinde habrían aguantado más.",
+		"uk": "Навіть Віллі та Герлінда протрималися б довше.",
+	},
+	"death_quote_7": {
+		"de": "Dr. Stille bedankt sich herzlich für die Ruhe.",
+		"en": "Dr. Stille sincerely thanks you for the silence.",
+		"fr": "Le Dr Stille te remercie chaleureusement pour le silence.",
+		"es": "El Dr. Stille te agradece de corazón el silencio.",
+		"uk": "Д-р Штілле щиро дякує за тишу.",
+	},
+	"death_quote_8": {
+		"de": "Meppen vergisst nie. Dich vielleicht schon.",
+		"en": "Meppen never forgets. You, maybe.",
+		"fr": "Meppen n'oublie jamais. Toi, peut-être.",
+		"es": "Meppen nunca olvida. A ti, quizá sí.",
+		"uk": "Меппен нічого не забуває. Хіба що тебе.",
+	},
+	"death_quote_9": {
+		"de": "Kein Plektrum, kein Plan, kein Puls.",
+		"en": "No pick, no plan, no pulse.",
+		"fr": "Pas de médiator, pas de plan, pas de pouls.",
+		"es": "Sin púa, sin plan, sin pulso.",
+		"uk": "Ні медіатора, ні плану, ні пульсу.",
+	},
 }
+
+# Liefert einen zufaelligen Game-Over-Spruch in der aktiven Sprache
+func random_death_quote() -> String:
+	return t("death_quote_%d" % (randi() % 10))
 
 # Liefert Map-Titel und -Untertitel in der aktiven Sprache
 func map_title(map_id: String) -> String:
