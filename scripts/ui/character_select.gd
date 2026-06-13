@@ -1,19 +1,38 @@
 extends Control
 
-const CHARACTERS = ["manni", "shouter", "dreads", "riff_slicer", "distortion", "bassist"]
+const BASE_CHARACTERS = ["manni", "shouter", "dreads", "riff_slicer", "distortion", "bassist"]
 const CHAR_ROLES = {
 	"manni": "DRUMMER", "shouter": "GROWLER", "dreads": "SCREAMER",
-	"riff_slicer": "LEAD GUITAR", "distortion": "RHYTHM GUITAR", "bassist": "BASS"
+	"riff_slicer": "LEAD GUITAR", "distortion": "RHYTHM GUITAR", "bassist": "BASS",
+	"pimmel": "MERCH", "theo": "STAGEHAND",
 }
+# Anzeigenamen der Signature-Waffen (freischaltbar durch Sieg auf Drink Fight Die!)
+const SIGNATURE_NAMES = {
+	"manni": "Blast Beat Barrage", "shouter": "Brown Note", "dreads": "Headbang Cyclone",
+	"riff_slicer": "Sweep Picking", "distortion": "Feedback Drone", "bassist": "Standing Wave",
+	"pimmel": "Bauchladen Blitz", "theo": "Backline Rig",
+}
+# Aktive Charakterliste: Band + freigeschaltete Geheimcharaktere (Eastereggs).
+# Geheime Charaktere tauchen vor der Freischaltung NICHT auf (auch nicht als ???).
+var CHARACTERS: Array = []
+
+func _build_character_list() -> void:
+	CHARACTERS = BASE_CHARACTERS.duplicate()
+	for sid in GameManager.SECRET_CHARACTERS:
+		if SaveManager.is_character_unlocked(sid):
+			CHARACTERS.append(sid)
 var selected_index: int = 0
 var _anim_time: float = 0.0
 var _preview_nodes: Array = []
 var _char_buttons: Array = []
 var _diff_buttons: Array = []
+# Waffen-Auswahl: char_id -> bool (true = Signature). Plus Button-Referenz.
+var _weapon_choice: Dictionary = {}
+var _weapon_btn: Button = null
 
 # Co-op
 var _coop_mode: bool = false
-var _p2_idx: int = 1
+var _p2_idx: int = 0  # 0 = Manni (immer freigeschaltet); 1 war der gesperrte Shouter
 var _coop_btn = null
 var _p2_panel = null
 
@@ -25,6 +44,7 @@ var _net_ip_field = null
 var _peer_ready: bool = false
 
 func _ready() -> void:
+	_build_character_list()
 	_build_ui()
 	_update_selection(0)
 	GameManager.add_volume_widget(self)
@@ -55,21 +75,27 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", 42)
 	add_child(title)
 
-	# Character grid (3x2)
-	for i in range(CHARACTERS.size()):
+	# Character grid: 3x2 fuer die Band, 4 Spalten sobald Geheimcharaktere
+	# freigeschaltet sind (dann werden die Karten etwas schmaler)
+	var n_chars: int = CHARACTERS.size()
+	var grid_cols: int = 3 if n_chars <= 6 else 4
+	var spacing_x: float = 360.0 if grid_cols == 3 else 295.0
+	var start_x: float = 100.0 if grid_cols == 3 else 40.0
+	var card_w: float = 320.0 if grid_cols == 3 else 285.0
+	for i in range(n_chars):
 		var char_id = CHARACTERS[i]
 		var info = GameManager.CHARACTER_INFO.get(char_id, {})
 		var unlocked = SaveManager.is_character_unlocked(char_id)
 
-		var col = i % 3
-		var row = i / 3
-		var x = 100.0 + col * 360.0
+		var col = i % grid_cols
+		var row = i / grid_cols
+		var x = start_x + col * spacing_x
 		var y = 110.0 + row * 220.0
 
 		# Card background
 		var card = Control.new()
 		card.position = Vector2(x, y)
-		card.size = Vector2(320, 200)
+		card.size = Vector2(card_w, 200)
 		add_child(card)
 
 		var card_bg = ColorRect.new()
@@ -90,7 +116,7 @@ func _build_ui() -> void:
 		# Character name
 		var name_lbl = Label.new()
 		name_lbl.position = Vector2(110, 14)
-		name_lbl.size = Vector2(200, 40)
+		name_lbl.size = Vector2(card_w - 120, 40)
 		name_lbl.text = info.get("name", char_id) if unlocked else "???"
 		name_lbl.add_theme_color_override("font_color", char_color if unlocked else Color(0.3, 0.3, 0.3))
 		name_lbl.add_theme_font_size_override("font_size", 28)
@@ -101,7 +127,7 @@ func _build_ui() -> void:
 		# Instrument role
 		var role_lbl = Label.new()
 		role_lbl.position = Vector2(110, 54)
-		role_lbl.size = Vector2(200, 22)
+		role_lbl.size = Vector2(card_w - 120, 22)
 		role_lbl.text = CHAR_ROLES.get(char_id, "") if unlocked else ""
 		role_lbl.add_theme_color_override("font_color", Color(char_color.r, char_color.g, char_color.b, 0.70))
 		role_lbl.add_theme_font_size_override("font_size", 13)
@@ -110,7 +136,7 @@ func _build_ui() -> void:
 		# Description
 		var desc_lbl = Label.new()
 		desc_lbl.position = Vector2(110, 76)
-		desc_lbl.size = Vector2(200, 68)
+		desc_lbl.size = Vector2(card_w - 120, 68)
 		desc_lbl.text = GameManager.char_desc(char_id) if unlocked else LocalizationManager.t("char_unlock_hint") % [_unlock_wave(char_id)]
 		desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9) if unlocked else Color(0.4, 0.4, 0.4))
 		desc_lbl.add_theme_font_size_override("font_size", 13)
@@ -120,7 +146,7 @@ func _build_ui() -> void:
 		# Select button
 		var btn = Button.new()
 		btn.position = Vector2(20, 155)
-		btn.size = Vector2(280, 35)
+		btn.size = Vector2(card_w - 40, 35)
 		btn.text = LocalizationManager.t("char_select") if unlocked else LocalizationManager.t("char_locked")
 		btn.disabled = not unlocked
 		var idx = i
@@ -191,6 +217,27 @@ func _build_ui() -> void:
 	play_btn.pressed.connect(_on_play_pressed)
 	add_child(play_btn)
 	play_btn.call_deferred("grab_focus")
+
+	# ── Waffen-Auswahl (ueber dem Play-Button) ───────────────────────────────
+	# Standard- vs Signature-Waffe fuer den gewaehlten Charakter. Gesperrt bis
+	# der Charakter den Story-Mode auf Drink Fight Die! (oder hoeher) schafft.
+	_weapon_btn = Button.new()
+	_weapon_btn.set_anchors_preset(PRESET_BOTTOM_RIGHT)
+	_weapon_btn.anchor_left = 1.0
+	_weapon_btn.anchor_right = 1.0
+	_weapon_btn.anchor_top = 1.0
+	_weapon_btn.anchor_bottom = 1.0
+	_weapon_btn.position = Vector2(-280, -132)
+	_weapon_btn.size = Vector2(260, 48)
+	_weapon_btn.add_theme_font_size_override("font_size", 16)
+	var wstyle = StyleBoxFlat.new()
+	wstyle.bg_color = Color(0.22, 0.10, 0.34)
+	wstyle.border_color = Color(0.70, 0.45, 1.0)
+	wstyle.set_border_width_all(2)
+	wstyle.set_corner_radius_all(8)
+	_weapon_btn.add_theme_stylebox_override("normal", wstyle)
+	_weapon_btn.pressed.connect(_toggle_weapon)
+	add_child(_weapon_btn)
 
 	# Back button
 	var back_btn = Button.new()
@@ -572,6 +619,96 @@ func _draw_char_preview(canvas: Control, char_id: String, _color: Color, unlocke
 			canvas.draw_line(c+Vector2(-0.5,-26+bob), c+Vector2(0.5,-26+bob), glass, 1.5)
 			canvas.draw_line(c+Vector2(-11.5,-26+bob), c+Vector2(-11.5,-23+bob), glass, 1.5)
 			canvas.draw_line(c+Vector2(11.5,-26+bob),  c+Vector2(11.5,-23+bob),  glass, 1.5)
+		"pimmel":
+			# Geheimcharakter: Merch-Mann mit Sombrero, Sonnenbrille,
+			# Schnauzer, gelbem Hawaiihemd und Becher
+			var skin   = Color(0.95, 0.76, 0.58)
+			var shirt  = Color(0.97, 0.80, 0.10)
+			var hat    = Color(0.93, 0.72, 0.12)
+			var tash   = Color(0.42, 0.26, 0.12)
+			var glass  = Color(0.05, 0.05, 0.08)
+			var cup    = Color(0.15, 0.35, 0.85)
+			# Schuhe (Slip-Ons)
+			canvas.draw_rect(Rect2(c+Vector2(-12,24+bob), Vector2(11,4)), Color(0.08,0.08,0.08))
+			canvas.draw_rect(Rect2(c+Vector2(-1,24+bob),  Vector2(11,4)), Color(0.08,0.08,0.08))
+			# Nackte Beine + Shorts
+			canvas.draw_rect(Rect2(c+Vector2(-9,16+bob), Vector2(7,9)), skin)
+			canvas.draw_rect(Rect2(c+Vector2(2,16+bob),  Vector2(7,9)), skin)
+			canvas.draw_rect(Rect2(c+Vector2(-10,9+bob), Vector2(20,8)), Color(0.16,0.18,0.30))
+			# Hawaiihemd mit Tupfern
+			canvas.draw_rect(Rect2(c+Vector2(-11,-8+bob), Vector2(22,18)), shirt)
+			canvas.draw_circle(c+Vector2(-6,-3+bob), 2.0, Color(0.85,0.25,0.15))
+			canvas.draw_circle(c+Vector2(6,-5+bob),  1.8, Color(0.95,0.95,0.90))
+			canvas.draw_circle(c+Vector2(5,4+bob),   2.0, Color(0.85,0.25,0.15))
+			# Arme + Becher
+			canvas.draw_rect(Rect2(c+Vector2(-18,-3+bob), Vector2(7,10)), shirt)
+			canvas.draw_rect(Rect2(c+Vector2(11,-3+bob),  Vector2(7,10)), shirt)
+			canvas.draw_circle(c+Vector2(-17,9+bob), 5, skin)
+			canvas.draw_circle(c+Vector2(17,9+bob),  5, skin)
+			canvas.draw_rect(Rect2(c+Vector2(14,1+bob), Vector2(8,10)), cup)
+			# Kopf + Schnauzer
+			canvas.draw_circle(c+Vector2(0,-22+bob), 14, skin)
+			canvas.draw_rect(Rect2(c+Vector2(-7,-18+bob), Vector2(14,4)), tash)
+			# Sonnenbrille
+			canvas.draw_rect(Rect2(c+Vector2(-10,-28+bob), Vector2(8,6)), glass)
+			canvas.draw_rect(Rect2(c+Vector2(2,-28+bob),   Vector2(8,6)), glass)
+			canvas.draw_line(c+Vector2(-2,-25+bob), c+Vector2(2,-25+bob), glass, 1.5)
+			# Sombrero: breite Krempe + Spitzkrone
+			canvas.draw_rect(Rect2(c+Vector2(-24,-36+bob), Vector2(48,6)), hat)
+			var crown = PackedVector2Array([
+				c+Vector2(-9,-36+bob), c+Vector2(9,-36+bob), c+Vector2(0,-52+bob)])
+			canvas.draw_colored_polygon(crown, hat)
+			canvas.draw_line(c+Vector2(-8,-38+bob), c+Vector2(8,-38+bob), Color(0.65,0.18,0.10), 2.5)
+		"theo":
+			# Geheimcharakter: Stagehand mit Geheimratsecken, Kinnbart,
+			# Flanellhemd und Gaffa-Rolle
+			var skin   = Color(0.96, 0.78, 0.62)
+			var plaid  = Color(0.60, 0.16, 0.14)
+			var plaid2 = Color(0.30, 0.08, 0.10)
+			var jeans  = Color(0.25, 0.32, 0.50)
+			var hair   = Color(0.62, 0.48, 0.30)
+			var beard  = Color(0.55, 0.42, 0.26)
+			# Stiefel
+			canvas.draw_rect(Rect2(c+Vector2(-12,24+bob), Vector2(11,5)), Color(0.30,0.20,0.10))
+			canvas.draw_rect(Rect2(c+Vector2(-1,24+bob),  Vector2(11,5)), Color(0.30,0.20,0.10))
+			# Jeans
+			canvas.draw_rect(Rect2(c+Vector2(-10,12+bob), Vector2(8,13)), jeans)
+			canvas.draw_rect(Rect2(c+Vector2(2,12+bob),   Vector2(8,13)), jeans)
+			# Flanellhemd mit Karomuster
+			canvas.draw_rect(Rect2(c+Vector2(-11,-7+bob), Vector2(22,19)), plaid)
+			for xo in [-6, 0, 6]:
+				canvas.draw_line(c+Vector2(xo,-7+bob), c+Vector2(xo,12+bob), plaid2, 1.2)
+			for yo in [-3, 3, 9]:
+				canvas.draw_line(c+Vector2(-11,yo+bob), c+Vector2(11,yo+bob), plaid2, 1.2)
+			# Gaffa-Rolle am Guertel
+			canvas.draw_circle(c+Vector2(8,11+bob), 4, Color(0.55,0.55,0.55))
+			canvas.draw_circle(c+Vector2(8,11+bob), 1.8, Color(0.12,0.12,0.12))
+			# Arme (hochgekrempelt)
+			canvas.draw_rect(Rect2(c+Vector2(-18,-2+bob), Vector2(7,6)), plaid)
+			canvas.draw_rect(Rect2(c+Vector2(11,-2+bob),  Vector2(7,6)), plaid)
+			canvas.draw_rect(Rect2(c+Vector2(-18,4+bob), Vector2(7,5)), skin)
+			canvas.draw_rect(Rect2(c+Vector2(11,4+bob),  Vector2(7,5)), skin)
+			canvas.draw_circle(c+Vector2(-17,10+bob), 5, skin)
+			canvas.draw_circle(c+Vector2(17,10+bob),  5, skin)
+			# Kopf
+			canvas.draw_circle(c+Vector2(0,-22+bob), 14, skin)
+			# Haar mit Geheimratsecken (hohe Stirn frei)
+			var hpts = PackedVector2Array([
+				c+Vector2(-13,-25+bob), c+Vector2(-11,-32+bob), c+Vector2(-5,-34+bob),
+				c+Vector2(0,-32+bob),  c+Vector2(5,-34+bob),  c+Vector2(11,-32+bob),
+				c+Vector2(13,-25+bob), c+Vector2(10,-28+bob), c+Vector2(0,-28+bob),
+				c+Vector2(-10,-28+bob)])
+			canvas.draw_colored_polygon(hpts, hair)
+			# Kinnbart + Oberlippenbart
+			var gpts = PackedVector2Array([
+				c+Vector2(-4,-13+bob), c+Vector2(4,-13+bob),
+				c+Vector2(3,-7+bob), c+Vector2(0,-6+bob), c+Vector2(-3,-7+bob)])
+			canvas.draw_colored_polygon(gpts, beard)
+			canvas.draw_line(c+Vector2(-3,-16+bob), c+Vector2(3,-16+bob), beard, 1.8)
+			# Grinsen + Augen
+			canvas.draw_arc(c+Vector2(0,-18+bob), 5.0, 0.3, PI-0.3, 8, Color(0.45,0.25,0.15), 1.5)
+			canvas.draw_line(c+Vector2(-8,-24+bob), c+Vector2(-3,-23+bob), Color(0.1,0.1,0.1), 2.0)
+			canvas.draw_line(c+Vector2(3,-23+bob),  c+Vector2(8,-24+bob),  Color(0.1,0.1,0.1), 2.0)
 
 func _unlock_wave(char_id: String) -> int:
 	match char_id:
@@ -585,7 +722,33 @@ func _unlock_wave(char_id: String) -> int:
 func _update_selection(index: int) -> void:
 	selected_index = index
 	GameManager.selected_character = CHARACTERS[index]
+	_update_weapon_btn()
 	# Visual feedback handled by draw
+
+func _sig_name(char_id: String) -> String:
+	return SIGNATURE_NAMES.get(char_id, "Signature")
+
+func _update_weapon_btn() -> void:
+	if not _weapon_btn:
+		return
+	var cid: String = CHARACTERS[selected_index]
+	var de: bool = LocalizationManager.current_language == "de"
+	if not SaveManager.is_weapon_unlocked(cid):
+		_weapon_btn.disabled = true
+		_weapon_btn.text = "Signature: Stufe 3 schaffen" if de else "Signature: beat difficulty 3"
+		return
+	_weapon_btn.disabled = false
+	if bool(_weapon_choice.get(cid, false)):
+		_weapon_btn.text = ("Waffe: " if de else "Weapon: ") + _sig_name(cid)
+	else:
+		_weapon_btn.text = "Waffe: Standard" if de else "Weapon: Standard"
+
+func _toggle_weapon() -> void:
+	var cid: String = CHARACTERS[selected_index]
+	if not SaveManager.is_weapon_unlocked(cid):
+		return
+	_weapon_choice[cid] = not bool(_weapon_choice.get(cid, false))
+	_update_weapon_btn()
 
 func _select_difficulty(idx: int) -> void:
 	GameManager.difficulty = idx
@@ -774,13 +937,21 @@ func _update_coop_btn_style() -> void:
 		_coop_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9))
 	_coop_btn.add_theme_stylebox_override("normal", sty)
 
-func _p2_prev() -> void:
-	_p2_idx = (_p2_idx - 1 + CHARACTERS.size()) % CHARACTERS.size()
+# P2-Zyklus ueberspringt gesperrte Charaktere (vorher konnte P2 gesperrte
+# Basis-Charaktere waehlen, Default war sogar der gesperrte Shouter;
+# Audit Run #11, P1)
+func _p2_step(dir: int) -> void:
+	for _i in range(CHARACTERS.size()):
+		_p2_idx = (_p2_idx + dir + CHARACTERS.size()) % CHARACTERS.size()
+		if SaveManager.is_character_unlocked(CHARACTERS[_p2_idx]):
+			break
 	_update_p2_display()
 
+func _p2_prev() -> void:
+	_p2_step(-1)
+
 func _p2_next() -> void:
-	_p2_idx = (_p2_idx + 1) % CHARACTERS.size()
-	_update_p2_display()
+	_p2_step(1)
 
 func _update_p2_display() -> void:
 	if not _p2_panel:
@@ -796,6 +967,7 @@ func _update_p2_display() -> void:
 func _on_play_pressed() -> void:
 	GameManager.selected_characters[0] = CHARACTERS[selected_index]
 	GameManager.selected_characters[1] = CHARACTERS[_p2_idx]
+	GameManager.selected_weapon = _weapon_choice.duplicate()
 	if GameManager.network_mode == 1:
 		# Netzwerk-Host: Client informieren, dann Spiel starten
 		GameManager.net_start_game_as_host()
