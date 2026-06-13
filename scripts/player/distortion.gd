@@ -32,6 +32,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
+	# Der super-Early-Return schuetzt den Subclass-Code nicht: ohne diesen Guard
+	# slowte ein toter Distortion dauerhaft alle Gegner weiter (Audit Run #11)
+	if not is_alive or _is_remote:
+		return
 	_apply_slow_aura()
 	# Phase Shift: Collision + Damage-Reduction wiederherstellen sobald Dash vorbei
 	if _phase_collision_layer >= 0 and _dash_timer <= 0.0:
@@ -211,6 +215,30 @@ func _auto_attack() -> void:
 	spawn_projectile(dir.rotated(-PI / 4.0), get_total_damage() * 0.6, 300.0)
 	if randf() < double_strike_chance:
 		spawn_projectile(dir.rotated(PI / 2.0))
+	emit_signal("attacked")
+
+# Signature: Feedback Drone - dauerhafte Verzerrungs-Aura um den Spieler, die
+# Feinde ringsum verlangsamt und tickt. Kaum Reichweite, reine Kontrolle/Tank.
+func _auto_attack_signature() -> void:
+	var radius: float = 170.0 * (1.0 + aoe_radius_bonus)
+	var dmg: float = get_total_damage() * 0.4
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e):
+			continue
+		if global_position.distance_to(e.global_position) < radius:
+			if e.has_method("take_damage"):
+				e.take_damage(dmg, self)
+			if e.has_method("apply_slow"):
+				e.apply_slow(0.55, 0.6)
+	# Sichtbare Aura-Pulse (Schaden 0, synchron zum Angriffstakt)
+	var sw = _SW_SCENE.instantiate()
+	sw.global_position = global_position
+	sw.radius = radius
+	sw.damage = 0.0
+	sw.shooter = self
+	if sw.has_method("set"):
+		sw.set("expand_time", 0.25)
+	get_tree().current_scene.add_child(sw)
 	emit_signal("attacked")
 
 func _on_kill_passive(enemy) -> void:
