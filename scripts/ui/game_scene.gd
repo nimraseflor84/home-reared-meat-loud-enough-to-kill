@@ -70,6 +70,17 @@ func _ready() -> void:
 			for p in _players:
 				if is_instance_valid(p):
 					p.apply_upgrade_by_id(uid)
+	# Rhythm-/Crowd-Upgrades zusaetzlich an die Systeme routen - vorher waren
+	# crowd_surfer, on_the_beat, groove_machine und crowd_ignition komplett
+	# wirkungslos (Audit Run #11, P1)
+	for uid in GameManager.run_stats.get("upgrades_taken", []):
+		var upg: Dictionary = UpgradeDB.get_upgrade(uid)
+		if upg.is_empty():
+			continue
+		if rhythm_system != null:
+			rhythm_system.apply_upgrade(upg)
+		if crowd_meter_sys != null:
+			crowd_meter_sys.apply_upgrade(upg)
 	var next_wave = GameManager.current_wave + 1
 	_current_map = _get_map_for_wave(next_wave)
 	_start_wave_with_delay(next_wave)
@@ -77,6 +88,16 @@ func _ready() -> void:
 	GameManager.add_volume_widget(self)
 	_setup_touch_controls()
 	_shake_enabled = bool(SaveManager.get_setting("screen_shake") if SaveManager.get_setting("screen_shake") != null else true)
+	# Easteregg: im Shop verdienter Freischalt-Toast wird hier nachgereicht
+	# (der Shop ist eine eigene Szene, dort wuerde der Toast sofort verschwinden)
+	var pending_unlock = GameManager.run_stats.get("pending_unlock", "")
+	if pending_unlock != "":
+		GameManager.run_stats.erase("pending_unlock")
+		_show_secret_unlock_toast(pending_unlock)
+	var pending_map = GameManager.run_stats.get("pending_map_unlock", "")
+	if pending_map != "":
+		GameManager.run_stats.erase("pending_map_unlock")
+		_show_secret_map_toast(LocalizationManager.map_title(pending_map))
 
 func _setup_touch_controls() -> void:
 	var canvas := CanvasLayer.new()
@@ -307,6 +328,8 @@ func _spawn_players() -> void:
 		var p = pscene.instantiate()
 		p.global_position = base_pos + spawn_offsets[i]
 		p.player_index = i
+		# Signature-Waffe aktivieren, wenn fuer diesen Charakter gewaehlt
+		p.signature_active = GameManager.use_signature(char_id)
 		if GameManager.network_mode == 1:
 			# Host steuert P1 lokal; P2 wird auf dem Client gespielt -> Remote-Geist
 			if i == 1:
@@ -354,7 +377,8 @@ func _update_dash_indicator() -> void:
 		lbl.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		lbl.anchor_top = 1.0
 		lbl.anchor_bottom = 1.0
-		lbl.position = Vector2(20, -64)
+		# y -92 statt -64: ueberlappte sonst das Ultimate-Label (Audit Run #11)
+		lbl.position = Vector2(20, -92)
 		lbl.size = Vector2(300, 22)
 		lbl.text = LocalizationManager.t("dash_hint")
 		lbl.add_theme_color_override("font_color", Color(0.75, 0.85, 1.0))
@@ -367,7 +391,7 @@ func _update_dash_indicator() -> void:
 		bar_bg.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		bar_bg.anchor_top = 1.0
 		bar_bg.anchor_bottom = 1.0
-		bar_bg.position = Vector2(20, -38)
+		bar_bg.position = Vector2(20, -66)
 		bar_bg.size = Vector2(_DASH_BAR_WIDTH, _DASH_BAR_HEIGHT)
 		bar_bg.color = Color(0.05, 0.1, 0.2, 0.7)
 		hud.add_child(bar_bg)
@@ -376,7 +400,7 @@ func _update_dash_indicator() -> void:
 		bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 		bar.anchor_top = 1.0
 		bar.anchor_bottom = 1.0
-		bar.position = Vector2(20, -38)
+		bar.position = Vector2(20, -66)
 		bar.size = Vector2(_DASH_BAR_WIDTH, _DASH_BAR_HEIGHT)
 		bar.color = Color(0.3, 0.75, 1.0)
 		hud.add_child(bar)
@@ -392,11 +416,75 @@ func _update_dash_indicator() -> void:
 	# Blau wenn bereit, Orange waehrend des Cooldowns
 	bar.color = Color(0.3, 0.75, 1.0) if ready_ratio >= 1.0 else Color(0.95, 0.6, 0.2)
 
+# -- Geheimcharakter-Freischaltung (Easteregg-Toast) ----------------------------
+# Grosses goldenes Banner in der Bildmitte, 4 Sekunden sichtbar.
+func _show_secret_unlock_toast(display_name: String) -> void:
+	if hud == null:
+		return
+	var toast = Label.new()
+	toast.name = "SecretUnlockToast"
+	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast.anchor_left = 0.5
+	toast.anchor_right = 0.5
+	toast.position = Vector2(-400, 120)
+	toast.size = Vector2(800, 50)
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.text = LocalizationManager.t("secret_unlocked") % display_name.to_upper()
+	toast.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
+	toast.add_theme_color_override("font_outline_color", Color(0.2, 0.1, 0.0, 1.0))
+	toast.add_theme_constant_override("outline_size", 6)
+	toast.add_theme_font_size_override("font_size", 30)
+	toast.modulate.a = 0.0
+	hud.add_child(toast)
+	var t: Tween = create_tween()
+	t.tween_property(toast, "modulate:a", 1.0, 0.4)
+	t.tween_interval(4.0)
+	t.tween_property(toast, "modulate:a", 0.0, 0.5)
+	t.tween_callback(func():
+		if is_instance_valid(toast):
+			toast.queue_free()
+	)
+
+# Toast fuer freigeschaltete Geheim-Maps (analog zum Charakter-Toast)
+func _show_secret_map_toast(map_name: String) -> void:
+	if hud == null:
+		return
+	var toast = Label.new()
+	toast.name = "SecretMapToast"
+	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast.anchor_left = 0.5
+	toast.anchor_right = 0.5
+	toast.position = Vector2(-400, 170)
+	toast.size = Vector2(800, 50)
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.text = LocalizationManager.t("secret_map_unlocked") % map_name.to_upper()
+	toast.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	toast.add_theme_color_override("font_outline_color", Color(0.0, 0.1, 0.2, 1.0))
+	toast.add_theme_constant_override("outline_size", 6)
+	toast.add_theme_font_size_override("font_size", 28)
+	toast.modulate.a = 0.0
+	hud.add_child(toast)
+	var t: Tween = create_tween()
+	t.tween_property(toast, "modulate:a", 1.0, 0.4)
+	t.tween_interval(4.0)
+	t.tween_property(toast, "modulate:a", 0.0, 0.5)
+	t.tween_callback(func():
+		if is_instance_valid(toast):
+			toast.queue_free()
+	)
+
 # Gegner-Lore: eine Zeile pro Gegnertyp, eingeblendet beim allerersten Kontakt
 # (persistiert in SaveManager unter "seen_enemy_lore"). Erklaert nebenbei die
 # Welt: Wer sind diese Gegner und was hat SoundCorp damit zu tun.
 # Struktur: "name" und "text" sind Sprach-Dictionaries (de/en/fr/es/uk).
 const ENEMY_LORE: Dictionary = {
+	"erzbischof": {
+		"name": {"de": "ERZBISCHOF STUMMBERT", "en": "ARCHBISHOP STUMMBERT", "fr": "ARCHEVÊQUE STUMMBERT", "es": "ARZOBISPO STUMMBERT", "uk": "АРХІЄПИСКОП ШТУМБЕРТ"},
+		"text": {"de": "Hoher Rat der Orthodoxie. Predigt die Neue Stille.",
+			"en": "High Council of Orthodoxy. Preaches the New Silence.",
+			"fr": "Haut Conseil de l'Orthodoxie. Prêche le Nouveau Silence.",
+			"es": "Alto Consejo de la Ortodoxia. Predica el Nuevo Silencio.",
+			"uk": "Вища Рада Ортодоксії. Проповідує Нову Тишу."}},
 	"sektierer": {
 		"name": {"de": "DIE SEKTIERER", "en": "THE CULTISTS", "fr": "LES SECTAIRES", "es": "LOS SECTARIOS", "uk": "СЕКТАНТИ"},
 		"text": {"de": "Jünger der Neuen Stille. Sie beten den Mutationsakkord an.",
@@ -706,9 +794,14 @@ func _get_funk_line(wave_num: int) -> String:
 		return ""
 	return entry.get(_content_lang(), entry.get("en", ""))
 
+# Easteregg-Tracking: wurde in der laufenden Welle Schaden genommen?
+# Eine schadlos ueberstandene Boss-Welle schaltet Theo (Stagehand) frei.
+var _wave_damage_taken: bool = false
+
 func _start_wave_with_delay(wave_num: int) -> void:
 	_in_transition = true
 	_wave_transition_timer = 2.5
+	_wave_damage_taken = false
 	_show_wave_banner(wave_num)
 
 func _show_wave_banner(wave_num: int) -> void:
@@ -900,13 +993,26 @@ func _get_estimated_enemy_count(wave_num: int) -> int:
 	return total
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.is_action_pressed("ui_cancel") and not event.is_echo() and not _game_over and not _between_waves and not _in_transition:
+	# Auch InputEventJoypadButton zulassen, damit Controller pausieren koennen.
+	# set_input_as_handled verhindert, dass pause_screen dasselbe Event nochmal
+	# verarbeitet (ESC-Doppel-Toggle, Audit Run #11, P1).
+	if event.is_action_pressed("ui_cancel") and not event.is_echo() and not _game_over and not _between_waves and not _in_transition:
 		_toggle_pause()
+		get_viewport().set_input_as_handled()
+
+# Easteregg: Toast-Anzeige muss warten bis der Baum wieder laeuft (Tweens
+# pausieren mit), daher wird der Map-Unlock beim Fortsetzen nachgereicht
+var _pending_map_unlock_toast: String = ""
 
 func _toggle_pause() -> void:
 	_paused = not _paused
 	get_tree().paused = _paused
 	if _paused:
+		# Easteregg: 30 Pausen insgesamt schalten die Strand-Map frei
+		# (die Band starrt im Pausenmenue schliesslich staendig auf diesen Strand)
+		if SaveManager.increment_pause_count() >= 30:
+			if SaveManager.unlock_secret_map("strand"):
+				_pending_map_unlock_toast = LocalizationManager.map_title("strand")
 		AudioManager.pause_music()
 		AudioManager.play_elevator_music()
 		_show_pause_overlay()
@@ -914,6 +1020,10 @@ func _toggle_pause() -> void:
 		AudioManager.stop_elevator_music()
 		AudioManager.resume_music()
 		_hide_pause_overlay()
+		# Nachgereichter Map-Unlock-Toast (waehrend der Pause pausieren Tweens)
+		if _pending_map_unlock_toast != "":
+			_show_secret_map_toast(_pending_map_unlock_toast)
+			_pending_map_unlock_toast = ""
 
 func _show_pause_overlay() -> void:
 	if is_instance_valid(_pause_overlay):
@@ -971,6 +1081,13 @@ func _hide_pause_overlay() -> void:
 		_pause_overlay.visible = false
 
 var _net_sync_timer: float = 0.0
+
+# Beim Verlassen der Szene (Restart/Menue aus der Pause) einen eventuell
+# aktiven Screen-Shake-Offset zuruecksetzen, sonst erbt ihn die Folgeszene
+func _exit_tree() -> void:
+	var vp = get_viewport()
+	if vp != null:
+		vp.canvas_transform = Transform2D.IDENTITY
 
 func _process(delta: float) -> void:
 	if _paused:
@@ -1108,7 +1225,124 @@ func _draw_map_background(vp: Rect2) -> void:
 		"tv_studio":    _draw_tv_studio(vp)
 		"meppen":       _draw_meppen(vp)
 		"death_feast":  _draw_death_feast(vp)
+		"nikolausdorf": _draw_nikolausdorf(vp)
+		"strand":       _draw_strand(vp)
 		_:              _draw_farm(vp)
+
+# -- Nikolausdorf (Geheim-Map / Easteregg) --------------------------------------
+func _draw_nikolausdorf(vp: Rect2) -> void:
+	var w = vp.size.x
+	var h = vp.size.y
+	# Schneeboden
+	draw_rect(Rect2(0, 0, w, h), Color(0.88, 0.91, 0.96))
+	# Zugefrorener Dorfteich
+	draw_ellipse_approx(Vector2(w*0.5, h*0.55), Vector2(90, 50), Color(0.72, 0.85, 0.95))
+	draw_ellipse_approx(Vector2(w*0.5, h*0.55), Vector2(70, 38), Color(0.80, 0.90, 0.98))
+	# Schlittenspuren quer durchs Dorf
+	draw_line(Vector2(0, h*0.30), Vector2(w, h*0.34), Color(0.70, 0.76, 0.85, 0.6), 4)
+	draw_line(Vector2(0, h*0.36), Vector2(w, h*0.40), Color(0.70, 0.76, 0.85, 0.6), 4)
+	# Haeuser (Draufsicht: schneebedeckte Daecher mit Firstlinie + warme Fenster)
+	var houses = [
+		Vector2(w*0.10, h*0.15), Vector2(w*0.75, h*0.12),
+		Vector2(w*0.08, h*0.68), Vector2(w*0.78, h*0.70),
+	]
+	for hp in houses:
+		draw_rect(Rect2(hp.x, hp.y, 110, 75), Color(0.96, 0.97, 1.0))
+		draw_line(Vector2(hp.x + 55, hp.y), Vector2(hp.x + 55, hp.y + 75), Color(0.75, 0.80, 0.90), 5)
+		# Warm leuchtende Fenster
+		draw_rect(Rect2(hp.x + 18, hp.y + 22, 16, 12), Color(1.0, 0.85, 0.35))
+		draw_rect(Rect2(hp.x + 74, hp.y + 38, 16, 12), Color(1.0, 0.85, 0.35))
+		# Lichterkette am Dachrand (blinkt im Wechsel)
+		for i in range(6):
+			var lx = hp.x + 8 + i * 19.0
+			var blink = 0.5 + 0.5 * sin(_anim_time * 4.0 + float(i) * 1.3)
+			var lcol = Color(0.95, 0.2, 0.2) if i % 2 == 0 else Color(0.2, 0.85, 0.3)
+			draw_circle(Vector2(lx, hp.y + 2), 3.0, Color(lcol.r, lcol.g, lcol.b, 0.4 + blink * 0.6))
+	# Grosser Weihnachtsbaum (Draufsicht: gruene Ringe + Lichter + Stern)
+	var tree = Vector2(w*0.5, h*0.22)
+	draw_circle(tree, 46, Color(0.10, 0.38, 0.16))
+	draw_circle(tree, 34, Color(0.14, 0.46, 0.20))
+	draw_circle(tree, 22, Color(0.18, 0.54, 0.24))
+	for i in range(10):
+		var a = float(i) * TAU / 10.0 + _anim_time * 0.2
+		var r = 28.0 + 12.0 * sin(float(i) * 2.1)
+		var blink2 = 0.5 + 0.5 * sin(_anim_time * 5.0 + float(i))
+		var bcol = [Color(1.0,0.3,0.3), Color(1.0,0.85,0.3), Color(0.3,0.6,1.0)][i % 3]
+		draw_circle(tree + Vector2(cos(a), sin(a)) * r, 3.5, Color(bcol.r, bcol.g, bcol.b, 0.4 + blink2 * 0.6))
+	draw_circle(tree, 6, Color(1.0, 0.9, 0.3))
+	# Schneemann (Draufsicht: weisser Kreis, Hutkreis, Karottennase)
+	var sman = Vector2(w*0.26, h*0.78)
+	draw_circle(sman, 16, Color(1.0, 1.0, 1.0))
+	draw_circle(sman, 9, Color(0.15, 0.15, 0.18))
+	draw_line(sman, sman + Vector2(14, 4), Color(0.95, 0.55, 0.10), 4)
+	# Fallende Schneeflocken (driften diagonal, wrappen ueber den Screen)
+	for i in range(26):
+		var fx = fmod(float(i) * 137.0 + _anim_time * 22.0, w)
+		var fy = fmod(float(i) * 89.0 + _anim_time * (34.0 + float(i % 5) * 6.0), h)
+		var fs = 1.5 + float(i % 3)
+		draw_circle(Vector2(fx, fy), fs, Color(1.0, 1.0, 1.0, 0.75))
+
+# -- Der Strand aus dem Pausenmenue (Geheim-Map / Easteregg) ---------------------
+func _draw_strand(vp: Rect2) -> void:
+	var w = vp.size.x
+	var h = vp.size.y
+	# Sand
+	draw_rect(Rect2(0, 0, w, h), Color(0.86, 0.80, 0.58))
+	# Sandriffel
+	for i in range(8):
+		draw_line(Vector2(0, h*0.30 + i * (h*0.09)), Vector2(w, h*0.30 + i * (h*0.09)),
+			Color(0.76, 0.70, 0.50, 0.30), 1.5)
+	# Meer oben (animierte Wasserlinie + Schaumkronen wie im Pausenmenue)
+	var sea_h = h * 0.22
+	draw_rect(Rect2(0, 0, w, sea_h), Color(0.16, 0.45, 0.62))
+	draw_rect(Rect2(0, 0, w, sea_h * 0.55), Color(0.10, 0.35, 0.52))
+	var shore = PackedVector2Array()
+	for x in range(0, int(w) + 20, 20):
+		shore.append(Vector2(x, sea_h + sin(_anim_time * 2.0 + float(x) * 0.02) * 6.0))
+	if shore.size() > 1:
+		draw_polyline(shore, Color(0.95, 0.98, 1.0, 0.9), 4.0)
+	for i in range(7):
+		var fx = fmod(float(i) * 197.0 + _anim_time * 30.0, w)
+		draw_circle(Vector2(fx, sea_h - 4 + sin(_anim_time * 2.0 + fx * 0.02) * 6.0), 8, Color(1, 1, 1, 0.35))
+	# Palmen (Draufsicht: Stamm-Punkt + Blattfaecher)
+	for ppos in [Vector2(w*0.12, h*0.42), Vector2(w*0.85, h*0.38), Vector2(w*0.20, h*0.85)]:
+		for i in range(7):
+			var a = float(i) * TAU / 7.0 + sin(_anim_time * 1.2) * 0.06
+			var tip = ppos + Vector2(cos(a), sin(a)) * 42.0
+			draw_line(ppos, tip, Color(0.16, 0.50, 0.22), 7.0)
+			draw_circle(tip, 5, Color(0.20, 0.58, 0.26))
+		draw_circle(ppos, 9, Color(0.45, 0.30, 0.14))
+	# Handtuecher + Sonnenschirm
+	draw_rect(Rect2(w*0.40, h*0.62, 60, 30), Color(0.85, 0.25, 0.20))
+	draw_rect(Rect2(w*0.40, h*0.62, 60, 8),  Color(0.95, 0.90, 0.85))
+	draw_rect(Rect2(w*0.55, h*0.70, 60, 30), Color(0.20, 0.45, 0.85))
+	var shade = Vector2(w*0.68, h*0.55)
+	for i in range(8):
+		var a1 = float(i) * TAU / 8.0
+		var seg = PackedVector2Array([shade,
+			shade + Vector2(cos(a1), sin(a1)) * 38.0,
+			shade + Vector2(cos(a1 + TAU/8.0), sin(a1 + TAU/8.0)) * 38.0])
+		draw_colored_polygon(seg, Color(0.9, 0.3, 0.2) if i % 2 == 0 else Color(0.95, 0.92, 0.85))
+	# Krebse (wuseln seitlich, wie im Pausenmenue)
+	for i in range(3):
+		var cx = fmod(float(i) * 311.0 + _anim_time * (18.0 + float(i) * 7.0), w)
+		var cy = h * (0.50 + float(i) * 0.14)
+		draw_circle(Vector2(cx, cy), 6, Color(0.85, 0.25, 0.15))
+		draw_circle(Vector2(cx - 7, cy - 3), 2.5, Color(0.85, 0.25, 0.15))
+		draw_circle(Vector2(cx + 7, cy - 3), 2.5, Color(0.85, 0.25, 0.15))
+	# DER Witz: der Fahrstuhl aus dem Pausenmenue steht mitten am Strand
+	var lift = Vector2(w*0.5, h*0.40)
+	draw_rect(Rect2(lift.x - 28, lift.y - 35, 56, 70), Color(0.55, 0.57, 0.62))
+	draw_rect(Rect2(lift.x - 22, lift.y - 28, 20, 56), Color(0.35, 0.37, 0.42))
+	draw_rect(Rect2(lift.x + 2,  lift.y - 28, 20, 56), Color(0.35, 0.37, 0.42))
+	draw_line(Vector2(lift.x, lift.y - 28), Vector2(lift.x, lift.y + 28), Color(0.20, 0.20, 0.24), 2)
+	# Etagenanzeige blinkt, als wuerde er gleich abfahren
+	var dot = 0.5 + 0.5 * sin(_anim_time * 3.0)
+	draw_circle(Vector2(lift.x, lift.y - 42), 4, Color(1.0, 0.6, 0.1, 0.4 + dot * 0.6))
+	# Fussspuren vom Fahrstuhl Richtung Handtuecher
+	for i in range(6):
+		var fp = lift + Vector2(10.0 + float(i) * 14.0, 40.0 + float(i) * 9.0)
+		draw_ellipse_approx(fp, Vector2(4, 6), Color(0.70, 0.63, 0.42, 0.7))
 
 # -- Farm ---------------------------------------------------------------------
 func _draw_farm(vp: Rect2) -> void:
@@ -3967,7 +4201,11 @@ func draw_ellipse_approx(center: Vector2, radii: Vector2, col: Color) -> void:
 
 # -- Boss-Erkennung -----------------------------------------------------------
 func _is_boss_wave(n: int) -> bool:
-	return n in [4, 7, 8, 9, 11, 13, 15]
+	# Welle 2 (Erzbischof) fehlte; Endless-Bosse rotieren ab Welle 16 alle 5
+	# Wellen (Audit Run #11: vorher keine Banner/kein Theo-Unlock dort)
+	if n > 15:
+		return n % 5 == 0
+	return n in [2, 4, 7, 8, 9, 11, 13, 15]
 
 # Zeigt dramatisches Boss-Highlight mit Name
 func _show_boss_warning() -> void:
@@ -4109,7 +4347,8 @@ func _on_player_attacked() -> void:
 	for p in _players:
 		if is_instance_valid(p):
 			p.rhythm_damage_bonus = (multiplier - 1.0) * 0.25
-	crowd_meter_sys.add_kill()
+	# add_kill() hier entfernt: das Crowd-Meter fuellte sich pro ATTACKE statt
+	# pro Kill (Audit Run #11). Es wird jetzt in player_base.on_kill gefuellt.
 
 func _on_player_ultimate() -> void:
 	_screen_flash = 1.0
@@ -4117,6 +4356,7 @@ func _on_player_ultimate() -> void:
 	trigger_screen_shake(8.0, 0.35)  # Kurzes Rumpeln beim Ultimate
 
 func _on_player_took_damage(amount: float) -> void:
+	_wave_damage_taken = true
 	# Shake-Staerke proportional zum erhaltenen Schaden (min 3, max 10 Pixel)
 	var intensity = clamp(amount * 0.18, 3.0, 10.0)
 	trigger_screen_shake(intensity, 0.22)
@@ -4128,6 +4368,28 @@ func _on_crowd_level_changed(_level: int) -> void:
 
 func _on_wave_completed(wave_number: int) -> void:
 	_between_waves = true
+	# Easteregg: Boss-Welle ohne Schaden ueberstanden -> Theo freischalten.
+	# Im Story-Mode folgt sofort der Szenenwechsel zum Shop, daher dort
+	# als pending_unlock puffern (Toast erscheint in der naechsten Game-Szene).
+	if _is_boss_wave(wave_number) and not _wave_damage_taken:
+		if SaveManager.unlock_secret_character("theo"):
+			if GameManager.endless_mode:
+				_show_secret_unlock_toast("Theo")
+			else:
+				GameManager.run_stats["pending_unlock"] = "Theo"
+	# Easteregg: 1000 Kills insgesamt (alle Runs, total_kills wird pro Welle
+	# per Delta synchronisiert) -> Nikolausdorf. Der Nikolaus belohnt die Fleissigen.
+	var kills_overall: int = SaveManager.get_total_kills() + maxi(0, int(GameManager.run_stats.get("kills", 0)) - int(GameManager.run_stats.get("kills_credited", 0)))
+	if kills_overall >= 1000:
+		if SaveManager.unlock_secret_map("nikolausdorf"):
+			if GameManager.endless_mode:
+				_show_secret_map_toast(LocalizationManager.map_title("nikolausdorf"))
+			else:
+				GameManager.run_stats["pending_map_unlock"] = "nikolausdorf"
+	# Endless ohne Shop wechselt nicht die Szene: Schadens-Flag hier
+	# zuruecksetzen, sonst blockiert frueher Schaden Theo dauerhaft
+	if GameManager.endless_mode:
+		_wave_damage_taken = false
 	# Client wartet auf Host-RPC fuer Szenen-Wechsel
 	if GameManager.network_mode == 2:
 		return
