@@ -196,10 +196,37 @@ func _auto_attack() -> void:
 			spawn_projectile(dir)
 	emit_signal("attacked")
 
+# Signature: Brown Note - durchgehender Growl-Kegel, der ALLE Feinde im Sektor
+# trifft und kurz "anwidert" (Mini-Slow). Wenig Burst, dafuer Flaechendruck.
+func _auto_attack_signature() -> void:
+	var dir = get_direction_to_nearest_enemy()
+	var rng: float = 470.0 * (1.0 + aoe_radius_bonus)
+	var half: float = 0.5  # halber Kegelwinkel (~29 Grad)
+	var dmg: float = get_total_damage() * 0.7
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e):
+			continue
+		var to_e: Vector2 = e.global_position - global_position
+		var dist: float = to_e.length()
+		if dist > rng or dist < 1.0:
+			continue
+		if to_e.normalized().dot(dir) >= cos(half):
+			if e.has_method("take_damage"):
+				e.take_damage(dmg, self)
+			if e.has_method("apply_slow"):
+				e.apply_slow(0.6, 0.5)
+	# Sichtbares Strahl-Feedback
+	spawn_projectile(dir, get_total_damage() * 0.25, 620.0)
+	_scream_dir = dir
+	_scream_timer = 0.25
+	emit_signal("attacked")
+
 func _on_kill_passive(_enemy) -> void:
-	# Precision Focus: Kill setzt den Angriffs-Timer zurueck -> sofortiger naechster Schuss
-	# Belohnt praezises Spielen mit unmittelbarem Feedback
-	attack_timer = attack_speed * (1.0 + attack_speed_bonus) * 0.85
+	# Precision Focus: Kill setzt den Angriffs-Timer fast auf die Schwelle ->
+	# sofortiger naechster Schuss. Schwelle in player_base ist
+	# 1.0 / (attack_speed * (1 + bonus)) - vorher war die Formel dimensional
+	# falsch (Audit Run #11)
+	attack_timer = 0.85 / (attack_speed * (1.0 + attack_speed_bonus))
 
 func _use_ultimate() -> void:
 	# Death Scream: 180-Grad-Schallkegel der ALLEN Feinden in Reichweite Schaden tut
