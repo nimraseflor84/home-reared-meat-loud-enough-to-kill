@@ -220,23 +220,57 @@ func _on_dash_tick(_delta: float) -> void:
 
 func _auto_attack() -> void:
 	whip_angles.clear()
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	for e in enemies:
+	# Balancing Run #11: Peitsche traf vorher ALLE Gegner im 320er-Radius mit
+	# vollem Schaden (+114% ueber dem DPS-Median in Welle 15). Jetzt: maximal
+	# 4 Ziele pro Schlag, naechste zuerst, Radius 260.
+	var in_range: Array = []
+	for e in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(e):
 			var to_e = e.global_position - global_position
-			if to_e.length() < 320.0:
-				e.take_damage(get_total_damage(), self)
-				whip_angles.append(to_e.angle())
-				# Passive: 25% Chance auf Grab-and-Throw statt normalen Knockback
-				if randf() < 0.25:
-					_grab_and_throw(e, to_e)
-				elif randf() < 0.3:
-					e.apply_knockback(to_e.normalized().rotated(PI / 2.0) * 300.0)
+			if to_e.length() < 260.0:
+				in_range.append({"e": e, "d": to_e.length_squared(), "v": to_e})
+	in_range.sort_custom(func(a, b): return a["d"] < b["d"])
+	var hits: int = 0
+	for item in in_range:
+		if hits >= 4:
+			break
+		var e = item["e"]
+		var to_e: Vector2 = item["v"]
+		e.take_damage(get_total_damage(), self)
+		whip_angles.append(to_e.angle())
+		hits += 1
+		# Passive: 25% Chance auf Grab-and-Throw statt normalen Knockback
+		if randf() < 0.25:
+			_grab_and_throw(e, to_e)
+		elif randf() < 0.3:
+			e.apply_knockback(to_e.normalized().rotated(PI / 2.0) * 300.0)
 	if not whip_angles.is_empty():
 		_whip_active = true
 		_whip_anim = 0.0
 	if randf() < double_strike_chance:
 		spawn_projectile(get_direction_to_nearest_enemy())
+	emit_signal("attacked")
+
+# Signature: Headbang Cyclone - dauerhafter Dread-Wirbel im Nahbereich, der
+# alle Feinde ringsum trifft und wegschleudert. Kein gezieltes Greifen mehr.
+func _auto_attack_signature() -> void:
+	whip_angles.clear()
+	var radius: float = 145.0 * (1.0 + aoe_radius_bonus)
+	var dmg: float = get_total_damage() * 0.55
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e):
+			continue
+		var to_e: Vector2 = e.global_position - global_position
+		var dist: float = to_e.length()
+		if dist < radius and dist > 1.0:
+			if e.has_method("take_damage"):
+				e.take_damage(dmg, self)
+			whip_angles.append(to_e.angle())
+			if e.has_method("apply_knockback"):
+				e.apply_knockback(to_e.normalized() * 180.0)
+	if not whip_angles.is_empty():
+		_whip_active = true
+		_whip_anim = 0.0
 	emit_signal("attacked")
 
 func _grab_and_throw(enemy, to_enemy: Vector2) -> void:
