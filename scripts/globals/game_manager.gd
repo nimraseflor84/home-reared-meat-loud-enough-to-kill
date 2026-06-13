@@ -7,6 +7,9 @@ var current_state: GameState = GameState.MENU
 var selected_character: String = "manni"
 var player_count: int = 1                          # 1 = Solo, 2 = Co-op
 var selected_characters: Array = ["manni", "manni"] # [P1, P2]
+# Gewaehlte Waffe pro Charakter: char_id -> bool (true = Signature-Waffe).
+# Wird im Charakter-Auswahlbildschirm gesetzt und beim Spawnen ausgelesen.
+var selected_weapon: Dictionary = {}
 var current_wave: int = 0
 var score: int = 0
 var run_stats: Dictionary = {}
@@ -35,12 +38,14 @@ const DIFFICULTY_COLORS = [
 # HP-Multiplikator pro Schwierigkeitsgrad
 # Very Easy bewusst niedrig (Tutorial-Tier), Very Hard fordernd aber nicht
 # absurd: 2.4x reicht aus weil HP zusaetzlich mit Wave skaliert (1.07^wave).
-const DIFFICULTY_HP   = [0.35, 0.65, 1.0, 1.5, 2.4]
+# Stufe 0 von 0.35 auf 0.50 angehoben: war so leer, dass Leerlauf statt
+# Einstieg entstand (Balancing-Simulation Run #11)
+const DIFFICULTY_HP   = [0.50, 0.65, 1.0, 1.5, 2.4]
 # Schaden-Multiplikator - Hard/Very Hard etwas entschaerft
 const DIFFICULTY_DMG  = [0.35, 0.65, 1.0, 1.35, 1.85]
 # Gegneranzahl-Multiplikator - leicht nach unten korrigiert um Lag und
 # unfaire Spike-Waves zu vermeiden
-const DIFFICULTY_COUNT = [0.45, 0.72, 1.0, 1.4, 1.9]
+const DIFFICULTY_COUNT = [0.65, 0.72, 1.0, 1.4, 1.9]
 # Wahrscheinlichkeit dass ein Gegner fernkaempft (0=nie). Very Hard von 0.80
 # auf 0.55 reduziert - 0.80 fuehlte sich an als wuerde jeder Gegner schiessen,
 # das war oppressiv. Hard bleibt bei 0.40 als spuerbarer Sprung.
@@ -54,7 +59,15 @@ const CHARACTER_SCENES = {
 	"riff_slicer": "res://scenes/entities/players/player_riff_slicer.tscn",
 	"distortion": "res://scenes/entities/players/player_distortion.tscn",
 	"bassist": "res://scenes/entities/players/player_bassist.tscn",
+	# Geheimcharaktere (Eastereggs) - erscheinen erst nach Freischaltung
+	"pimmel": "res://scenes/entities/players/player_pimmel.tscn",
+	"theo": "res://scenes/entities/players/player_theo.tscn",
 }
+
+# Geheimcharaktere: tauchen in der Auswahl erst nach Freischaltung auf.
+# Pimmel: 12 Upgrades in einem Run nehmen (Merch-Mann shoppt am haertesten)
+# Theo:   eine Boss-Welle ohne Schaden ueberstehen (Stagehands bleiben unsichtbar)
+const SECRET_CHARACTERS = ["pimmel", "theo"]
 
 # Charakter-Beschreibungen als Sprach-Dictionaries (de/en/fr/es/uk).
 # Aufloesung ueber char_desc() weiter unten.
@@ -95,6 +108,19 @@ const CHARACTER_INFO = {
 		"fr": "Ondes sub-basses. Ondes de choc au sol à chaque kill.",
 		"es": "Ondas de subgraves. Ondas de choque al matar.",
 		"uk": "Суб-басові хвилі. Ударні хвилі від вбивств."}},
+	# -- Geheimcharaktere (Eastereggs) --
+	"pimmel": {"name": "Pimmel", "color": Color(0.95, 0.78, 0.10), "desc": {
+		"de": "Merch-Mann. Wirft Shirts als Boomerang. Jeder 10. Kill: Merch-Paket (+5 LP).",
+		"en": "Merch guy. Throws shirts as boomerangs. Every 10th kill: merch package (+5 HP).",
+		"fr": "Vendeur de merch. Lance des t-shirts boomerangs. Chaque 10e kill: colis de merch (+5 PV).",
+		"es": "El del merch. Lanza camisetas bumerán. Cada 10ª baja: paquete de merch (+5 PS).",
+		"uk": "Мерч-мен. Кидає футболки-бумеранги. Кожне 10-те вбивство: пакунок мерчу (+5 ЖК)."}},
+	"theo": {"name": "Theo", "color": Color(0.75, 0.25, 0.20), "desc": {
+		"de": "Stagehand. Gaffa-Rollen durchschlagen Gegner. Kills laden die Ultimate schneller.",
+		"en": "Stagehand. Gaffer tape rolls pierce enemies. Kills recharge the ultimate faster.",
+		"fr": "Stagehand. Les rouleaux de gaffer transpercent les ennemis. Les kills rechargent l'ultime.",
+		"es": "Stagehand. Los rollos de cinta atraviesan enemigos. Las bajas recargan el último.",
+		"uk": "Стейдж-хенд. Рулони скотчу пронизують ворогів. Вбивства швидше заряджають ульту."}},
 }
 
 # Liefert die Charakter-Beschreibung in der aktiven Sprache.
@@ -104,6 +130,10 @@ func char_desc(char_id: String) -> String:
 	if d is Dictionary:
 		return d.get(LocalizationManager.current_language, d.get("en", ""))
 	return str(d)
+
+# Liefert true, wenn fuer diesen Charakter die Signature-Waffe gewaehlt wurde.
+func use_signature(char_id: String) -> bool:
+	return bool(selected_weapon.get(char_id, false))
 
 signal state_changed(new_state)
 signal wave_started(wave_number)
@@ -292,8 +322,13 @@ func set_state(new_state: GameState) -> void:
 
 func get_wave_difficulty_multiplier() -> float:
 	# HP-Skalierung pro Welle. 1.07 statt 1.08 glaettet Wave 10+ ein wenig -
-	# 1.07^15 = 2.76 (vorher 3.17), 1.07^20 = 3.87 (vorher 4.66).
-	return pow(1.07, current_wave)
+	# 1.07^15 = 2.76 (vorher 3.17).
+	# Ab Welle 16 (Endless) flacher weiterskalieren (1.035), sonst waechst die
+	# Gegner-HP schneller als jeder Upgrade-Pfad und ab Welle 20 wird alles
+	# zum Damage-Sponge (Balancing-Simulation Run #11).
+	if current_wave <= 15:
+		return pow(1.07, current_wave)
+	return pow(1.07, 15) * pow(1.035, current_wave - 15)
 
 func get_wave_damage_multiplier() -> float:
 	# Schaden-Skalierung pro Welle. 1.035 statt 1.04 - gleicher Grund.
@@ -372,7 +407,9 @@ func get_story_scene_for_wave(wave: int) -> String:
 	match wave:
 		5: return "res://scenes/story/act2_intro.tscn"
 		10: return "res://scenes/story/act3_intro.tscn"
-		15: return "res://scenes/story/finale.tscn"
+		# Finale ist das Intro VOR Welle 15 - der Shop laeuft letztmals nach
+		# Welle 14 (bei 15 war das Finale unerreichbar, Audit Run #11)
+		14: return "res://scenes/story/finale.tscn"
 		_: return ""
 
 # -- Netzwerk Co-op ------------------------------------------------------------
