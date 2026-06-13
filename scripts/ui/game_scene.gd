@@ -1227,7 +1227,55 @@ func _draw_map_background(vp: Rect2) -> void:
 		"death_feast":  _draw_death_feast(vp)
 		"nikolausdorf": _draw_nikolausdorf(vp)
 		"strand":       _draw_strand(vp)
+		"giftstadt":    _draw_giftstadt(vp)
 		_:              _draw_farm(vp)
+
+# -- Giftstadt (Bonus-Map fuer den schwersten Grad) -----------------------------
+func _draw_giftstadt(vp: Rect2) -> void:
+	var w = vp.size.x
+	var h = vp.size.y
+	# Verseuchter Boden
+	draw_rect(Rect2(0, 0, w, h), Color(0.16, 0.20, 0.12))
+	# Risse / Strassen
+	draw_line(Vector2(0, h*0.32), Vector2(w, h*0.30), Color(0.10, 0.13, 0.08), 6)
+	draw_line(Vector2(w*0.45, 0), Vector2(w*0.50, h), Color(0.10, 0.13, 0.08), 6)
+	# Blubbernde Giftpfuetzen (animiert)
+	var pools = [
+		Vector2(w*0.20, h*0.60), Vector2(w*0.72, h*0.28),
+		Vector2(w*0.55, h*0.75), Vector2(w*0.30, h*0.20),
+	]
+	for idx in range(pools.size()):
+		var pp = pools[idx]
+		var pr = 36.0 + 8.0 * sin(_anim_time * 1.5 + float(idx))
+		draw_circle(pp, pr, Color(0.30, 0.70, 0.18, 0.85))
+		draw_circle(pp, pr * 0.6, Color(0.55, 0.95, 0.22, 0.9))
+		# aufsteigende Blasen
+		for b in range(4):
+			var bx = pp.x + sin(float(b) * 1.7) * pr * 0.5
+			var by = pp.y - fmod(_anim_time * 22.0 + float(b) * 12.0 + idx * 5.0, pr + 14.0)
+			draw_circle(Vector2(bx, by), 2.5 + float(b % 2), Color(0.70, 1.0, 0.30, 0.6))
+	# Giftfaesser (Draufsicht: Kreis mit Warnsymbol)
+	var barrels = [
+		Vector2(w*0.12, h*0.40), Vector2(w*0.85, h*0.55),
+		Vector2(w*0.40, h*0.85), Vector2(w*0.65, h*0.12),
+	]
+	for bp in barrels:
+		draw_circle(bp, 13, Color(0.20, 0.22, 0.10))
+		draw_circle(bp, 11, Color(0.85, 0.78, 0.15))
+		draw_circle(bp, 4, Color(0.10, 0.10, 0.08))
+		# drei Warnkeile
+		for k in range(3):
+			var a = float(k) * TAU / 3.0 - PI/2.0
+			draw_line(bp, bp + Vector2(cos(a), sin(a)) * 9, Color(0.10, 0.10, 0.08), 2.5)
+	# Tote Baeume (Draufsicht: dunkler Stamm + kahle Aeste)
+	var trees = [Vector2(w*0.08, h*0.85), Vector2(w*0.92, h*0.18)]
+	for tp in trees:
+		draw_circle(tp, 7, Color(0.20, 0.14, 0.08))
+		for k in range(5):
+			var a2 = float(k) * TAU / 5.0
+			draw_line(tp, tp + Vector2(cos(a2), sin(a2)) * 18, Color(0.18, 0.13, 0.07), 2.0)
+	# Giftiger Dunst-Schleier (sehr dezent)
+	draw_rect(Rect2(0, 0, w, h), Color(0.45, 0.85, 0.25, 0.05))
 
 # -- Nikolausdorf (Geheim-Map / Easteregg) --------------------------------------
 func _draw_nikolausdorf(vp: Rect2) -> void:
