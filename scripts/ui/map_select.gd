@@ -6,7 +6,7 @@ var _selected_diff: int = 2
 var _selected_char: String = "manni"
 
 # Map-Namen kommen lokalisiert aus LocalizationManager.map_title(id)
-const MAPS = [
+const BASE_MAPS = [
 	{"id": "proberaum",     "color": Color(0.18, 0.12, 0.24)},
 	{"id": "prison",        "color": Color(0.30, 0.29, 0.34)},
 	{"id": "farm",          "color": Color(0.22, 0.44, 0.12)},
@@ -18,6 +18,20 @@ const MAPS = [
 	{"id": "meppen",        "color": Color(0.46, 0.44, 0.42)},
 	{"id": "death_feast",   "color": Color(0.06, 0.02, 0.08)},
 ]
+# Geheime Maps (Eastereggs): erscheinen erst nach Freischaltung
+const SECRET_MAPS = [
+	{"id": "nikolausdorf",  "color": Color(0.55, 0.70, 0.85)},
+	{"id": "strand",        "color": Color(0.80, 0.65, 0.25)},
+	{"id": "giftstadt",     "color": Color(0.35, 0.62, 0.20)},
+]
+
+# Aktive Map-Liste: Basis + freigeschaltete Geheim-Maps
+func _get_maps() -> Array:
+	var maps: Array = BASE_MAPS.duplicate()
+	for m in SECRET_MAPS:
+		if SaveManager.is_map_unlocked(m["id"]):
+			maps.append(m)
+	return maps
 
 var _map_buttons: Array = []
 var _diff_buttons: Array = []
@@ -55,17 +69,19 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", 28)
 	add_child(title)
 
-	# ── Map grid (2 rows × 5) ──────────────────────────────────────────────
+	# ── Map grid (2 Reihen; 5 pro Reihe, 6 sobald Geheim-Maps offen sind) ──
+	var maps = _get_maps()
+	var per_row: int = 5 if maps.size() <= 10 else 6
 	var grid_x = 40.0
 	var grid_y = 80.0
-	var tile_w = 230.0
+	var tile_w = 230.0 if per_row == 5 else 188.0
 	var tile_h = 90.0
 	var gap    = 10.0
 
-	for i in range(MAPS.size()):
-		var m    = MAPS[i]
-		var col  = i % 5
-		var row  = i / 5
+	for i in range(maps.size()):
+		var m    = maps[i]
+		var col  = i % per_row
+		var row  = i / per_row
 		var bx   = grid_x + col * (tile_w + gap)
 		var by   = grid_y + row * (tile_h + gap)
 
@@ -92,18 +108,27 @@ func _build_ui() -> void:
 	add_child(char_lbl)
 
 	var chars = ["manni", "shouter", "dreads", "riff_slicer", "distortion", "bassist"]
+	# Freigeschaltete Geheimcharaktere (Eastereggs) anhaengen
+	for sid in GameManager.SECRET_CHARACTERS:
+		if SaveManager.is_character_unlocked(sid):
+			chars.append(sid)
 	var char_names = {"manni": "Manny", "shouter": "Chicken", "dreads": "Nik",
-		"riff_slicer": "Andz", "distortion": "Grindhouse", "bassist": "Armin"}
+		"riff_slicer": "Andz", "distortion": "Grindhouse", "bassist": "Armin",
+		"pimmel": "Pimmel", "theo": "Theo"}
 	var char_colors = {"manni": Color(0.2, 0.4, 0.9), "shouter": Color(0.9, 0.2, 0.2),
 		"dreads": Color(0.2, 0.8, 0.3), "riff_slicer": Color(0.9, 0.5, 0.1),
-		"distortion": Color(0.6, 0.2, 0.9), "bassist": Color(0.1, 0.2, 0.6)}
+		"distortion": Color(0.6, 0.2, 0.9), "bassist": Color(0.1, 0.2, 0.6),
+		"pimmel": Color(0.95, 0.78, 0.10), "theo": Color(0.75, 0.25, 0.20)}
 
+	# Buttons schrumpfen, wenn mehr als 6 Charaktere in die Reihe muessen
+	var btn_w: float = 185.0 if chars.size() <= 6 else 142.0
+	var btn_gap: float = 195.0 if chars.size() <= 6 else 150.0
 	for i in range(chars.size()):
 		var cid  = chars[i]
 		var btn  = Button.new()
 		btn.text = char_names[cid]
-		btn.position = Vector2(40 + i * 195, 325)
-		btn.size     = Vector2(185, 55)
+		btn.position = Vector2(40 + i * btn_gap, 325)
+		btn.size     = Vector2(btn_w, 55)
 		btn.add_theme_font_size_override("font_size", 15)
 		var unlocked = SaveManager.is_character_unlocked(cid)
 		if unlocked:
