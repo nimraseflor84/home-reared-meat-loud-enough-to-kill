@@ -129,6 +129,14 @@ func update_run_results() -> void:
 			if cid != "" and cid not in save_data["unlocked_weapons"]:
 				save_data["unlocked_weapons"].append(cid)
 				gm.run_stats["weapon_just_unlocked"] = cid
+	# Bonus fuer den schwersten Grad (Bolognese Bloodbath, Stufe 4):
+	# Bonus-Charakter Toxo und die Giftstadt-Map freischalten.
+	if bool(gm.run_stats.get("won", false)) and not gm.endless_mode and int(gm.difficulty) >= 4:
+		if "toxo" not in save_data["unlocked_characters"]:
+			save_data["unlocked_characters"].append("toxo")
+			gm.run_stats["bonus_unlocked"] = "toxo"
+		if "giftstadt" not in save_data.get("unlocked_maps", []):
+			save_data["unlocked_maps"].append("giftstadt")
 	save_game()
 
 func _check_unlocks() -> void:
