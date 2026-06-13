@@ -62,12 +62,14 @@ const CHARACTER_SCENES = {
 	# Geheimcharaktere (Eastereggs) - erscheinen erst nach Freischaltung
 	"pimmel": "res://scenes/entities/players/player_pimmel.tscn",
 	"theo": "res://scenes/entities/players/player_theo.tscn",
+	# Bonus-Geheimcharakter (schwerster Grad): originaler Toxic-Held
+	"toxo": "res://scenes/entities/players/player_toxo.tscn",
 }
 
 # Geheimcharaktere: tauchen in der Auswahl erst nach Freischaltung auf.
 # Pimmel: 12 Upgrades in einem Run nehmen (Merch-Mann shoppt am haertesten)
 # Theo:   eine Boss-Welle ohne Schaden ueberstehen (Stagehands bleiben unsichtbar)
-const SECRET_CHARACTERS = ["pimmel", "theo"]
+const SECRET_CHARACTERS = ["pimmel", "theo", "toxo"]
 
 # Charakter-Beschreibungen als Sprach-Dictionaries (de/en/fr/es/uk).
 # Aufloesung ueber char_desc() weiter unten.
@@ -121,6 +123,13 @@ const CHARACTER_INFO = {
 		"fr": "Stagehand. Les rouleaux de gaffer transpercent les ennemis. Les kills rechargent l'ultime.",
 		"es": "Stagehand. Los rollos de cinta atraviesan enemigos. Las bajas recargan el último.",
 		"uk": "Стейдж-хенд. Рулони скотчу пронизують ворогів. Вбивства швидше заряджають ульту."}},
+	# -- Bonus-Geheimcharakter: originaler Toxic-Held (schwerster Grad) --
+	"toxo": {"name": "Toxo", "color": Color(0.45, 0.85, 0.25), "desc": {
+		"de": "Mutierter Held aus dem Giftfass. Schleim-Blobs, Kills heilen und vergiften die Umgebung.",
+		"en": "Mutated hero from the toxic barrel. Sludge blobs, kills heal and poison the area.",
+		"fr": "Héros muté du fût toxique. Blobs de boue, les kills soignent et empoisonnent la zone.",
+		"es": "Héroe mutado del barril tóxico. Blobs de lodo, las bajas curan y envenenan la zona.",
+		"uk": "Мутований герой з токсичної бочки. Слизові кулі, вбивства лікують і отруюють зону."}},
 }
 
 # Liefert die Charakter-Beschreibung in der aktiven Sprache.
