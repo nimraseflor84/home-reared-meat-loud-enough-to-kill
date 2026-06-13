@@ -39,12 +39,13 @@ func _process(delta: float) -> void:
 			qt = 0.0
 		var p: float = clamp(qt / 0.6, 0.0, 1.0)
 		var eased: float = 1.0 - pow(1.0 - p, 3.0)
-		_quote_label.position.x = lerp(_quote_target_x - 1400.0, _quote_target_x, eased)
-		_quote_label.modulate.a = clamp(qt / 0.4, 0.0, 1.0)
-		if p >= 1.0:
-			var qs: float = 1.0 + 0.05 * sin(_anim_time * 4.0)
-			_quote_label.pivot_offset = _quote_label.size * 0.5
-			_quote_label.scale = Vector2(qs, qs)
+		var startx: float = -_quote_label.size.x - 50.0
+		_quote_label.position.x = lerp(startx, _quote_target_x, eased)
+		if p < 1.0:
+			_quote_label.modulate.a = clamp(qt / 0.4, 0.0, 1.0)
+		else:
+			# angekommen: leicht pulsierendes Einblenden, bleibt mittig
+			_quote_label.modulate.a = 0.8 + 0.2 * sin(_anim_time * 4.0)
 	queue_redraw()
 
 func _build_ui() -> void:
@@ -73,13 +74,14 @@ func _build_ui() -> void:
 	# Zufaelliger Spott-Spruch beim Tod (einer von 10, lokalisiert).
 	# Beim Sieg gibt es nichts zu spotten.
 	if not _won:
+		# Absolute Positionierung (PRESET_TOP_LEFT), damit die Animation die
+		# Zentrierung nicht verrutscht. Zielposition = mittig im Viewport.
+		var vp_size := get_viewport_rect().size
+		var qw: float = min(900.0, vp_size.x - 20.0)
 		var quote = Label.new()
-		quote.set_anchors_preset(PRESET_CENTER_TOP)
-		quote.anchor_left = 0.5
-		quote.anchor_right = 0.5
-		var quote_target := Vector2(-450, 172)
-		quote.position = quote_target
-		quote.size = Vector2(900, 32)
+		quote.set_anchors_preset(PRESET_TOP_LEFT)
+		quote.size = Vector2(qw, 60)
+		quote.position = Vector2(-qw - 50.0, 172)   # startet komplett links ausserhalb
 		quote.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		quote.autowrap_mode = TextServer.AUTOWRAP_WORD
 		quote.text = LocalizationManager.random_death_quote()
@@ -89,9 +91,7 @@ func _build_ui() -> void:
 		quote.add_theme_font_size_override("font_size", 22)
 		add_child(quote)
 		_quote_label = quote
-		_quote_target_x = quote_target.x
-		# Startet weit links ausserhalb und faehrt in _process deterministisch rein
-		quote.position = Vector2(quote_target.x - 1400.0, quote_target.y)
+		_quote_target_x = (vp_size.x - qw) * 0.5   # zentrierte absolute X-Position
 		quote.modulate = Color(1, 1, 1, 0)
 
 	# NEW HIGH SCORE banner - direkt unter dem Titel pulsierend
