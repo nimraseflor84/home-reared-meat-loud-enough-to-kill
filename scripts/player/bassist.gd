@@ -148,7 +148,36 @@ func _auto_attack() -> void:
 		_low_end_counter += 1
 		if _low_end_counter >= 4:
 			_low_end_counter = 0
-			spawn_shockwave(55.0 * (1.0 + aoe_radius_bonus), get_total_damage() * 0.6)
+			# Basisradius uebergeben - spawn_shockwave multipliziert selbst mit
+			# (1+aoe_radius_bonus), vorher quadrierte sich der Bonus (Audit Run #11)
+			spawn_shockwave(55.0, get_total_damage() * 0.6)
+	emit_signal("attacked")
+
+# Signature: Standing Wave - stehender Sub-Bass-Ring in fester Entfernung, der
+# im Takt pulst (Schaden + Knockback). Direkt am Koerper sind Feinde sicher.
+func _auto_attack_signature() -> void:
+	var r_outer: float = 205.0 * (1.0 + aoe_radius_bonus)
+	var r_inner: float = 110.0 * (1.0 + aoe_radius_bonus)
+	var dmg: float = get_total_damage() * 0.6
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e):
+			continue
+		var dist: float = global_position.distance_to(e.global_position)
+		if dist <= r_outer and dist >= r_inner:
+			if e.has_method("take_damage"):
+				e.take_damage(dmg, self)
+			if e.has_method("apply_knockback"):
+				var away: Vector2 = (e.global_position - global_position).normalized()
+				e.apply_knockback(away * 220.0)
+	# Sichtbarer Ring
+	var sw = _SW_SCENE.instantiate()
+	sw.global_position = global_position
+	sw.radius = r_outer
+	sw.damage = 0.0
+	sw.shooter = self
+	if sw.has_method("set"):
+		sw.set("expand_time", 0.3)
+	get_tree().current_scene.add_child(sw)
 	emit_signal("attacked")
 
 func _on_kill_passive(_enemy) -> void:
@@ -157,7 +186,8 @@ func _on_kill_passive(_enemy) -> void:
 	var dmg_bonus: float = 1.0
 	if has_upgrade("bassist_sub_frequency"):
 		dmg_bonus = 1.25
-	spawn_shockwave(70.0 * (1.0 + aoe_radius_bonus), get_total_damage() * 1.5 * dmg_bonus)
+	# Basisradius: spawn_shockwave wendet aoe_radius_bonus selbst an (Audit Run #11)
+	spawn_shockwave(70.0, get_total_damage() * 1.5 * dmg_bonus)
 
 func _use_ultimate() -> void:
 	# Sub Bass Nuke: 3 expandierende konzentrische Schockwellen ueber 1.5s
