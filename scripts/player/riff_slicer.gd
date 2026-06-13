@@ -170,11 +170,36 @@ func _draw() -> void:
 	_draw_levelup_text()
 
 func _auto_attack() -> void:
+	# Balancing Run #11: Seitenklingen auf 0.65x Schaden (vorher 3x voller
+	# Schaden = +100% ueber Median in Welle 1) und Pierce-Parameter 0 statt
+	# pierce (player_base addiert self.pierce bereits - war verdoppelt).
 	var dir = get_direction_to_nearest_enemy()
-	for offset in [-0.15, 0.0, 0.15]:
-		spawn_projectile(dir.rotated(offset), -1, 450.0, pierce)
+	spawn_projectile(dir, -1, 450.0, 0)
+	for offset in [-0.15, 0.15]:
+		spawn_projectile(dir.rotated(offset), get_total_damage() * 0.65, 450.0, 0)
 	if randf() < double_strike_chance:
 		spawn_projectile(dir.rotated(PI / 6.0))
+	emit_signal("attacked")
+
+# Signature: Sweep Picking - feuert Klingen auf die bis zu 5 naechsten Gegner
+# (Ketten-Gefuehl). Jede weitere Klinge etwas schwaecher. Schaden verteilt sich.
+func _auto_attack_signature() -> void:
+	var ranked: Array = []
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e):
+			ranked.append({"e": e, "d": global_position.distance_squared_to(e.global_position)})
+	ranked.sort_custom(func(a, b): return a["d"] < b["d"])
+	var n: int = min(5, ranked.size())
+	if n == 0:
+		spawn_projectile(get_direction_to_nearest_enemy(), get_total_damage() * 0.7, 520.0, 1)
+	else:
+		for i in range(n):
+			var e = ranked[i]["e"]
+			var dir2: Vector2 = (e.global_position - global_position).normalized()
+			var dmg: float = max(get_total_damage() * 0.25, get_total_damage() * (0.7 - i * 0.1))
+			spawn_projectile(dir2, dmg, 520.0, 1)
+	if randf() < double_strike_chance:
+		spawn_projectile(get_direction_to_nearest_enemy(), -1, 520.0, 1)
 	emit_signal("attacked")
 
 func _on_kill_passive(_enemy) -> void:
