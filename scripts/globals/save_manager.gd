@@ -13,9 +13,17 @@ var save_data: Dictionary = {
 	"endless_leaderboard": [],
 	"tutorial_seen": false,
 	"seen_enemy_lore": [],
+	"unlocked_maps": [],
+	"unlocked_weapons": [],
+	"pause_count": 0,
 	"settings": {
 		"sfx_volume": 1.0,
 		"music_volume": 0.8,
+		# Bus-Lautstaerken aus dem Options-Sound-Panel (Keys muessen hier
+		# stehen, sonst verwirft der Settings-Merge sie beim Laden)
+		"master_vol": 1.0,
+		"music_vol": 0.8,
+		"sfx_vol": 1.0,
 		"music_enabled": true,
 		"proj_sfx_enabled": true,
 		"fullscreen": false,
@@ -61,10 +69,20 @@ func load_game() -> void:
 	if not (loaded is Dictionary):
 		push_warning("SaveManager: save_data.json is not a dictionary, using defaults")
 		return
-	# Top-level merge: uebernimmt geladene Werte, behaelt neue Default-Keys
+	# Top-level merge: uebernimmt geladene Werte, behaelt neue Default-Keys.
+	# WICHTIG: JSON liefert Zahlen immer als float, die Defaults sind int -
+	# ohne die int/float-Toleranz gingen high_score, best_wave, total_kills
+	# und pause_count bei jedem Spielstart verloren (Audit Run #11, P0).
 	for key in save_data:
-		if loaded.has(key) and typeof(loaded[key]) == typeof(save_data[key]):
-			save_data[key] = loaded[key]
+		if not loaded.has(key):
+			continue
+		var lv = loaded[key]
+		if typeof(lv) == typeof(save_data[key]):
+			save_data[key] = lv
+		elif save_data[key] is int and lv is float:
+			save_data[key] = int(lv)
+		elif save_data[key] is float and lv is int:
+			save_data[key] = float(lv)
 	# Deep merge fuer "settings": neue Setting-Keys behalten ihren Default
 	if loaded.has("settings") and loaded["settings"] is Dictionary:
 		for skey in save_data["settings"]:
@@ -89,10 +107,28 @@ func update_run_results() -> void:
 		save_data["high_score"] = gm.score
 	if gm.current_wave > save_data["best_wave"]:
 		save_data["best_wave"] = gm.current_wave
-	save_data["total_kills"] += gm.run_stats.get("kills", 0)
+	# Nur das Delta seit dem letzten Aufruf addieren - update_run_results()
+	# laeuft mehrfach pro Run (jede Welle + Tod), das kumulative run_stats["kills"]
+	# wuerde sonst quadratisch mehrfach gezaehlt (Audit Run #11, P1)
+	var run_kills: int = int(gm.run_stats.get("kills", 0))
+	var credited: int = int(gm.run_stats.get("kills_credited", 0))
+	save_data["total_kills"] += maxi(0, run_kills - credited)
+	gm.run_stats["kills_credited"] = run_kills
 
 	# Unlock characters based on waves cleared
 	_check_unlocks()
+	# Signature-Waffe freischalten: Story-Sieg auf Drink Fight Die! (Stufe 3)
+	# oder hoeher. Gilt fuer den/die im Run gespielten Charakter(e).
+	if bool(gm.run_stats.get("won", false)) and not gm.endless_mode and int(gm.difficulty) >= 3:
+		var run_chars: Array = []
+		if gm.player_count >= 2:
+			run_chars = [gm.selected_characters[0], gm.selected_characters[1]]
+		else:
+			run_chars = [gm.selected_character]
+		for cid in run_chars:
+			if cid != "" and cid not in save_data["unlocked_weapons"]:
+				save_data["unlocked_weapons"].append(cid)
+				gm.run_stats["weapon_just_unlocked"] = cid
 	save_game()
 
 func _check_unlocks() -> void:
@@ -110,6 +146,48 @@ func _check_unlocks() -> void:
 
 func is_character_unlocked(char_id: String) -> bool:
 	return char_id in save_data["unlocked_characters"]
+
+# -- Signature-Waffen ----------------------------------------------------------
+func is_weapon_unlocked(char_id: String) -> bool:
+	return char_id in save_data.get("unlocked_weapons", [])
+
+func unlock_weapon(char_id: String) -> bool:
+	if char_id in save_data.get("unlocked_weapons", []):
+		return false
+	save_data["unlocked_weapons"].append(char_id)
+	save_game()
+	return true
+
+# Schaltet einen Geheimcharakter frei. Liefert true wenn er NEU freigeschaltet
+# wurde (fuer den Unlock-Toast), false wenn er bereits freigeschaltet war.
+func unlock_secret_character(char_id: String) -> bool:
+	if char_id in save_data["unlocked_characters"]:
+		return false
+	save_data["unlocked_characters"].append(char_id)
+	save_game()
+	return true
+
+# -- Geheime Maps (Eastereggs) ---------------------------------------------------
+func is_map_unlocked(map_id: String) -> bool:
+	return map_id in save_data.get("unlocked_maps", [])
+
+# Schaltet eine geheime Map frei. Liefert true nur bei Neu-Freischaltung.
+func unlock_secret_map(map_id: String) -> bool:
+	if map_id in save_data.get("unlocked_maps", []):
+		return false
+	save_data["unlocked_maps"].append(map_id)
+	save_game()
+	return true
+
+# Zaehlt jede Pause mit (Easteregg: 30 Pausen schalten die Strand-Map frei,
+# die Band hat sich den Urlaub aus dem Pausenmenue verdient). Liefert den Stand.
+func increment_pause_count() -> int:
+	save_data["pause_count"] = int(save_data.get("pause_count", 0)) + 1
+	save_game()
+	return save_data["pause_count"]
+
+func get_total_kills() -> int:
+	return int(save_data.get("total_kills", 0))
 
 func get_high_score() -> int:
 	return save_data["high_score"]
