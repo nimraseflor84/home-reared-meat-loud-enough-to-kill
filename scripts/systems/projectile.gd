@@ -92,6 +92,9 @@ func _draw() -> void:
 		3: _draw_pick()
 		4: _draw_distortion()
 		5: _draw_basswave()
+		6: _draw_merch_shirt()
+		7: _draw_tape_roll()
+		8: _draw_toxic_blob()
 		_: _draw_drumstick()
 
 # -- Manni: Two flying drumsticks ----------------------------------------------
@@ -173,7 +176,52 @@ func _draw_basswave() -> void:
 		draw_arc(Vector2.ZERO, r, 0, TAU, 18,
 				Color(0.20, 0.42, 0.95, 0.42 - i * 0.14), 2.5)
 
+# -- Pimmel: Rotierendes Merch-Shirt (gelb, mit Print) -------------------------
+func _draw_merch_shirt() -> void:
+	var angle = _anim_time * 7.0
+	draw_set_transform(Vector2.ZERO, angle)
+	var shirt = Color(0.97, 0.80, 0.10)
+	# T-Shirt-Silhouette: Torso + zwei Aermel
+	draw_rect(Rect2(-7, -8, 14, 16), shirt)
+	draw_rect(Rect2(-12, -8, 5, 7), shirt)
+	draw_rect(Rect2(7, -8, 5, 7), shirt)
+	# Kragen
+	draw_arc(Vector2(0, -8), 3.5, 0.0, PI, 8, Color(0.72, 0.55, 0.06), 1.5)
+	# Band-Print (roter Punkt wie ein Logo)
+	draw_circle(Vector2(0, 1), 3.0, Color(0.80, 0.12, 0.08))
+	draw_set_transform(Vector2.ZERO, 0.0)
+
+# -- Theo: Rotierende Gaffa-Tape-Rolle (grau, mit Loch) -------------------------
+func _draw_tape_roll() -> void:
+	var angle = _anim_time * 10.0
+	draw_set_transform(Vector2.ZERO, angle)
+	draw_circle(Vector2.ZERO, 9.0, Color(0.55, 0.55, 0.58))
+	draw_circle(Vector2.ZERO, 4.0, Color(0.10, 0.10, 0.12))
+	# Abstehendes Tape-Ende (flattert beim Rotieren)
+	draw_line(Vector2(9, 0), Vector2(15, 3), Color(0.65, 0.65, 0.68), 3.0)
+	# Glanzstreifen
+	draw_arc(Vector2.ZERO, 7.0, 0.4, 1.4, 8, Color(0.78, 0.78, 0.80), 1.5)
+	draw_set_transform(Vector2.ZERO, 0.0)
+
+# -- Toxo: Gruener, blubbernder Gift-Blob ---------------------------------------
+func _draw_toxic_blob() -> void:
+	var t = _anim_time * 6.0
+	var segs = 14
+	var pts = PackedVector2Array()
+	for i in range(segs + 1):
+		var a = float(i) / segs * TAU
+		var r = size + sin(t + a * 3.7) * 4.0 + sin(t * 1.6 + a * 2.1) * 2.5
+		pts.append(Vector2(cos(a), sin(a)) * r)
+	draw_colored_polygon(pts, Color(0.35, 0.78, 0.18, 0.85))
+	draw_circle(Vector2.ZERO, size * 0.5, Color(0.75, 1.0, 0.30, 1.0))
+	# Tropfen
+	draw_circle(Vector2(size * 0.6, size * 0.5), 2.0, Color(0.55, 0.95, 0.20, 0.8))
+
 func _hit_enemy(body: Node2D) -> void:
+	# queue_free entfernt den Node erst am Frame-Ende: ohne diesen Guard traf
+	# ein verbrauchtes Projektil im selben Frame weitere Gegner (Audit Run #11)
+	if is_queued_for_deletion():
+		return
 	if body == null or not is_instance_valid(body) or body in _hit_enemies:
 		return
 	_hit_enemies.append(body)
