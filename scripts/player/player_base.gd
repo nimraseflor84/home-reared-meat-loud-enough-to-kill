@@ -16,6 +16,10 @@ var attack_timer: float = 0.0
 var ultimate_timer: float = 0.0
 var is_alive: bool = true
 
+# Signature-Waffe (freigeschaltet durch Sieg auf Drink Fight Die!). Wenn true,
+# nutzt der Charakter _auto_attack_signature() statt _auto_attack().
+var signature_active: bool = false
+
 # Co-op: Spieler-Index und Controller-Geraet
 var player_index: int = 0    # 0=P1, 1=P2
 var _joy_device: int = -1    # -1=InputMap (P1), >=0=direkter Joypad (P2)
@@ -204,7 +208,7 @@ func _physics_process(delta: float) -> void:
 	if has_upgrade("roadie_rage"):
 		var pct = float(current_hp) / float(max_hp + max_hp_bonus)
 		if pct <= 0.25:
-			rage_speed = 0.20  # +20% Speed unter 25% HP (aus Upgrade-DB)
+			rage_speed = 0.25  # +25% Speed unter 25% HP (Wert aus Upgrade-DB)
 	var effective_speed = move_speed * (1.0 + speed_bonus + rage_speed)
 	if _dash_timer > 0:
 		_dash_timer -= delta
@@ -227,7 +231,10 @@ func _physics_process(delta: float) -> void:
 	var effective_attack_rate = 1.0 / (attack_speed * (1.0 + attack_speed_bonus))
 	if attack_timer >= effective_attack_rate:
 		attack_timer = 0.0
-		_auto_attack()
+		if signature_active:
+			_auto_attack_signature()
+		else:
+			_auto_attack()
 
 	# Ultimate timer
 	if ultimate_timer > 0:
@@ -254,11 +261,11 @@ func get_total_damage() -> float:
 	if has_upgrade("roadie_rage"):
 		var pct = float(current_hp) / float(max_hp + max_hp_bonus)
 		if pct <= 0.25:
-			base *= 1.30  # +30% Schaden unter 25% HP
+			base *= 1.35  # +35% Schaden unter 25% HP (Wert aus Upgrade-DB)
 	# Kill streak
 	if has_upgrade("kill_streak"):
 		var streaks = int(kill_count_this_wave / 5)
-		base *= (1.0 + streaks * 0.05)
+		base *= (1.0 + streaks * 0.06)  # Wert aus Upgrade-DB (kill_streak_bonus)
 	base *= (1.0 + rhythm_damage_bonus)
 	base *= (1.0 + crowd_damage_bonus)
 	return base
@@ -275,7 +282,7 @@ func take_damage(amount: float) -> void:
 	if has_upgrade("feedback_loop"):
 		var crowd = get_tree().get_first_node_in_group("crowd_meter")
 		if crowd:
-			crowd.add_fill(0.03)
+			crowd.add_fill(0.04)  # Wert aus Upgrade-DB (crowd_fill_on_hit)
 
 	emit_signal("hp_changed", current_hp, max_hp + max_hp_bonus)
 	if current_hp <= 0:
@@ -313,6 +320,11 @@ func _auto_attack() -> void:
 	# Override in subclass
 	pass
 
+func _auto_attack_signature() -> void:
+	# Override in subclass fuer die freigeschaltete Signature-Waffe.
+	# Fallback: normaler Angriff, falls ein Charakter (noch) keine Signature hat.
+	_auto_attack()
+
 func _use_ultimate() -> void:
 	# Override in subclass
 	emit_signal("ultimate_used")
@@ -338,6 +350,10 @@ func on_kill(enemy) -> void:
 	kill_count_this_wave += 1
 	kills_total += 1
 	GameManager.add_kill()
+	# Crowd-Meter fuellt sich pro Kill (vorher faelschlich pro Attacke)
+	var crowd_sys = get_tree().get_first_node_in_group("crowd_meter")
+	if crowd_sys != null and crowd_sys.has_method("add_kill"):
+		crowd_sys.add_kill()
 	if lifesteal_per_kill > 0:
 		heal(lifesteal_per_kill)
 	# Award XP (defaults to 10 if missing)
@@ -410,7 +426,8 @@ func apply_upgrade_by_id(id: String) -> void:
 
 const _PROJ_VARIETY = {
 	"manni": 0, "shouter": 1, "dreads": 2,
-	"riff_slicer": 3, "distortion": 4, "bassist": 5
+	"riff_slicer": 3, "distortion": 4, "bassist": 5,
+	"pimmel": 6, "theo": 7,
 }
 
 func spawn_projectile(direction: Vector2, damage: float = -1, speed: float = 400.0, pierce: int = 0) -> void:
