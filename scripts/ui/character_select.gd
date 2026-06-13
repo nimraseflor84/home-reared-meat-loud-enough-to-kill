@@ -4,7 +4,7 @@ const BASE_CHARACTERS = ["manni", "shouter", "dreads", "riff_slicer", "distortio
 const CHAR_ROLES = {
 	"manni": "DRUMMER", "shouter": "GROWLER", "dreads": "SCREAMER",
 	"riff_slicer": "LEAD GUITAR", "distortion": "RHYTHM GUITAR", "bassist": "BASS",
-	"pimmel": "MERCH", "theo": "STAGEHAND",
+	"pimmel": "MERCH", "theo": "STAGEHAND", "toxo": "MUTANT",
 }
 # Anzeigenamen der Signature-Waffen (freischaltbar durch Sieg auf Drink Fight Die!)
 const SIGNATURE_NAMES = {
@@ -709,6 +709,36 @@ func _draw_char_preview(canvas: Control, char_id: String, _color: Color, unlocke
 			canvas.draw_arc(c+Vector2(0,-18+bob), 5.0, 0.3, PI-0.3, 8, Color(0.45,0.25,0.15), 1.5)
 			canvas.draw_line(c+Vector2(-8,-24+bob), c+Vector2(-3,-23+bob), Color(0.1,0.1,0.1), 2.0)
 			canvas.draw_line(c+Vector2(3,-23+bob),  c+Vector2(8,-24+bob),  Color(0.1,0.1,0.1), 2.0)
+		"toxo":
+			# Bonus-Charakter: gruener Mutant mit leuchtenden Augen
+			var skin   = Color(0.45, 0.78, 0.30)
+			var skin_d = Color(0.30, 0.58, 0.20)
+			var overall = Color(0.40, 0.30, 0.10)
+			var glow   = Color(0.75, 1.0, 0.25)
+			# Schuhe
+			canvas.draw_rect(Rect2(c+Vector2(-12,24+bob), Vector2(11,4)), Color(0.12,0.10,0.06))
+			canvas.draw_rect(Rect2(c+Vector2(-1,24+bob),  Vector2(11,4)), Color(0.12,0.10,0.06))
+			# Beine
+			canvas.draw_rect(Rect2(c+Vector2(-10,12+bob), Vector2(8,13)), skin)
+			canvas.draw_rect(Rect2(c+Vector2(2,12+bob),   Vector2(8,13)), skin)
+			# Latzhose
+			canvas.draw_rect(Rect2(c+Vector2(-11,-6+bob), Vector2(22,18)), overall)
+			# Arme
+			canvas.draw_rect(Rect2(c+Vector2(-17,-1+bob), Vector2(7,11)), skin)
+			canvas.draw_rect(Rect2(c+Vector2(10,-1+bob),  Vector2(7,11)), skin)
+			canvas.draw_circle(c+Vector2(-16,9+bob), 5, skin)
+			canvas.draw_circle(c+Vector2(16,9+bob),  5, skin)
+			# Kopf
+			canvas.draw_circle(c+Vector2(0,-22+bob), 14, skin)
+			canvas.draw_circle(c+Vector2(-7,-26+bob), 4, skin_d)
+			canvas.draw_circle(c+Vector2(7,-19+bob), 3, skin_d)
+			# Leuchtende Augen
+			canvas.draw_circle(c+Vector2(-5,-24+bob), 3.2, glow)
+			canvas.draw_circle(c+Vector2(5,-24+bob),  3.2, glow)
+			canvas.draw_circle(c+Vector2(-5,-24+bob), 1.4, Color(0.05,0.10,0.0))
+			canvas.draw_circle(c+Vector2(5,-24+bob),  1.4, Color(0.05,0.10,0.0))
+			# Maul
+			canvas.draw_arc(c+Vector2(0,-16+bob), 5, 0.1, PI-0.1, 8, Color(0.10,0.20,0.05), 2.5)
 
 func _unlock_wave(char_id: String) -> int:
 	match char_id:
